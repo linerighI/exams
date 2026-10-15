@@ -1,0 +1,104 @@
+export type Question = {
+  id: string;
+  text: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+  page: number;
+  image?: string;
+  difficulty?: string;
+  bankId?: string;
+  geometryId?: string;
+};
+export type Exam = {
+  id: string;
+  title: string;
+  subject: string;
+  grade: string;
+  section: string;
+  term: string;
+  kind: string;
+  duration: number;
+  total: number;
+  difficulty: string;
+  cameraRequired: boolean;
+  opensAt: string;
+  closesAt: string;
+  questions: Question[];
+  sourceId?: string;
+  sourcePages?: number[];
+  sourceExcludeFiller?: boolean;
+  status: 'draft' | 'published' | 'closed';
+  code: string;
+  resultsPublished: boolean;
+  version: number;
+  createdAt: string;
+};
+export type Student = { id: string; name: string; grade: string; section: string; code: string };
+export type Attempt = {
+  id: string;
+  examId: string;
+  studentId: string;
+  studentName?: string;
+  examTitle?: string;
+  startedAt: number;
+  deadline: number;
+  submittedAt: number | null;
+  answers: Record<string, number>;
+  lateAnswers: Record<string, number>;
+  revisions: Record<string, number>;
+  score: number | null;
+  status: string;
+  cameraExempt: boolean;
+  cameraAvailable: boolean;
+  photos?: { id: string; createdAt: number }[];
+  cameraRequests?: { id: string; state: string; createdAt: number }[];
+};
+export type Source = {
+  id: string;
+  name: string;
+  pages: { page: number; text: string; images: string[] }[];
+};
+export type Settings = {
+  school: string;
+  retentionDays: number;
+  model: string;
+  pythonPath: string;
+  aiProvider?: 'ollama' | 'gemini';
+  geminiModel?: string;
+  localSpeed?: 'fast' | 'manual';
+  hasGeminiKey?: boolean;
+};
+export type TeacherAccount = {
+  id: string;
+  username: string;
+  name: string;
+  isAdmin: boolean;
+  disabled: boolean;
+};
+export type Session = {
+  token: string;
+  role: 'teacher' | 'student';
+  student?: Student;
+  teacherId?: string;
+  teacher?: TeacherAccount;
+};
+export interface DesktopAPI {
+  request: (path: string, method?: string, body?: unknown) => Promise<any>;
+  host: () => Promise<any>;
+  discover: () => Promise<any[]>;
+  pair: (host: string, code: string) => Promise<any>;
+  readBackup: () => Promise<boolean>;
+  saveBackup: () => Promise<boolean>;
+  exportCSV: (csv: string) => Promise<boolean>;
+  downloadModel: (model: string) => Promise<any>;
+  openOllama: () => Promise<void>;
+  openProvider: (provider: string) => Promise<void>;
+  exportBankPDF: (bookId: string) => Promise<boolean>;
+  onEvent: (callback: (event: any) => void) => () => void;
+}
+declare global {
+  interface Window {
+    desktop?: DesktopAPI;
+  }
+}

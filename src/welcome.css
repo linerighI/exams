@@ -1,0 +1,275 @@
+.prism-login.welcome-studio.login-page {
+  min-height: 100dvh;
+  padding: 18px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 40% -15%, #a6bad7, transparent 52%), #e6ebf1;
+}
+.prism-login .welcome-frame {
+  width: min(1220px, 100%);
+  min-height: min(700px, calc(100dvh - 60px));
+  padding: 10px;
+  border: 2px solid #ffffffd9;
+  border-radius: 34px;
+  background: #fff9;
+  box-shadow:
+    0 0 0 5px #ffffff40,
+    0 25px 90px #5b6e8922;
+  overflow: hidden;
+}
+.prism-login .login-layout {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+  min-height: inherit;
+  margin: 0;
+}
+.prism-login .login-story {
+  direction: rtl;
+  position: relative;
+  min-height: 630px;
+  border-radius: 25px;
+  padding: 38px;
+  overflow: hidden;
+  display: block;
+  background:
+    radial-gradient(ellipse at 18% 38%, #7090bd 0, transparent 46%),
+    radial-gradient(ellipse at 70% 8%, #87b0e9 0, transparent 40%),
+    radial-gradient(ellipse at 72% 65%, #fafcff 0, transparent 58%), #dae9ff;
+}
+.prism-wordmark {
+  position: absolute;
+  top: 21%;
+  left: 5%;
+  right: 3%;
+  font:
+    800 clamp(48px, 6.8vw, 94px)/1.2 Tajawal,
+    sans-serif;
+  color: #fff;
+  letter-spacing: -2px;
+  white-space: nowrap;
+}
+.prism-orb {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: saturate(0.85);
+}
+.prism-glass {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 47%;
+  bottom: 0;
+  backdrop-filter: blur(17px);
+  background: linear-gradient(#ffffff0a, #e7f0fd40);
+  border-top: 1px solid #ffffff35;
+}
+.prism-caption {
+  position: absolute;
+  bottom: 32px;
+  right: 32px;
+  left: 32px;
+  color: #1b2431;
+}
+.prism-login .prism-caption h1 {
+  font-size: 30px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  letter-spacing: -0.7px;
+}
+.prism-login .prism-caption p {
+  font-size: 16px;
+  margin: 0;
+  color: #4c5664;
+}
+.prism-login .login-card.card {
+  direction: rtl;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 25px;
+  box-shadow: none;
+  padding: 42px clamp(28px, 4vw, 65px) 24px;
+  background: linear-gradient(135deg, #eaeef3, #f5f7f9 70%);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+.prism-login .login-card-icon {
+  background: #fffd;
+  border: 1px solid #fff;
+  color: #8091a9;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px #42506412;
+  margin-bottom: 18px;
+}
+.prism-login .login-card h2 {
+  font-size: 29px;
+  color: #171c22;
+  margin: 0 0 22px;
+}
+.prism-login .mode-switch {
+  border-radius: 14px;
+  padding: 4px;
+  background: #e3e7ed;
+  margin-bottom: 22px;
+}
+.prism-login .mode-switch button {
+  font-size: 13px;
+  min-height: 38px;
+  color: #707884;
+}
+.prism-login .mode-switch button.selected {
+  color: #5b6d87;
+  background: #fff;
+  box-shadow: 0 3px 10px #5462750b;
+}
+.prism-login .field {
+  color: #333a43;
+  font-size: 13px;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.prism-login .field input,
+.prism-login .field textarea {
+  border: 1px solid #fff5;
+  background: #fffa;
+  min-height: 45px;
+  border-radius: 15px;
+  color: #212933;
+  box-shadow: none;
+}
+.prism-login .field input:focus {
+  border-color: #a1b4ce;
+  outline: 3px solid #b4c4db30;
+}
+.prism-password {
+  position: relative;
+  display: block;
+}
+.prism-password input {
+  width: 100%;
+  padding-inline-end: 60px;
+}
+.password-toggle {
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 8px;
+  font-size: 11px;
+  color: #7c8898;
+  padding: 5px;
+  background: transparent;
+}
+.prism-login.welcome-studio .primary {
+  background: #5d8ac9;
+  border: 1px solid #5d8ac9;
+  box-shadow: none;
+  border-radius: 24px;
+  min-height: 45px;
+  color: #fff;
+}
+.prism-login.welcome-studio .primary:hover {
+  background: #4c79b9;
+  box-shadow: 0 7px 20px #5d8ac925;
+}
+.prism-login .login-bottom {
+  border: 0;
+  margin-top: 30px;
+  padding: 14px 0 0;
+}
+.ministry-brand {
+  object-fit: contain;
+  width: 228px;
+  height: 48px;
+}
+.prism-login .pair-form {
+  display: grid;
+  gap: 10px;
+}
+@media (max-width: 800px) {
+  .prism-login .login-layout {
+    grid-template-columns: 1fr;
+  }
+  .prism-login .login-story {
+    min-height: 240px;
+  }
+  .prism-wordmark {
+    font-size: 58px;
+    top: 20%;
+  }
+  .prism-orb {
+    top: 20%;
+    transform: translateX(-50%) scale(0.55);
+    transform-origin: top center;
+  }
+  .prism-caption {
+    bottom: 16px;
+  }
+  .prism-login .prism-caption h1 {
+    font-size: 21px;
+  }
+  .prism-login .login-card.card {
+    padding: 26px;
+  }
+}
+@media (max-height: 850px) and (min-width: 801px) {
+  .prism-login .welcome-frame {
+    min-height: min(660px, calc(100dvh - 60px));
+  }
+  .prism-login .login-card.card {
+    padding: 22px 44px 16px;
+  }
+  .prism-login .login-card-icon {
+    width: 34px;
+    height: 34px;
+    margin-bottom: 10px;
+  }
+  .prism-login .login-card-icon svg {
+    width: 23px;
+    height: 23px;
+  }
+  .prism-login .login-card h2 {
+    font-size: 26px;
+    margin-bottom: 14px;
+  }
+  .prism-login .mode-switch {
+    margin-bottom: 14px;
+  }
+  .prism-login .mode-switch button {
+    padding: 8px;
+    min-height: 34px;
+  }
+  .prism-login .field {
+    margin-bottom: 10px;
+    gap: 5px;
+    line-height: 1.5;
+  }
+  .prism-login .field input {
+    min-height: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .prism-login .login-bottom {
+    margin-top: 16px;
+    padding-top: 4px;
+  }
+  .prism-login .login-bottom .ministry-brand {
+    height: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prism-login *,
+  .floating-assistant * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

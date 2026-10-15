@@ -1,0 +1,101 @@
+{
+  "name": "alshereqi-exams",
+  "version": "1.4.3",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"node scripts/dev-server.cjs\" \"vite --host 127.0.0.1\"",
+    "desktop": "npm run build && electron .",
+    "build": "tsc --noEmit && vite build && esbuild desktop/main.ts --bundle --platform=node --format=cjs --external:electron --packages=external --outfile=desktop/main.cjs && esbuild desktop/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=desktop/preload.cjs",
+    "test": "node scripts/run-tests.cjs",
+    "test:ollama": "node scripts/test-ollama.cjs",
+    "test:math": "node scripts/test-math.cjs",
+    "dist": "npm run icon && npm run build && electron-builder --win nsis",
+    "postinstall": "electron-builder install-app-deps",
+    "worker:build": "powershell -ExecutionPolicy Bypass -File scripts/build-worker.ps1",
+    "test:ui": "node tests/ui.cjs",
+    "test:desktop": "npm run build && node tests/desktop.cjs",
+    "icon": "node scripts/create-icon.cjs",
+    "test:packaged": "node tests/packaged.cjs"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.0.0",
+    "@fontsource/tajawal": "^5.2.0",
+    "better-sqlite3": "^12.0.0",
+    "csv-parse": "^7.0.3",
+    "fastify": "^5.0.0",
+    "katex": "^0.19.0",
+    "lucide-react": "^0.468.0",
+    "motion": "^14.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "selfsigned": "^5.5.0",
+    "undici": "^7.30.0",
+    "ws": "^8.18.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/katex": "^0.16.8",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.5.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "concurrently": "^9.0.0",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.64.0",
+    "prettier": "^3.9.10",
+    "sharp": "^0.35.5",
+    "tsx": "^4.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.0.0"
+  },
+  "build": {
+    "appId": "school.alshereqi.exams",
+    "productName": "Alshereqi Exams",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/*.cjs",
+      "package.json",
+      "node_modules/**/*",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "worker",
+        "to": "worker",
+        "filter": [
+          "**/*",
+          "!__pycache__/**",
+          "!build/**",
+          "!dist/**"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "include": "scripts/installer.nsh",
+      "perMachine": true
+    },
+    "beforePack": "scripts/check-worker.cjs"
+  },
+  "description": "Arabic offline LAN school examinations",
+  "author": "Alshereqi School"
+}

@@ -1,0 +1,271 @@
+.assistant-orb {
+  transition: none !important;
+  position: fixed;
+  z-index: 95;
+  width: 74px;
+  height: 74px;
+  padding: 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 8px 18px #7a9ac635);
+}
+.assistant-orb:active {
+  cursor: grabbing;
+}
+.assistant-orb:focus-visible {
+  outline: 3px solid #8baedf;
+  outline-offset: 4px;
+}
+.orb-close-mark {
+  position: absolute;
+  color: #fff;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px #43628d);
+}
+.orb-chat {
+  position: fixed;
+  z-index: 94;
+  direction: rtl;
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px;
+  border: 1px solid #fff;
+  box-shadow:
+    0 22px 85px #495d792f,
+    0 0 0 5px #ffffff32;
+  background: linear-gradient(145deg, #fafcfff7, #eff6fff7);
+  backdrop-filter: blur(24px);
+  overflow: hidden;
+}
+.orb-chat header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5ebf36b;
+  padding: 17px 20px;
+  color: #424e60;
+}
+.orb-chat header > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.orb-chat header button {
+  border: 0;
+  background: transparent;
+  color: #939dac;
+  padding: 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
+.orb-chat header button:hover {
+  background: #e8f0fb;
+  color: #506788;
+}
+.orb-thread {
+  padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1;
+  min-height: 140px;
+}
+.orb-welcome {
+  padding: 27px 6px 32px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.orb-welcome h3 {
+  font-size: 23px;
+  margin: 12px 0;
+  color: #3c4859;
+}
+.orb-shortcuts {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.orb-shortcuts button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e3e9f1;
+  background: #fff9;
+  border-radius: 12px;
+  padding: 8px 11px;
+  color: #7c889a;
+  font-size: 12px;
+}
+.orb-message {
+  margin: 0 0 17px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #3d4c60;
+}
+.orb-message > small {
+  display: block;
+  font-size: 10px;
+  color: #99a2af;
+  margin-bottom: 6px;
+}
+.orb-message.user {
+  background: #e7edf6a6;
+  border: 1px solid #ffffff9c;
+  border-radius: 18px;
+  padding: 10px 14px;
+  margin-inline-start: 18px;
+}
+.orb-results {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+.orb-result {
+  border: 1px solid #e7edf5;
+  background: linear-gradient(125deg, #fff, #edf2fa);
+  border-radius: 16px;
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.orb-result > svg {
+  color: #9aaeca;
+}
+.orb-result > div {
+  flex: 1;
+}
+.orb-result strong {
+  font-size: 13px;
+  display: block;
+}
+.orb-result small {
+  font-size: 10px;
+  display: block;
+  color: #929dac;
+}
+.orb-result > button {
+  padding: 6px 9px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  border-radius: 10px;
+  background: #fff;
+  color: #6a82a3;
+  font-size: 11px;
+}
+.orb-result details {
+  width: 100%;
+  font-size: 12px;
+  max-height: 180px;
+  overflow: auto;
+}
+.orb-composer {
+  flex-shrink: 0;
+  margin: 0 14px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  display: flex;
+  align-items: flex-end;
+  padding: 9px;
+  position: relative;
+}
+.orb-composer textarea {
+  resize: none;
+  flex: 1;
+  min-width: 0;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none;
+  background: transparent;
+  padding: 5px;
+  font-size: 13px;
+  min-height: 54px;
+  max-height: 100px;
+}
+.orb-composer:focus-within {
+  border-color: #a7bcd9;
+  box-shadow: 0 0 0 3px #bccde524;
+}
+.orb-composer textarea:focus-visible {
+  outline: none !important;
+}
+.orb-composer > button {
+  border: 0;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  background: #9cb5d9;
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.orb-composer > button:disabled {
+  opacity: 0.45;
+}
+.orb-working {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 12px;
+  color: #929dad;
+}
+.orb-command-list {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 0;
+  right: 0;
+  padding: 7px;
+  background: #fffc;
+  backdrop-filter: blur(20px);
+  border: 1px solid #e3eaf4;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px #475c7915;
+}
+.orb-command-list button {
+  display: flex;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 9px;
+  gap: 15px;
+  justify-content: space-between;
+  background: transparent;
+  color: #687b96;
+}
+.orb-command-list button:hover {
+  background: #edf2fa;
+}
+.orb-command-list small {
+  font-size: 10px;
+}
+.topbar .ministry-brand {
+  width: 180px;
+  height: 38px;
+  margin-inline-start: 20px;
+}
+.bank-pick-check {
+  max-width: 100%;
+  font-size: 11px;
+}
+@media (max-width: 800px) {
+  .topbar .ministry-brand {
+    width: 115px;
+    height: 30px;
+    margin-inline-start: 8px;
+  }
+  .orb-chat {
+    max-height: calc(100dvh - 110px) !important;
+  }
+}

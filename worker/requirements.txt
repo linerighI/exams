@@ -1,0 +1,5 @@
+PyMuPDF==1.26.4
+paddleocr==2.10.0
+paddlepaddle==2.6.2
+numpy<2
+pyinstaller>=6.12,<7

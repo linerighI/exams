@@ -1,0 +1,736 @@
+/* The same frame and navigation remain in place on every tab. Scrolling is retained. */
+* {
+  scrollbar-width: none !important;
+}
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+body:has(.app-shell) {
+  overflow: hidden;
+}
+.studio-mode {
+  height: 100dvh;
+  min-height: 0;
+}
+.studio-mode .main-shell {
+  height: 100dvh;
+  min-height: 0;
+}
+.studio-mode .topbar {
+  flex-shrink: 0;
+}
+.studio-mode main {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 0 24px 12px;
+  display: flex;
+  overflow: hidden;
+}
+.studio-mode .app-footer {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 26px;
+  font-size: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.page-surface {
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: radial-gradient(ellipse at 10% 10%, #edf4f66b, transparent 40%), #ffffffd9;
+  border: 1px solid #ffffffed;
+  border-radius: 25px;
+  box-shadow: 0 20px 70px #23427412;
+  padding: 28px 30px;
+}
+.page-surface.assistant-surface {
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+}
+.page-surface.assistant-surface .ai-studio {
+  min-height: 0;
+}
+.page-surface .page-title {
+  margin-bottom: 24px;
+  align-items: center;
+}
+.page-surface .page-title h1 {
+  font-size: 26px;
+  font-weight: 700;
+}
+.page-surface .page-title p {
+  font-size: 13px;
+  margin-top: 8px;
+  color: #8c9aaf;
+}
+.page-surface .card {
+  border: 1px solid #e7edf5;
+  background: #ffffffb8;
+  border-radius: 20px;
+  box-shadow: 0 6px 25px #415b8408;
+}
+.page-surface .primary {
+  background: linear-gradient(135deg, #72a3ef, #407bea);
+  box-shadow: 0 5px 13px #4382e42b;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.page-surface .secondary {
+  background: #f7f9fc;
+  border-color: #e0e7f2;
+  border-radius: 12px;
+}
+.page-surface input,
+.page-surface select,
+.page-surface textarea {
+  border-color: #e1e8f2;
+  background: #fff9;
+  font-size: 14px;
+  border-radius: 11px;
+}
+.page-surface .field {
+  font-size: 12px;
+  color: #8c9eb7;
+}
+.page-surface .hero-card {
+  border-radius: 22px;
+  box-shadow: 0 10px 30px #3878d11c;
+}
+.page-surface .stat-card {
+  border-radius: 18px;
+  border: 1px solid #e7edf5;
+  box-shadow: 0 5px 18px #415b8407;
+}
+.page-surface .stat-icon {
+  border-radius: 14px;
+}
+.page-surface .exam-card {
+  border-radius: 20px;
+  background: linear-gradient(150deg, #fff, #f7faff);
+  border: 1px solid #e5edf7;
+  box-shadow: 0 5px 16px #415b8408;
+  transition:
+    transform 0.22s,
+    box-shadow 0.22s;
+}
+.page-surface .exam-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 25px #415b8412;
+}
+.page-surface .table-card {
+  overflow: hidden;
+}
+.page-surface th {
+  background: #f3f6fa !important;
+  color: #8094af;
+  font-weight: 600;
+}
+.page-surface td {
+  padding-block: 17px;
+  border-color: #edf1f7;
+}
+.page-surface .settings-grid {
+  gap: 22px;
+}
+.page-surface .settings-grid h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.page-surface .settings-grid .card {
+  background: linear-gradient(160deg, #fff, #f8fbff);
+}
+.page-surface .empty-icon {
+  border-radius: 23px;
+  background: linear-gradient(135deg, #e8f3ff, #e0eaf8);
+  color: #81a3d4;
+  box-shadow: 0 8px 20px #779fcf14;
+}
+.page-surface .empty h3 {
+  font-weight: 600;
+}
+.page-surface .book-layout {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+.page-surface .book-list {
+  padding: 24px;
+  background: linear-gradient(155deg, #edf3fb, #eff4f0);
+}
+.page-surface .book-content {
+  padding: 25px;
+  border-color: #edf1f7;
+  min-height: 500px;
+}
+.book-upload input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+.book-upload:focus-within {
+  outline: 3px solid #a8c9f5;
+}
+.book-upload {
+  position: relative;
+}
+.book-content .empty {
+  background: radial-gradient(ellipse at center, #e8f0fb80, transparent 60%);
+  min-height: 430px;
+}
+.book-content .empty > svg {
+  color: #80a8d8;
+  padding: 16px;
+  box-sizing: content-box;
+  background: #eaf2fc;
+  border: 1px solid white;
+  border-radius: 24px;
+  box-shadow: 0 12px 25px #86a8d32b;
+  margin-bottom: 14px;
+}
+.editor-surface .page-title {
+  margin-bottom: 20px;
+}
+.editor-surface .page-title p {
+  max-width: 650px;
+}
+.exam-stages {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+  max-width: 1040px;
+}
+.exam-stages button {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  justify-content: start;
+  text-align: right;
+  padding: 14px 18px;
+  background: #f3f6f9;
+  border: 1px solid #e9eef5;
+  border-radius: 14px;
+  gap: 2px 12px;
+  color: #96a5bb;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.exam-stages button > span {
+  grid-row: span 2;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border-radius: 50%;
+  color: #91a6c1;
+  font-size: 11px;
+}
+.exam-stages strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.exam-stages small {
+  font-size: 10px;
+}
+.exam-stages button.active {
+  background: #e7f0fc;
+  border-color: #c9dcf6;
+  color: #527aad;
+}
+.exam-stages button.active > span {
+  background: #7fa9e7;
+  color: white;
+  box-shadow: 0 3px 7px #80a7e233;
+}
+.editor-surface .editor-layout {
+  grid-template-columns: minmax(0, 1fr) 255px;
+  gap: 22px;
+}
+.editor-surface .editor-main {
+  gap: 16px;
+}
+.editor-surface .editor-section {
+  padding: 24px;
+  border: 1px solid #e6edf6;
+  box-shadow: none;
+  animation: section-in 0.2s ease-out;
+}
+.editor-surface .section-heading {
+  margin-bottom: 22px;
+}
+.editor-surface .section-heading h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.editor-surface .section-heading p {
+  font-size: 12px;
+}
+.editor-surface .step {
+  display: none;
+}
+.editor-surface .editor-summary {
+  background: linear-gradient(155deg, #edf4ff, #f3f7f6);
+  border: 1px solid #fff;
+  padding: 24px 20px;
+  top: 0;
+  box-shadow: none;
+  border-radius: 20px;
+}
+.editor-surface .summary-icon {
+  background: #ffffff9c;
+  border: 1px solid white;
+  box-shadow: 0 6px 13px #628bbb12;
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  color: #81a3d4;
+}
+.editor-surface .editor-summary h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.editor-surface .editor-summary dt {
+  color: #8ca1b9;
+}
+.editor-surface .editor-summary dd {
+  color: #526e93;
+}
+.editor-surface .editor-summary .info-note {
+  font-size: 11px;
+  background: #ffffff80;
+  border: 1px solid #fff;
+}
+.editor-surface .upload-area {
+  background: radial-gradient(ellipse at 20% 20%, #e5effd, transparent 70%), #f4f8fd;
+  min-height: 175px;
+  border: 1px dashed #bcd1ee;
+  border-radius: 18px;
+}
+.editor-surface .upload-icon {
+  border-radius: 17px;
+  background: #ffffffc2;
+  border: 1px solid #fff;
+  color: #82aae1;
+  box-shadow: 0 5px 15px #86a8d321;
+}
+.editor-surface .upload-area strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.editor-surface .form-grid {
+  gap: 0 20px;
+}
+.editor-surface .field {
+  margin-bottom: 17px;
+}
+.editor-surface .source-review {
+  margin-top: 20px;
+}
+.editor-surface .question-tabs button {
+  border-radius: 50%;
+  width: 33px;
+  height: 33px;
+  min-width: 33px;
+  background: #f0f4fa;
+  color: #91a6c1;
+  font-size: 12px;
+}
+.editor-surface .question-tabs button.active {
+  background: #84a9e3;
+  color: white;
+}
+.editor-step-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px;
+}
+.question-mode-switch {
+  display: flex;
+  padding: 4px;
+  background: #f1f5fa;
+  border-radius: 11px;
+  width: fit-content;
+  gap: 4px;
+  margin: 15px 0 22px;
+}
+.question-mode-switch button {
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 8px 13px;
+  color: #97a7bc;
+  background: transparent;
+}
+.question-mode-switch button.active {
+  background: #fff;
+  color: #638bbf;
+  box-shadow: 0 2px 8px #3b5b890b;
+}
+.teacher-question-preview h2 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.85;
+  color: #344963;
+  margin-bottom: 22px;
+}
+.teacher-question-preview > .eyebrow {
+  font-size: 10px;
+  margin-bottom: 13px;
+}
+.teacher-question-preview > img {
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+  margin: 15px auto;
+}
+.preview-answers {
+  display: grid;
+  gap: 11px;
+}
+.preview-answers > button {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 17px 18px;
+  border: 1px solid #e1e8f2;
+  border-radius: 13px;
+  background: #fcfdff;
+  color: #4c6382;
+  text-align: right;
+  gap: 12px;
+  min-height: 59px;
+  font-size: 17px;
+}
+.preview-answers > button.correct {
+  border-color: #bcd9cc;
+  background: #f0f8f4;
+}
+.preview-answers .math-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: normal;
+}
+.preview-radio {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #c5d2e2;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: #77a891;
+}
+.preview-answers .correct .preview-radio {
+  border-color: transparent;
+}
+.preview-letter {
+  font-size: 12px;
+  color: #9cacc3;
+}
+.preview-answers small {
+  font-size: 10px;
+  color: #87a895;
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+.answer-explanation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f6f8fb;
+  border: 1px solid #eef2f7;
+  border-radius: 13px;
+  margin-top: 22px;
+  padding: 18px;
+  font-size: 15px;
+  line-height: 1.9;
+}
+.answer-explanation strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9aacc0;
+}
+.question-edit-fields .answer-editor label {
+  display: grid;
+  grid-template-columns: 18px 20px minmax(0, 1fr) 20px;
+  gap: 9px;
+}
+.question-edit-fields .answer-editor input:not([type='radio']) {
+  direction: ltr;
+  text-align: start;
+}
+.formula {
+  overflow: visible !important;
+  max-width: none;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.formula .katex {
+  font-size: 1.14em;
+}
+.formula .katex-html {
+  white-space: nowrap;
+}
+.formula-editor .formula-tools .formula {
+  overflow: visible;
+}
+.formula-editor .formula-tools button {
+  min-height: 36px;
+}
+.student-options .math-text {
+  font-size: 18px;
+  line-height: 1.7;
+}
+.student-options button {
+  gap: 14px;
+}
+.exam-question > h2 {
+  line-height: 1.8;
+  font-size: 24px;
+  font-weight: 600;
+}
+[hidden] {
+  display: none !important;
+}
+@keyframes section-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (min-width: 1700px) {
+  .studio-mode main {
+    padding: 4px 32px 12px;
+    height: auto;
+  }
+  .page-surface {
+    padding: 32px 38px;
+  }
+  .editor-surface .editor-layout {
+    grid-template-columns: minmax(0, 1fr) 285px;
+  }
+  .exam-stages {
+    max-width: none;
+  }
+  .teacher-question-preview h2 {
+    font-size: 25px;
+  }
+  .preview-answers > button {
+    font-size: 19px;
+  }
+}
+@media (max-width: 1100px) {
+  .page-surface {
+    padding: 22px;
+  }
+  .editor-surface .editor-layout {
+    grid-template-columns: minmax(0, 1fr) 220px;
+  }
+  .exam-stages button {
+    padding: 11px;
+    gap: 2px 6px;
+  }
+  .exam-stages small {
+    display: none;
+  }
+  .page-surface .book-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+}
+@media (max-width: 850px) {
+  .editor-surface .editor-layout,
+  .page-surface .book-layout {
+    grid-template-columns: 1fr;
+  }
+  .editor-summary {
+    position: static;
+  }
+  .exam-stages button {
+    grid-template-columns: 1fr;
+  }
+  .exam-stages button > span {
+    display: none;
+  }
+  .exam-stages strong {
+    font-size: 11px;
+  }
+  .studio-mode main {
+    padding: 0 12px 8px;
+  }
+  .page-surface {
+    padding: 18px;
+  }
+  .preview-answers small {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-section {
+    animation: none !important;
+  }
+  .page-surface .exam-card,
+  .exam-stages button {
+    transition: none;
+  }
+}
+.book-upload > span small {
+  display: block;
+  font-size: 10px;
+  color: #94a7bc;
+  margin-top: 6px;
+}
+.upload-error {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #edcdc7;
+  background: #fff5f2;
+  color: #b97868;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+.editor-surface .question-tabs button.selected {
+  background: #84a9e3;
+  color: white;
+}
+.teacher-question-preview .formula {
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+.page-surface .student-options button.selected {
+  background: #eef5ff;
+}
+.page-surface .book-content .workspace-toolbar {
+  align-items: end;
+}
+.page-surface .book-content .workspace-toolbar > label {
+  font-size: 12px;
+  color: #91a3ba;
+}
+.book-content .workspace-toolbar select {
+  max-width: 220px;
+}
+.formula {
+  margin-inline: 0.12em;
+}
+.editor-surface:has(.questions-section:not([hidden])) .page-title p {
+  display: none;
+}
+.editor-surface:has(.questions-section:not([hidden])) .page-title {
+  margin-bottom: 12px;
+}
+.editor-surface:has(.questions-section:not([hidden])) .back-link {
+  margin-bottom: 5px;
+}
+.questions-section .section-heading p {
+  display: none;
+}
+.questions-section .section-heading {
+  margin-bottom: 12px;
+}
+.questions-section .section-heading h2 {
+  font-size: 17px;
+}
+.questions-section .question-tabs {
+  margin-bottom: 12px;
+  gap: 7px;
+}
+.questions-section .question-heading {
+  margin-bottom: 10px;
+}
+.questions-section .question-mode-switch {
+  margin: 10px 0 15px;
+}
+.questions-section .teacher-question-preview h2 {
+  margin-bottom: 17px;
+}
+.questions-section .teacher-question-preview > .eyebrow {
+  margin-bottom: 9px;
+}
+.questions-section .preview-answers {
+  gap: 9px;
+}
+.questions-section .preview-answers > button {
+  min-height: 47px;
+  padding: 12px 16px;
+}
+.questions-section .answer-explanation {
+  padding: 13px 16px;
+  margin-top: 17px;
+  gap: 8px;
+  font-size: 14px;
+}
+.questions-section .question-heading strong {
+  font-size: 11px;
+}
+.questions-section .section-heading > .secondary {
+  min-height: 32px;
+}
+.editor-surface:has(.questions-section:not([hidden])) .exam-stages button {
+  padding-block: 10px;
+}
+.editor-surface:has(.questions-section:not([hidden])) .exam-stages {
+  margin-bottom: 16px;
+}
+.questions-section .question-tabs:has(button:only-child) {
+  display: none;
+}
+.questions-section .teacher-question-preview h2 .math-text {
+  line-height: 1.75;
+}
+.editor-summary dl {
+  margin: 16px 0;
+}
+.editor-summary dl > div {
+  padding-block: 8px;
+}
+@media (max-height: 820px) {
+  .questions-section {
+    padding: 18px !important;
+  }
+  .questions-section .preview-answers > button {
+    min-height: 41px;
+    padding-block: 9px;
+  }
+  .questions-section .question-mode-switch {
+    margin-top: 7px;
+  }
+  .editor-surface:has(.questions-section:not([hidden])) .page-title h1 {
+    font-size: 23px;
+  }
+  .editor-surface:has(.questions-section:not([hidden])) .back-link {
+    display: none;
+  }
+  .questions-section .teacher-question-preview h2 {
+    font-size: 20px;
+  }
+  .editor-summary .summary-icon {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 12px;
+  }
+  .editor-summary .info-note {
+    margin: 12px 0;
+    padding: 12px;
+  }
+  .editor-summary .approval {
+    margin-block: 12px;
+  }
+}
