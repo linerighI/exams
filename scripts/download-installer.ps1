@@ -25,7 +25,9 @@ try {
       (Get-FileHash -LiteralPath $cachedInstaller -Algorithm SHA256).Hash -eq $settings.sha256) {
     Write-Output 'Reusing the previously verified download.'
   } else {
-    Add-Type -Path (Join-Path $PSScriptRoot 'ParallelInstallerDownload.cs') -ReferencedAssemblies 'System.Net.Http.dll'
+    # Load the prebuilt AnyCPU helper; never compile C# from an NSIS temporary folder.
+    Add-Type -AssemblyName System.Net.Http
+    Add-Type -Path (Join-Path $PSScriptRoot 'ParallelInstallerDownload.dll')
     $download = New-Object SchoolInstaller.ParallelDownload
     Write-Output 'Downloading from GitHub using four connections. Saved progress will resume automatically.'
     $task = $download.DownloadAsync($downloadUri.AbsoluteUri, $cache, $cachedInstaller, [long]$settings.size, 16777216, 4)

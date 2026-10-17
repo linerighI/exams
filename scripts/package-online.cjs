@@ -26,11 +26,26 @@ try {
       2,
     ) + '\n',
   );
+  const framework = path.join(
+    process.env.WINDIR || 'C:\\Windows',
+    'Microsoft.NET',
+    'Framework',
+    'v4.0.30319',
+  );
+  run(path.join(framework, 'csc.exe'), [
+    '/nologo',
+    '/target:library',
+    '/platform:anycpu',
+    '/optimize+',
+    `/reference:${path.join(framework, 'System.Net.Http.dll')}`,
+    `/out:${path.join(root, 'release', 'ParallelInstallerDownload.dll')}`,
+    path.join(root, 'scripts', 'ParallelInstallerDownload.cs'),
+  ]);
   run(process.env.MAKENSIS || path.join(root, '.tools/nsis/Bin/makensis.exe'), [
     `/DAPP_VERSION=${version}`,
     'scripts/webview2-online-installer.nsi',
   ]);
-  const onlineName = `Alshereqi-Exams-${version}-Online-Preview-Fast-Setup.exe`;
+  const onlineName = `Alshereqi-Exams-${version}-Online-Preview-Fast-Fix-Setup.exe`;
   for (const file of [name, onlineName]) {
     const hash = crypto
       .createHash('sha256')

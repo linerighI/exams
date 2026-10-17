@@ -6,7 +6,7 @@ Unicode True
   !error "APP_VERSION is required"
 !endif
 Name "Alshereqi Exams - Online Preview Setup"
-OutFile "..\release\Alshereqi-Exams-${APP_VERSION}-Online-Preview-Fast-Setup.exe"
+OutFile "..\release\Alshereqi-Exams-${APP_VERSION}-Online-Preview-Fast-Fix-Setup.exe"
 InstallDir "$PROGRAMFILES64\Alshereqi Exams WebView2"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
@@ -30,7 +30,7 @@ Section "Download and install"
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
   File /oname=download-installer.ps1 "download-installer.ps1"
-  File /oname=ParallelInstallerDownload.cs "ParallelInstallerDownload.cs"
+  File /oname=ParallelInstallerDownload.dll "..\release\ParallelInstallerDownload.dll"
   File /oname=download.json "..\release\online-installer-download.json"
 download_retry:
   DetailPrint "Downloading the verified application package from GitHub..."
