@@ -4,10 +4,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$client = $null
-$response = $null
-$inputStream = $null
-$outputStream = $null
+$env:PSModulePath = Join-Path $PSHOME 'Modules'
+$cache = $null
 try {
   $settings = Get-Content -LiteralPath $Config -Raw | ConvertFrom-Json
   $downloadUri = [uri]$settings.url
@@ -18,43 +16,44 @@ try {
   if ($settings.sha256 -notmatch '^[a-fA-F0-9]{64}$' -or [long]$settings.size -lt 1) {
     throw 'Invalid installer checksum or size.'
   }
-  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-  Add-Type -AssemblyName System.Net.Http
-  $client = New-Object System.Net.Http.HttpClient
-  $client.Timeout = [TimeSpan]::FromMinutes(30)
-  $client.DefaultRequestHeaders.UserAgent.ParseAdd('Alshereqi-Exams-Online-Setup/1.0')
-  Write-Output 'Downloading the application from GitHub...'
-  $response = $client.GetAsync($downloadUri, [Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
-  $response.EnsureSuccessStatusCode() | Out-Null
-  $inputStream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
-  $outputStream = [IO.File]::Create($Destination)
-  $buffer = New-Object byte[] (1024 * 1024)
-  [long]$received = 0
-  [long]$reported = 0
-  while (($count = $inputStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-    $received += $count
-    if ($received -gt [long]$settings.size) { throw 'Download exceeded the expected package size.' }
-    $outputStream.Write($buffer, 0, $count)
-    if ($received - $reported -ge 10MB) {
-      Write-Output ('Downloaded {0} / {1} MB ({2}%)' -f [math]::Round($received / 1MB), [math]::Round($settings.size / 1MB), [math]::Floor(100 * $received / $settings.size))
-      $reported = $received
+  # Cache by the pinned digest, so a newer release cannot reuse an older package.
+  $cache = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ('Alshereqi Exams WebView2\InstallerCache\' + $settings.sha256.ToLowerInvariant())
+  New-Item -ItemType Directory -Path $cache -Force | Out-Null
+  $cachedInstaller = Join-Path $cache 'verified-setup.exe'
+  if ((Test-Path -LiteralPath $cachedInstaller) -and
+      (Get-Item -LiteralPath $cachedInstaller).Length -eq [long]$settings.size -and
+      (Get-FileHash -LiteralPath $cachedInstaller -Algorithm SHA256).Hash -eq $settings.sha256) {
+    Write-Output 'Reusing the previously verified download.'
+  } else {
+    Add-Type -Path (Join-Path $PSScriptRoot 'ParallelInstallerDownload.cs') -ReferencedAssemblies 'System.Net.Http.dll'
+    $download = New-Object SchoolInstaller.ParallelDownload
+    Write-Output 'Downloading from GitHub using four connections. Saved progress will resume automatically.'
+    $task = $download.DownloadAsync($downloadUri.AbsoluteUri, $cache, $cachedInstaller, [long]$settings.size, 16777216, 4)
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    [long]$previous = $download.Received
+    while (!$task.IsCompleted) {
+      Start-Sleep -Seconds 1
+      [long]$current = $download.Received
+      $speed = [math]::Max(0, ($current - $previous) / [math]::Max(.1, $clock.Elapsed.TotalSeconds))
+      $eta = if ($speed -gt 0) { '{0:mm\:ss}' -f [TimeSpan]::FromSeconds(([long]$settings.size - $current) / $speed) } else { 'estimating' }
+      Write-Output ('{0}% - {1:N0} / {2:N0} MiB - {3:N1} MiB/s - remaining {4}' -f [math]::Floor(100 * $current / $settings.size), ($current / 1MB), ($settings.size / 1MB), ($speed / 1MB), $eta)
+      $previous = $current
+      $clock.Restart()
+    }
+    $task.GetAwaiter().GetResult() | Out-Null
+    Write-Output 'Verifying the downloaded installer...'
+    if ((Get-Item -LiteralPath $cachedInstaller).Length -ne [long]$settings.size -or
+        (Get-FileHash -LiteralPath $cachedInstaller -Algorithm SHA256).Hash -ne $settings.sha256) {
+      # Only clear this digest's generated files when validation fails; network failures retain parts.
+      Get-ChildItem -LiteralPath $cache -File | Where-Object { $_.Name -match '^\d{5}\.part$|^verified-setup\.exe$' } | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+      throw 'Installer checksum mismatch. The download will not be run.'
     }
   }
-  $outputStream.Dispose()
-  $outputStream = $null
-  if ($received -ne [long]$settings.size) { throw 'The download was incomplete. Please run setup again.' }
-  Write-Output 'Verifying the downloaded installer...'
-  $actualHash = (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash
-  if ($actualHash -ne $settings.sha256) { throw 'Installer checksum mismatch. The download will not be run.' }
+  Copy-Item -LiteralPath $cachedInstaller -Destination $Destination -Force
+  Get-ChildItem -LiteralPath $cache -File -Filter '*.part' | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
   Write-Output 'Download verified successfully.'
 } catch {
-  if ($outputStream) { $outputStream.Dispose(); $outputStream = $null }
   if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Force }
-  Write-Output ('Download failed: ' + $_.Exception.Message)
+  Write-Output ('Download failed: ' + $_.Exception.Message + ' Run setup again to resume saved progress.')
   exit 1
-} finally {
-  if ($outputStream) { $outputStream.Dispose() }
-  if ($inputStream) { $inputStream.Dispose() }
-  if ($response) { $response.Dispose() }
-  if ($client) { $client.Dispose() }
 }

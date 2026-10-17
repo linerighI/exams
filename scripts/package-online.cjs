@@ -30,7 +30,7 @@ try {
     `/DAPP_VERSION=${version}`,
     'scripts/webview2-online-installer.nsi',
   ]);
-  const onlineName = `Alshereqi-Exams-${version}-Online-Preview-Setup.exe`;
+  const onlineName = `Alshereqi-Exams-${version}-Online-Preview-Fast-Setup.exe`;
   for (const file of [name, onlineName]) {
     const hash = crypto
       .createHash('sha256')
