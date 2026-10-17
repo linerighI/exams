@@ -11,6 +11,7 @@
     "test:ollama": "node scripts/test-ollama.cjs",
     "test:math": "node scripts/test-math.cjs",
     "dist": "node scripts/package-desktop.cjs",
+    "dist:online": "node scripts/package-online.cjs",
     "postinstall": "node scripts/check-node.cjs",
     "worker:build": "powershell -ExecutionPolicy Bypass -File scripts/build-worker.ps1",
     "test:ui": "node tests/ui.cjs",
