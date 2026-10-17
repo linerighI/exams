@@ -1,0 +1,185 @@
+.school-scientific {
+  background: linear-gradient(155deg, #f6f9ff, #e8effa);
+  border: 1px solid #d6e2f4;
+  border-radius: 24px;
+  padding: 20px;
+  color: #405f88;
+  outline: none;
+}
+.school-scientific > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.school-scientific > header strong {
+  font:
+    800 14px/1.5 Tajawal,
+    sans-serif;
+  letter-spacing: 1px;
+  color: #5175a6;
+}
+.school-scientific > header strong span {
+  font-weight: 400;
+  margin-left: 6px;
+  font-size: 11px;
+}
+.school-scientific > header small {
+  font-size: 10px;
+  color: #8aa0bd;
+}
+.scientific-screen {
+  padding: 15px 18px;
+  background: #fcfeff;
+  border: 1px solid #ceddef;
+  border-radius: 15px;
+  box-shadow: inset 0 2px 6px #3f618309;
+  margin-bottom: 15px;
+}
+.scientific-screen > div {
+  display: flex;
+  justify-content: space-between;
+  color: #91a5bd;
+  font: 600 9px monospace;
+}
+.scientific-expression {
+  display: block;
+  min-height: 20px;
+  margin-top: 12px;
+  color: #91a3b9;
+  font: 12px monospace;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.scientific-screen .calculator-result {
+  background: none;
+  margin: 5px 0 0;
+  padding: 0;
+  font:
+    500 30px/1.4 ui-monospace,
+    Consolas,
+    monospace;
+  min-height: 42px;
+  border-radius: 0;
+}
+.scientific-modes,
+.scientific-functions,
+.scientific-digits {
+  display: grid;
+  gap: 7px;
+  margin: 9px 0;
+}
+.scientific-modes,
+.scientific-functions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.scientific-digits {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 15px;
+}
+.school-scientific button {
+  padding: 10px 5px;
+  background: #fff;
+  border: 1px solid #d7e2f1;
+  border-bottom: 3px solid #ccd9ec;
+  border-radius: 10px;
+  color: #52739c;
+  font:
+    600 14px/1.2 ui-monospace,
+    Consolas,
+    monospace;
+  min-height: 39px;
+  box-shadow: 0 2px 4px #3a5d8404;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.scientific-modes button {
+  font-size: 10px;
+  background: #e3edfa;
+  border-color: #d3e0f4;
+}
+.scientific-functions button {
+  font-size: 12px;
+  background: #f5f8fd;
+}
+.scientific-digits button {
+  font-size: 19px;
+  min-height: 46px;
+}
+.scientific-digits .clear {
+  color: #b17c8a;
+  background: #faeff3;
+  border-color: #ead5dd;
+  font-size: 12px;
+}
+.scientific-digits .equals {
+  background: #6f98cf;
+  border-color: #5a83bb;
+  color: #fff;
+}
+.school-scientific button:hover {
+  background: #e7f0ff;
+}
+.school-scientific button:active {
+  transform: translateY(1px);
+}
+.scientific-hint {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #8b9fba;
+  margin: 16px 0 8px;
+}
+.scientific-credit {
+  display: block;
+  font: 8px monospace;
+  text-align: center;
+  color: #a3b2c7;
+}
+.scientific-error {
+  font-size: 11px;
+  color: #b77a89;
+  line-height: 1.7;
+}
+.student-tool-panel:has(.school-scientific) {
+  width: min(465px, 100%);
+}
+@media (max-height: 850px) {
+  .school-scientific {
+    padding: 14px;
+  }
+  .scientific-screen {
+    padding: 10px 14px;
+    margin-bottom: 10px;
+  }
+  .scientific-screen .calculator-result {
+    font-size: 26px;
+    min-height: 36px;
+  }
+  .scientific-expression {
+    margin-top: 7px;
+  }
+  .school-scientific button {
+    min-height: 31px;
+    padding: 7px 4px;
+  }
+  .scientific-digits button {
+    min-height: 38px;
+    font-size: 17px;
+  }
+  .scientific-modes,
+  .scientific-functions,
+  .scientific-digits {
+    gap: 6px;
+    margin: 7px 0;
+  }
+  .scientific-hint {
+    margin: 10px 0 6px;
+  }
+  .student-tool-panel:has(.school-scientific) {
+    padding: 18px;
+  }
+  .student-tool-panel:has(.school-scientific) > header {
+    margin-bottom: 12px;
+  }
+}

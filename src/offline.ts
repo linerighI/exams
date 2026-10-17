@@ -1,9 +1,10 @@
 export type Snapshot = {
+  reviewFlags?: string[];
   scope: string;
   studentId: string;
   attempt: any;
   questions: any[];
-  exam: { title: string; total: number };
+  exam: { title: string; total: number; calculatorAllowed?: boolean; geogebraAllowed?: boolean };
   serverNow: number;
   offset: number;
   answers: Record<string, number>;

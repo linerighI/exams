@@ -1,0 +1,44 @@
+.teacher-grade-selection {
+  border: 1px solid #dae5f5;
+  border-radius: 14px;
+  padding: 14px;
+  margin: 15px 0;
+  background: #f6f9ff;
+}
+.teacher-grade-selection legend {
+  padding: 0 8px;
+  font-size: 13px;
+  color: #5277a5;
+}
+.teacher-grade-selection > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+.teacher-grade-selection label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 8px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+.teacher-grade-selection input {
+  width: 16px;
+  height: 16px;
+  accent-color: #618dcc;
+}
+.teacher-accounts .account-list > article {
+  flex-wrap: wrap;
+}
+.teacher-grade-editor {
+  flex-basis: 100%;
+}
+.assigned-grade-summary {
+  padding: 12px;
+  background: #edf4ff;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #5579a5;
+}

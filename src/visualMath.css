@@ -1,0 +1,95 @@
+:root {
+  --keyboard-zindex: 16000;
+}
+.visual-formula-parts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d7e3f5;
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+}
+.visual-formula-editor .visual-formula-parts textarea {
+  flex: 1 1 170px;
+  width: auto;
+  min-width: 90px;
+  min-height: 36px;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  resize: vertical;
+  line-height: 1.8;
+}
+.visual-equation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #d8e4f8;
+  border-radius: 10px;
+  background: #f5f8ff;
+  max-width: 100%;
+  direction: ltr;
+}
+.visual-math-input {
+  max-width: 100%;
+  min-width: 90px;
+  overflow: auto;
+}
+.visual-math-input math-field {
+  display: block;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  padding: 7px;
+  min-width: 100px;
+  --selection-background-color: #dbe8ff;
+  --caret-color: #547fbc;
+}
+.visual-equation > button {
+  font-size: 16px;
+  padding: 4px !important;
+  border: 0 !important;
+  background: transparent;
+  color: #879bb8;
+}
+.visual-formula-editor .formula-tools {
+  margin-bottom: 8px;
+}
+.visual-math-preview {
+  font-size: 12px;
+  color: #6c88ae;
+  margin-top: 8px;
+}
+.answer-editor .visual-formula-editor {
+  flex: 1;
+  min-width: 0;
+}
+.answer-editor .answer-edit-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #dce6f5;
+  border-radius: 14px;
+  background: #fff;
+}
+.answer-editor .answer-edit-option.correct {
+  border-color: #9fcfbb;
+  background: #f0f9f4;
+}
+.tool-option-field {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.tool-option-field .visual-formula-editor {
+  flex: 1;
+  min-width: 0;
+}
+.visual-formula-editor:focus-within .visual-formula-parts {
+  border-color: #88afe8;
+}

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { assistantModelStatus, ollamaRequest } from './ollama';
 import type { Store } from './store';
 import { bankPrompt } from '../src/bankExchange';
+import { providerChat, providerStatus } from './provider';
 export const defaultPrompt = () =>
   bankPrompt(
     { title: 'اسم الكتاب', subject: 'المادة', grade: 'الصف', term: 'الأول' },
@@ -9,14 +10,23 @@ export const defaultPrompt = () =>
     '',
     'مختلط',
   );
-export async function rewritePrompt(store: Store, prompt: string, instructions: string) {
-  const status = await assistantModelStatus(store.getSetting('config'));
+export async function rewritePrompt(
+  store: Store,
+  prompt: string,
+  instructions: string,
+  key = '',
+  provider?: 'gemini',
+) {
+  const config = { ...store.getSetting('config'), ...(provider ? { aiProvider: provider } : {}) };
+  const status = await providerStatus(config, key);
   if (!status.ready)
     throw Object.assign(new Error(status.error || 'اختر نموذجًا مثبتًا في الإعدادات'), {
       statusCode: 400,
     });
   const schema = z.object({ prompt: z.string().min(40).max(40000) });
-  const result = await ollamaRequest(
+  const result = await providerChat(
+    config,
+    key,
     'chat',
     {
       model: status.model,
@@ -37,7 +47,10 @@ export async function rewritePrompt(store: Store, prompt: string, instructions: 
     AbortSignal.timeout(180000),
   );
   try {
-    return schema.parse(JSON.parse(result.message.content)).prompt;
+    if (result.done_reason === 'length') throw Error('truncated');
+    return schema.parse(
+      JSON.parse(result.message.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')),
+    ).prompt;
   } catch {
     throw Object.assign(
       new Error('لم يكتمل اقتراح التعديل. الطلب الأصلي محفوظ؛ جرّب تعديلًا أقصر.'),
@@ -45,7 +58,12 @@ export async function rewritePrompt(store: Store, prompt: string, instructions: 
     );
   }
 }
-export function registerPromptTools(app: any, store: Store, teacher: (req: any) => any) {
+export function registerPromptTools(
+  app: any,
+  store: Store,
+  teacher: (req: any) => any,
+  key: (provider?: 'gemini') => string = () => '',
+) {
   app.get('/api/bank/prompt', async (req: any) => {
     teacher(req);
     return { prompt: store.getSetting('bank-prompt') || '' };
@@ -60,10 +78,19 @@ export function registerPromptTools(app: any, store: Store, teacher: (req: any) 
     teacher(req);
     const input = z
       .object({
-        prompt: z.string().min(1).max(30000),
+        prompt: z.string().min(1).max(40000),
         instructions: z.string().trim().min(1).max(3000),
+        provider: z.literal('gemini').optional(),
       })
       .parse(req.body);
-    return { prompt: await rewritePrompt(store, input.prompt, input.instructions) };
+    return {
+      prompt: await rewritePrompt(
+        store,
+        input.prompt,
+        input.instructions,
+        key(input.provider),
+        input.provider,
+      ),
+    };
   });
 }

@@ -1,5 +1,7 @@
 // Conservatively display common legacy notation. Never rewrite the stored question.
 export function mathSegments(text: string): { text: string; math?: boolean; display?: boolean }[] {
+  // Some imported banks escape delimiters twice. Normalize display only, never saved content.
+  text = text.replace(/\\\\([()[\]])/g, '\\$1');
   const delimited = text.split(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[^$\n]+\$)/g);
   return delimited.flatMap((part) => {
     const display = part.startsWith('$$') || part.startsWith('\\[');
@@ -17,13 +19,32 @@ export function mathSegments(text: string): { text: string; math?: boolean; disp
       ];
     // Limit automatic interpretation to familiar math tokens, not English prose or identifiers.
     const regex =
-      /(?:\b(?:sin|cos|tan|cot|sec|csc|log|ln)\s*\(?\s*-?\d+(?:\.\d+)?\s*(?:[o°]|\^\{?\d+\}?)?\s*\)?|\b[xyz](?:\^\{?[+-]?\d+\}?|[²³]|[23](?![\w]))|√\s*\(?[\dxyz]+\)?|[α-ωθπ]|\b\d+\s*\/\s*\d+\b)(?:\s*[=+−≈≤≥×÷*/-]\s*(?:-?\d+(?:\.\d+)?|[xyz](?:\^\{?\d+\}?|[²³]|[23](?![\w]))?|\b(?:sin|cos|tan)\s*\d+(?:[o°])?))*/g;
+      /\\(?:frac|dfrac|tfrac|sqrt|theta|pi|alpha|beta|gamma|Delta|sum|int|sin|cos|tan|log|ln|infty|leq|geq|times|div)\b(?:[A-Za-z0-9{}()[\]^_+\-=*/.,|!\s]|\\[A-Za-z]+)*|(?:\b(?:sin|cos|tan|cot|sec|csc|log|ln)\s*\(?\s*-?\d+(?:\.\d+)?\s*(?:[o°]|\^\{?\d+\}?)?\s*\)?|\b[xyz](?:\^\{?[+-]?\d+\}?|[²³]|[23](?![\w]))|√\s*\(?[\dxyz]+\)?|[α-ωθπ]|\b\d+\s*\/\s*\d+\b)(?:\s*[=+−≈≤≥×÷*/-]\s*(?:-?\d+(?:\.\d+)?|[xyz](?:\^\{?\d+\}?|[²³]|[23](?![\w]))?|\b(?:sin|cos|tan)\s*\d+(?:[o°])?))*/g;
     const result: { text: string; math?: boolean }[] = [];
     let last = 0;
     for (const match of part.matchAll(regex)) {
       const index = match.index!;
       if (index > last) result.push({ text: part.slice(last, index) });
-      result.push({ text: legacyMath(match[0]), math: true });
+      const raw = match[0].startsWith('\\');
+      let end = match[0].length;
+      if (raw) {
+        let depth = 0;
+        for (let i = 0; i < match[0].length; i++) {
+          const c = match[0][i];
+          if (c === '{') depth++;
+          if (c === '}') depth--;
+          if (depth === 0 && /\s/.test(c) && /^\s+[A-Za-z]{2,}\b/.test(match[0].slice(i))) {
+            end = i;
+            break;
+          }
+        }
+        while (end > 0 && /\s/.test(match[0][end - 1])) end--;
+      }
+      result.push({
+        text: raw ? match[0].slice(0, end) : legacyMath(match[0]),
+        math: true,
+      });
+      if (end < match[0].length) result.push({ text: match[0].slice(end) });
       last = index + match[0].length;
     }
     if (last < part.length) result.push({ text: part.slice(last) });

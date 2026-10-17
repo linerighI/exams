@@ -268,7 +268,7 @@ export default function BookQuestionReview({
                   />
                   هذا السؤال يحتاج رسمًا للإجابة عنه
                 </label>
-                <label>
+                <div className="review-formula-field">
                   نص السؤال
                   <FormulaEditor
                     ariaLabel="نص السؤال"
@@ -276,14 +276,15 @@ export default function BookQuestionReview({
                     value={question.text}
                     onChange={(text) => setQuestion({ ...question, text })}
                   />
-                </label>
+                </div>
                 <div className="review-edit-options">
                   {question.options.map((option: string, i: number) => (
-                    <label key={i}>
+                    <div className="review-formula-field" key={i}>
                       <span>
                         <input
                           type="radio"
                           name="correct-bank-option"
+                          aria-label={`اعتماد الخيار ${i + 1}`}
                           checked={question.correct === i}
                           onChange={() => setQuestion({ ...question, correct: i })}
                         />
@@ -303,10 +304,10 @@ export default function BookQuestionReview({
                           })
                         }
                       />
-                    </label>
+                    </div>
                   ))}
                 </div>
-                <label>
+                <div className="review-formula-field">
                   تفسير الإجابة
                   <FormulaEditor
                     ariaLabel="تفسير الإجابة"
@@ -315,7 +316,7 @@ export default function BookQuestionReview({
                     value={question.explanation}
                     onChange={(explanation) => setQuestion({ ...question, explanation })}
                   />
-                </label>
+                </div>
                 <button className="review-preview-action" onClick={() => setEditing(false)}>
                   شاهد معاينة التعديلات
                   <ChevronLeft size={16} />
@@ -465,6 +466,7 @@ export default function BookQuestionReview({
       {geometry && (
         <GeometryEditor
           geometryId={question.geometryId}
+          initialPrompt={question.text}
           notify={notify}
           onClose={() => setGeometry(false)}
           onSave={(image, geometryId) =>

@@ -39,6 +39,7 @@ export function openStore(directory: string) {
     model: 'qwen3:1.7b',
     pythonPath: '',
     aiProvider: 'ollama',
+    openaiModel: 'gpt-4.1-mini',
     geminiModel: 'gemini-3.8-flash',
     localSpeed: 'fast',
   };

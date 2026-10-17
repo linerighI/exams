@@ -148,6 +148,13 @@ export default function ExamBankPicker({
             </select>
           </div>
           <div className="bank-selection-bar">
+            <button
+              className="secondary"
+              disabled={busy || !available.length || existing.length + available.length > 500}
+              onClick={() => setSelected(available.map((q) => q.id))}
+            >
+              تحديد المجموعة المعتمدة للسحب العشوائي
+            </button>
             <span>
               {available.length} معتمد · {visible.filter((q) => q.status !== 'approved').length}{' '}
               للمراجعة · {selected.length} محدد
@@ -158,7 +165,7 @@ export default function ExamBankPicker({
                 aria-label="عدد أسئلة التجميع"
                 type="number"
                 min={1}
-                max={100 - existing.length}
+                max={500 - existing.length}
                 value={count}
                 onChange={(e) => setCount(+e.target.value)}
               />
@@ -169,7 +176,7 @@ export default function ExamBankPicker({
                 busy ||
                 count < 1 ||
                 !Number.isInteger(count) ||
-                count > 100 - existing.length ||
+                count > 500 - existing.length ||
                 available.length < count
               }
               onClick={() => setSelected(available.slice(0, count).map((q) => q.id))}
@@ -178,7 +185,7 @@ export default function ExamBankPicker({
             </button>
             <button
               className="primary"
-              disabled={busy || !selected.length || selected.length + existing.length > 100}
+              disabled={busy || !selected.length || selected.length + existing.length > 500}
               onClick={() => void add()}
             >
               {busy ? <Loader2 className="spin" size={16} /> : <Check size={16} />}إضافة{' '}

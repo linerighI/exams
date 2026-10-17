@@ -6,7 +6,9 @@ export const setToken = (value: string) => {
 export async function api(path: string, method = 'GET', body?: unknown): Promise<any> {
   if (window.desktop) {
     try {
-      return await window.desktop.request(path, method, body);
+      const result = await window.desktop.request(path, method, body);
+      if(method !== 'GET') window.dispatchEvent(new Event('workspace-updated'));
+      return result;
     } catch (error) {
       throw Error(
         (error as Error).message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, ''),
@@ -23,6 +25,7 @@ export async function api(path: string, method = 'GET', body?: unknown): Promise
   });
   const result = await response.json();
   if (!response.ok) throw Error(result.error || 'تعذر تنفيذ العملية');
+  if(method !== 'GET') window.dispatchEvent(new Event('workspace-updated'));
   return result;
 }
 export function download(filename: string, content: string) {

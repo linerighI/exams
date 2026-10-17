@@ -13,6 +13,7 @@ import {
 import { api, fileBase64 } from './api';
 import { bankPrompt, providers, type BankMeta } from './bankExchange';
 import MathText from './MathText';
+import PromptOrbEditor from './PromptOrbEditor';
 import { svgToPng } from './svgDiagram';
 export default function BankWizard({
   books,
@@ -36,9 +37,7 @@ export default function BankWizard({
     [error, setError] = useState(''),
     [copied, setCopied] = useState(false),
     [done, setDone] = useState<any>();
-  const [customPrompt, setCustomPrompt] = useState<string>(),
-    [instructions, setInstructions] = useState(''),
-    [proposal, setProposal] = useState('');
+  const [customPrompt, setCustomPrompt] = useState<string>();
   const prompt = customPrompt ?? bankPrompt(meta, count, range, difficulty);
   useEffect(() => {
     void api('/api/bank/prompt')
@@ -66,11 +65,8 @@ export default function BankWizard({
     <section className="exchange-studio" aria-label="إنشاء بنك أسئلة">
       <div className="exchange-heading">
         <div>
-          <span className="eyebrow">
-            <Sparkles size={14} /> من كتابك إلى بنك قابل لإعادة الاستخدام
-          </span>
-          <h2>كل درس، بداية لسؤال جيد.</h2>
-          <p>حضّر طلبك، استخدم حسابك على موقع المساعد، ثم أعد الأسئلة إلى مكتبتك.</p>
+          <h2>إضافة بنك أسئلة</h2>
+          <p>جهّز طلبًا للمساعد أو انتقل مباشرة إلى استيراد ملف الأسئلة.</p>
         </div>
         <div className="exchange-badge">
           <FileJson size={25} />
@@ -89,9 +85,6 @@ export default function BankWizard({
           >
             <span>{i + 1}</span>
             {name}
-            <small>
-              {['تفاصيل الكتاب والهدف', 'راجع الطلب وافتح المساعد', 'راجع واحفظ الأسئلة'][i]}
-            </small>
           </button>
         ))}
       </nav>
@@ -132,7 +125,7 @@ export default function BankWizard({
                   </select>
                 </label>
                 <label className="field">
-                  هدف البنك
+                  عدد الأسئلة
                   <input
                     type="number"
                     aria-label="هدف البنك الخارجي"
@@ -171,34 +164,15 @@ export default function BankWizard({
                   }
                   onClick={() => setStep(1)}
                 >
-                  جهّز رحلتك <ArrowUpLeft size={17} />
+                  التالي: اختيار المساعد <ArrowUpLeft size={17} />
                 </button>
-              </div>
-              <div className="exchange-illustration">
-                <div className="exchange-paper">
-                  <BookOpen size={34} />
-                  <strong>
-                    كتاب واحد.
-                    <br />
-                    مئات الفرص للتعلّم.
-                  </strong>
-                  <span>بنك كامل في ملف واحد</span>
-                  <i>أ ب ج</i>
-                </div>
-                <div className="exchange-floating">
-                  <CheckCircle2 size={20} /> محفوظ على جهاز المعلم
-                </div>
-                <p>
-                  يبقى الكتاب على جهازك؛ ترفعه بنفسك إلى الموقع الذي تختاره. التطبيق لا يرسله
-                  تلقائيًا.
-                </p>
               </div>
             </div>
           )}
           {step === 1 && (
             <div className="exchange-provider">
               <div>
-                <h3>اختر مساحة التفكير</h3>
+                <h3>اختر المساعد</h3>
                 <p>راجع الطلب وعدّله، ثم انسخه وارفع كتابك على الموقع الذي تختاره.</p>
                 <div className="provider-choices">
                   {Object.entries(providers).map(([key, p]) => (
@@ -251,7 +225,15 @@ export default function BankWizard({
                   الملفات جاهزة؟ استورد البنك ←
                 </button>
               </div>
-              <div className="prompt-workbench">
+              <PromptOrbEditor
+                prompt={prompt}
+                onApply={(text) => {
+                  setCustomPrompt(text);
+                  setCopied(false);
+                }}
+              />
+              <details className="prompt-workbench">
+                <summary>عرض الطلب وتعديله</summary>
                 <label className="field prompt-preview">
                   طلبك — قابل للتعديل
                   <textarea
@@ -280,71 +262,18 @@ export default function BankWizard({
                     className="text-button"
                     onClick={() => {
                       setCustomPrompt(undefined);
-                      setProposal('');
                     }}
                   >
                     استعادة القالب
                   </button>
                 </div>
-                <div className="prompt-ai-editor">
-                  <h3>
-                    <Sparkles size={17} />
-                    عدّل الطلب مع المساعد
-                  </h3>
-                  <label className="field">
-                    ماذا تريد تغييره؟
-                    <textarea
-                      aria-label="تعليمات تعديل الطلب"
-                      value={instructions}
-                      onChange={(e) => setInstructions(e.target.value)}
-                      placeholder="مثلًا: ركز على المسائل التطبيقية وأضف رسومًا لكل سؤال هندسي"
-                    />
-                  </label>
-                  <button
-                    className="primary"
-                    disabled={busy || !instructions.trim()}
-                    onClick={() =>
-                      void run(async () => {
-                        setProposal(
-                          (await api('/api/bank/prompt/rewrite', 'POST', { prompt, instructions }))
-                            .prompt,
-                        );
-                      })
-                    }
-                  >
-                    اقتراح تعديل
-                  </button>
-                  {proposal && (
-                    <div className="prompt-proposal">
-                      <label className="field">
-                        اقتراح المساعد
-                        <textarea aria-label="اقتراح الطلب" value={proposal} readOnly />
-                      </label>
-                      <div className="button-row">
-                        <button
-                          className="primary"
-                          onClick={() => {
-                            setCustomPrompt(proposal);
-                            setProposal('');
-                            setCopied(false);
-                          }}
-                        >
-                          تطبيق التعديل
-                        </button>
-                        <button className="text-button" onClick={() => setProposal('')}>
-                          تجاهل
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              </details>
             </div>
           )}
           {step === 2 && (
             <div className="exchange-import">
               <div>
-                <h3>أعد المعرفة إلى مكتبتك</h3>
+                <h3>استيراد ملف الأسئلة</h3>
                 <p>JSON هو مصدر الأسئلة القابل للتعديل. ملف PDF المرافق للقراءة فقط.</p>
                 <label className="field">
                   مكان حفظ البنك
@@ -380,10 +309,14 @@ export default function BankWizard({
                             throw Error('ملف JSON أكبر من 8 ميجابايت');
                           let parsed;
                           try {
-                            parsed = JSON.parse((await file.text()).replace(/^\uFEFF/, ''));
+                            parsed = JSON.parse(
+                              new TextDecoder('utf-8', { fatal: true })
+                                .decode(await file.arrayBuffer())
+                                .replace(/^\uFEFF/, ''),
+                            );
                           } catch {
                             throw Error(
-                              'الملف ليس JSON صالحًا. اطلب من الموقع ملف JSON قابلًا للتنزيل دون نص إضافي.',
+                              'احفظ الملف بصيغة JSON وترميز UTF-8 للحفاظ على النص العربي.',
                             );
                           }
                           for (const q of Array.isArray(parsed.questions) ? parsed.questions : []) {

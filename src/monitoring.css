@@ -1,0 +1,304 @@
+.teacher-monitoring {
+  color: #3f6087;
+}
+.monitor-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.monitor-metrics > div {
+  padding: 20px 22px;
+  border: 1px solid #e1eaf6;
+  background: #fff;
+  border-radius: 19px;
+}
+.monitor-metrics span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8ba0bc;
+  font-size: 12px;
+}
+.monitor-metrics strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 30px;
+  color: #4f739f;
+}
+.monitor-overview {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.monitor-orb-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 25px;
+  border: 1px solid #d8e5f6;
+  background: linear-gradient(125deg, #e9f2ff, #f2f6ff);
+  border-radius: 23px;
+}
+.monitor-orb {
+  position: relative;
+  width: 145px;
+  height: 145px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.monitor-orb-card h2 {
+  font-size: 20px;
+  margin: 15px 0 8px;
+}
+.monitor-orb-card p,
+.monitor-upcoming p {
+  font-size: 12px;
+  color: #8198b7;
+  line-height: 1.9;
+}
+.monitor-upcoming {
+  padding: 22px;
+  border: 1px solid #e1eaf6;
+  border-radius: 23px;
+  background: #fff;
+}
+.monitor-upcoming h2 {
+  font-size: 16px;
+  margin: 0 0 15px;
+}
+.monitor-upcoming > button {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  text-align: right;
+  background: #f6f8fd;
+  border-radius: 13px;
+  padding: 10px;
+  margin-top: 8px;
+}
+.monitor-date {
+  display: grid;
+  text-align: center;
+  border: 1px solid #dbe6f5;
+  border-radius: 9px;
+  padding: 5px 9px;
+  background: #fff;
+  min-width: 45px;
+}
+.monitor-upcoming strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+.monitor-upcoming small {
+  font-size: 10px;
+  color: #8da2bd;
+}
+.monitor-exams,
+.monitor-attempts {
+  border: 1px solid #e0e9f5;
+  background: #fff;
+  border-radius: 23px;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+.monitor-exams > header,
+.monitor-attempts > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.teacher-monitoring h2 {
+  font-size: 18px;
+}
+.monitor-exams nav,
+.monitor-mode {
+  display: flex;
+  flex-wrap: wrap;
+  background: #f1f5fc;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 3px;
+}
+.monitor-exams nav button,
+.monitor-mode button {
+  padding: 8px 13px;
+  font-size: 12px;
+  border-radius: 9px;
+  color: #8c9eb8;
+}
+.monitor-exams nav button[aria-pressed='true'],
+.monitor-mode button[aria-pressed='true'] {
+  background: #fff;
+  color: #557aa9;
+  box-shadow: 0 2px 7px #36558108;
+}
+.monitor-exam-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.monitor-exam-grid article {
+  border-radius: 18px;
+  padding: 17px;
+  background: #f4f7fc;
+  border: 1px solid #e9eff8;
+  min-width: 0;
+}
+.monitor-exam-grid article:nth-child(3n + 2) {
+  background: #f2f4fc;
+}
+.monitor-exam-grid article:nth-child(3n + 3) {
+  background: #f1f8f7;
+}
+.monitor-exam-grid article > div:first-child {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+.monitor-subject {
+  background: #e4ecfa;
+  padding: 9px;
+  border-radius: 11px;
+  color: #829fc6;
+}
+.monitor-exam-grid h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+.monitor-exam-grid small {
+  font-size: 10px;
+  color: #8ba0bb;
+}
+.monitor-exam-grid .pill {
+  margin-inline-start: auto;
+  font-size: 9px;
+}
+.monitor-card-counts {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #849bb9;
+  margin: 20px 0 9px;
+}
+.monitor-exam-grid progress {
+  width: 100%;
+  height: 7px;
+  appearance: none;
+  border: 0;
+  background: #e6ecf7;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.monitor-exam-grid progress::-webkit-progress-bar {
+  background: #e4ebf7;
+}
+.monitor-exam-grid progress::-webkit-progress-value {
+  background: #98b6df;
+  border-radius: 6px;
+}
+.monitor-exam-grid footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+  padding-top: 12px;
+  border-top: 1px solid #e2eaf5;
+}
+.monitor-exam-grid footer button {
+  color: #5f80ab;
+  font-size: 11px;
+  padding: 5px;
+}
+.monitor-exam-grid details {
+  font-size: 10px;
+  color: #91a5bf;
+  margin-top: 10px;
+}
+.monitor-exam-grid details button {
+  padding-top: 10px;
+  color: #6984a7;
+}
+.monitor-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.monitor-filters label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 180px;
+  border: 1px solid #e1e9f6;
+  border-radius: 11px;
+  padding: 10px;
+  color: #92a8c5;
+}
+.monitor-filters input {
+  border: 0;
+  background: none;
+  padding: 0;
+  width: 100%;
+  font-size: 12px;
+}
+.monitor-filters select {
+  width: 220px;
+  font-size: 12px;
+  padding: 10px;
+}
+.monitor-filters > button {
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  color: #8098b7;
+  background: #f4f7fc;
+}
+.monitor-filters > button[aria-pressed='true'] {
+  color: #ae8193;
+  background: #fff0f4;
+}
+.monitor-attempts .table-card {
+  box-shadow: none;
+  border: 0;
+}
+.monitor-empty {
+  text-align: center;
+  color: #94a7c0;
+  padding: 25px;
+  font-size: 13px;
+}
+@media (max-width: 1100px) {
+  .monitor-exam-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitor-orb-card {
+    gap: 12px;
+    padding: 17px;
+  }
+  .monitor-orb {
+    width: 120px;
+    height: 120px;
+  }
+}
+@media (max-width: 800px) {
+  .monitor-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitor-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .monitor-exam-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

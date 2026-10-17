@@ -8,7 +8,12 @@ import { id, type Store } from './store';
 import { normalizeCropBox } from './cropBox';
 import { mathSegments } from '../src/mathNotation';
 import { safeSvg } from '../src/svgDiagram';
-const str = z.string().trim().min(1).max(2000);
+const str = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2000)
+  .refine((s) => !s.includes('\uFFFD'), 'النص تالف؛ استخدم ملف UTF-8 صحيحًا');
 const badInput = (message: string) => Object.assign(new Error(message), { statusCode: 400 });
 const metadata = z.object({
   title: str,
@@ -333,7 +338,7 @@ export function registerBankTransfer(
   });
 }
 export function bankDocument(book: any, questions: any[]) {
-  const req = createRequire(typeof __filename !== 'undefined' ? __filename : import.meta.url);
+  const req = createRequire(import.meta.url);
   const katexPath = dirname(req.resolve('katex/package.json'));
   const css = readFileSync(join(katexPath, 'dist/katex.min.css'), 'utf8').replace(
     /url\((?:['"])?fonts\/([^)'"\s]+)(?:['"])?\)/g,

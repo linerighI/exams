@@ -1,6 +1,8 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { mathSegments } from './mathNotation';
+import { lazy, Suspense } from 'react';
+const VisualFormulaEditor = lazy(() => import('./VisualFormulaEditor'));
 
 export default function MathText({ text }: { text: string }) {
   const pieces = mathSegments(text);
@@ -53,31 +55,20 @@ export function FormulaEditor({
   ariaLabel?: string;
 }) {
   return (
-    <div className="formula-editor">
-      {tools && (
-        <div className="formula-tools">
-          {['\\frac{a}{b}', 'x^{2}', '\\sqrt{x}', '\\theta', '\\leq', '\\pi'].map((valueMath) => (
-            <button
-              type="button"
-              key={valueMath}
-              onClick={() => onChange(value + ` \\(${valueMath}\\) `)}
-            >
-              <MathText text={`\\(${valueMath}\\)`} />
-            </button>
-          ))}
-        </div>
-      )}
-      <textarea
-        className="question-text"
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {showPreview && (
+    <Suspense
+      fallback={
         <div className="formula-preview">
           <MathText text={value} />
         </div>
-      )}
-    </div>
+      }
+    >
+      <VisualFormulaEditor
+        value={value}
+        onChange={onChange}
+        tools={tools}
+        showPreview={showPreview}
+        ariaLabel={ariaLabel}
+      />
+    </Suspense>
   );
 }

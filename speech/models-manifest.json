@@ -1,0 +1,11 @@
+{
+  "sherpa-onnx-whisper-base/base-encoder.int8.onnx": "0b8fb1304b6109976038efff5ace81720e00386f3ff6b54ee8c75291ca0a1e11",
+  "sherpa-onnx-whisper-base/base-decoder.int8.onnx": "9759d217388a01b3a4c7c15533201067b48ae819c4daafc8624e64b9409dc02d",
+  "sherpa-onnx-whisper-base/base-tokens.txt": "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126",
+  "vits-piper-ar_JO-kareem-medium-int8/ar_JO-kareem-medium.onnx": "71ff7b08354a3c9a15859fdb9533499bc51df6b431867773a864f8c9c7c3c9a1",
+  "vits-piper-ar_JO-kareem-medium-int8/tokens.txt": "620e1aecf1a68fea3ba5850d137b0138fa2037c9b372dad13b95a2a215d0849a",
+  "vits-piper-ar_JO-kareem-medium-int8/espeak-ng-data/phondata": "4e0288957874029a8c3c9f41a8f517ad4bf18127046decbdd4b9d1d6807ce3a3",
+  "vits-piper-en_US-amy-low-int8/en_US-amy-low.onnx": "f1718264d28bf04916d67b388d4954647e0fd56a2093b1a409eae2a287ec8820",
+  "vits-piper-en_US-amy-low-int8/tokens.txt": "42d1a69ed2b91a51928a711aa228ed9f3dc021c6d359a3e9c4f37eb1d20f80bd",
+  "vits-piper-en_US-amy-low-int8/espeak-ng-data/phondata": "4e0288957874029a8c3c9f41a8f517ad4bf18127046decbdd4b9d1d6807ce3a3"
+}

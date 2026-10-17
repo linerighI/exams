@@ -1,7 +1,7 @@
 const { spawn } = require('node:child_process');
-const child = spawn(require('electron'), ['--import', 'tsx', 'server/dev.ts'], {
+const child = spawn(process.execPath, ['--import', 'tsx', 'server/dev.ts'], {
   stdio: 'inherit',
-  env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+  env: process.env,
 });
 child.on('exit', (code) => process.exit(code ?? 1));
 process.on('SIGINT',()=>child.kill());

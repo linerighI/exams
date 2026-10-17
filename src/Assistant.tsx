@@ -26,6 +26,11 @@ import type { Exam, Attempt } from './types';
 import './studio.css';
 import { assistantCommands, parseCommand } from './assistantCommands';
 import './assistantTools.css';
+import ProviderSwitch from './ProviderSwitch';
+import AssistantProposal from './AssistantProposal';
+import SpeechReadButton from './SpeechReadButton';
+import SpeechDictation, { appendDictation } from './SpeechDictation';
+import { activateWorkspaceCard } from './assistantWorkspaceActions';
 type Props = {
   notify: (s: string) => void;
   openExam: (e: Exam) => void;
@@ -132,7 +137,12 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
     );
     return () => clearTimeout(timer);
   }, [chat?.messages.length, busy]);
+  const [voiceListening, setVoiceListening] = useState(false);
   async function send(text = message) {
+    if (voiceListening) {
+      notify('أوقف الإملاء أولًا، ثم راجع الرسالة وأرسلها.');
+      return;
+    }
     if ((!text.trim() && !activeCommand) || busy) return;
     text = parseCommand(text) ? text : currentCommand ? `/${currentCommand.ar} ${text}` : text;
     setBusy(true);
@@ -173,8 +183,8 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
   const cards = [
     {
       kind: 'exam' as const,
-      title: 'امتحان جاهز للمراجعة',
-      subtitle: 'من أفكارك إلى أسئلة مدروسة',
+      title: 'إنشاء امتحان بالمساعد',
+      subtitle: 'حدد المادة وعدد الأسئلة',
       action: () => {
         chooseCommand(assistantCommands.find((c) => c.id === 'exam')!);
         input.current?.focus();
@@ -183,15 +193,15 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
     },
     {
       kind: 'book' as const,
-      title: 'كتابك، مساحة للمعرفة',
-      subtitle: 'صفحات تتحول إلى بنك أسئلة',
+      title: 'بنك الأسئلة',
+      subtitle: 'أضف كتابًا أو راجع الأسئلة',
       action: () => navigate('books'),
       icon: BookOpen,
     },
     {
       kind: 'insights' as const,
-      title: 'كل نتيجة تحكي قصة',
-      subtitle: 'اكتشف أين يحتاج طلابك الدعم',
+      title: 'تحليل النتائج',
+      subtitle: 'ملخص أداء الطلاب',
       action: () => void send('/إحصاءات لخص أداء الطلاب بناء على النتائج المتاحة'),
       icon: TrendingUp,
     },
@@ -267,34 +277,16 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
             {!chats.length && (
               <div className="history-empty">
                 <History size={24} />
-                <p>الأفكار الجيدة تستحق أن تبقى.</p>
+                <p>لا توجد محادثات بعد</p>
                 <small>ستجد محادثاتك هنا.</small>
               </div>
             )}
           </div>
-          <motion.button
-            className="history-feature"
-            whileHover={{ y: -4 }}
-            transition={spring}
-            onClick={() => navigate('books')}
-          >
-            <div className="history-feature-art">
-              <PaperScene kind="book" />
-              <span className="feature-float">PDF</span>
-            </div>
-            <div>
-              <span className="feature-eyebrow">مكتبة المنهج</span>
-              <h3>
-                كتاب واحد.
-                <br />
-                احتمالات كثيرة.
-              </h3>
-              <p>ابنِ بنكًا من الأسئلة، واستخدمه في كل امتحان.</p>
-              <span className="feature-link">
-                استكشف الكتب <ArrowUpLeft size={15} />
-              </span>
-            </div>
-          </motion.button>
+          <button className="history-library-link" onClick={() => navigate('books')}>
+            <BookOpen size={18} />
+            بنك الأسئلة
+            <ArrowUpLeft size={15} />
+          </button>
           <footer>
             <span className="history-avatar">
               <GraduationCap size={18} />
@@ -316,16 +308,29 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
               <span className="studio-beta">مساعد المعلم</span>
             </div>
             <div>
+              <ProviderSwitch
+                disabled={busy}
+                notify={notify}
+                onChange={() => {
+                  void api('/api/assistant/status')
+                    .then(setModelInfo)
+                    .catch(() => setModelInfo({ ready: false }));
+                }}
+              />
               <span
                 className="studio-model"
                 title={
                   modelInfo?.ready
                     ? modelInfo.model
-                    : 'شغّل Ollama واختر نموذجًا مثبتًا في الإعدادات. الأوامر المباشرة تعمل دون النموذج.'
+                    : 'اضبط المزود والنموذج أو المفتاح من الإعدادات. الأوامر المباشرة تعمل دون النموذج.'
                 }
               >
                 <span className={modelInfo?.ready ? 'model-ready' : 'model-unready'} />
-                Ollama محلي
+                {modelInfo?.provider === 'openai'
+                  ? 'OpenAI'
+                  : modelInfo?.provider === 'gemini'
+                    ? 'Gemini'
+                    : 'Ollama محلي'}
               </span>
               <button
                 className="studio-icon"
@@ -358,15 +363,10 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
                       <span />
                     </motion.div>
                     <div>
-                      <span>مساحة جديدة لفكرة جديدة</span>
+                      <span>مساحة المعلم</span>
                       <h1>مرحبًا أستاذي، ماذا ننجز اليوم؟</h1>
                     </div>
                   </div>
-                  <p className="intro-description">
-                    فكرة امتحان، سؤال صعب، أو نظرة أعمق على نتائج طلابك.
-                    <br />
-                    ابدأ بطلبك، وسنرتب التفاصيل معًا.
-                  </p>
                   {overview && (
                     <div className="home-overview" aria-label="ملخص المدرسة">
                       {[
@@ -395,6 +395,20 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
                       ))}
                     </div>
                   )}
+                  <nav className="teacher-home-shortcuts" aria-label="اختصارات المعلم">
+                    <button onClick={createExam || (() => navigate('exams'))}>
+                      <Plus size={16} />
+                      إنشاء امتحان يدوي
+                    </button>
+                    <button onClick={() => navigate('students')}>
+                      <GraduationCap size={16} />
+                      إدارة الطلاب
+                    </button>
+                    <button onClick={() => navigate('tools')}>
+                      <BookOpen size={16} />
+                      فتح الأدوات
+                    </button>
+                  </nav>
                   <div className="studio-action-cards">
                     {cards.map((c, i) => (
                       <motion.button
@@ -498,6 +512,7 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
                           <small>{m.role === 'assistant' ? 'معك، خطوة بخطوة' : ''}</small>
                         </span>
                         <div className="message-prose">{commandText(m.text)}</div>
+                        {m.role === 'assistant' && <SpeechReadButton text={m.text} />}
                         {m.cards?.length > 0 && (
                           <div className="assistant-result-grid">
                             {m.cards.map((card: any, i: number) => (
@@ -533,6 +548,9 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
                                           command: 'أداة المساعد',
                                           prompt: 'اقتراح المساعد',
                                           navigation: 'مساحة العمل',
+                                          proposal: 'اقتراح للمراجعة',
+                                          tool: 'أداة المعلم',
+                                          live_room: 'المتابعة المباشرة',
                                         } as any
                                       )[card.kind]
                                     }
@@ -564,12 +582,17 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
                                       <span>{card.total} درجة</span>
                                     </div>
                                   )}
+                                  {card.kind === 'proposal' && (
+                                    <AssistantProposal card={card} onApplied={notify} />
+                                  )}
                                   <button
+                                    hidden={card.kind === 'proposal'}
                                     type="button"
                                     className="result-open"
                                     onClick={() =>
                                       void (async () => {
                                         try {
+                                          if (activateWorkspaceCard(card, navigate)) return;
                                           if (card.kind === 'exam') {
                                             const list = await api('/api/exams');
                                             const found = list.find((e: Exam) => e.id === card.id);
@@ -820,6 +843,7 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
               <textarea
                 ref={input}
                 aria-label="رسالتك للمساعد"
+                maxLength={6000}
                 placeholder={
                   currentCommand?.id === 'exam'
                     ? 'كم سؤالًا تريد؟ مثال: 10 أسئلة'
@@ -872,6 +896,12 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
               />
               <div className="composer-tools">
                 <div>
+                  <SpeechDictation
+                    inputRef={input}
+                    disabled={busy}
+                    onListeningChange={setVoiceListening}
+                    onText={(spoken) => setMessage((current) => appendDictation(current, spoken))}
+                  />
                   <motion.button
                     type="button"
                     whileTap={{ scale: 0.94 }}
@@ -901,7 +931,7 @@ export default function AssistantView({ notify, openExam, navigate, overview, cr
                   whileTap={{ scale: 0.92 }}
                   type="submit"
                   className="composer-send"
-                  disabled={busy || (!message.trim() && !activeCommand)}
+                  disabled={busy || voiceListening || (!message.trim() && !activeCommand)}
                   aria-label="إرسال"
                   title="إرسال"
                 >

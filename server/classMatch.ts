@@ -33,3 +33,5 @@ export function sectionKey(value: string) {
   const section = clean(value);
   return ({ a: 'ا', b: 'ب', c: 'ج', d: 'د' } as Record<string, string>)[section] || section;
 }
+export const classId = (grade: string, section: string) =>
+  JSON.stringify([gradeKey(grade), sectionKey(section)]);

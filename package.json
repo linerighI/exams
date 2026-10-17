@@ -3,30 +3,57 @@
   "version": "1.4.3",
   "private": true,
   "type": "module",
-  "main": "desktop/main.cjs",
   "scripts": {
     "dev": "concurrently -k \"node scripts/dev-server.cjs\" \"vite --host 127.0.0.1\"",
-    "desktop": "npm run build && electron .",
-    "build": "tsc --noEmit && vite build && esbuild desktop/main.ts --bundle --platform=node --format=cjs --external:electron --packages=external --outfile=desktop/main.cjs && esbuild desktop/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=desktop/preload.cjs",
+    "desktop": "node scripts/desktop.cjs",
+    "build": "node scripts/build-desktop.cjs",
     "test": "node scripts/run-tests.cjs",
     "test:ollama": "node scripts/test-ollama.cjs",
     "test:math": "node scripts/test-math.cjs",
-    "dist": "npm run icon && npm run build && electron-builder --win nsis",
-    "postinstall": "electron-builder install-app-deps",
+    "dist": "node scripts/package-desktop.cjs",
+    "postinstall": "node scripts/check-node.cjs",
     "worker:build": "powershell -ExecutionPolicy Bypass -File scripts/build-worker.ps1",
     "test:ui": "node tests/ui.cjs",
     "test:desktop": "npm run build && node tests/desktop.cjs",
     "icon": "node scripts/create-icon.cjs",
-    "test:packaged": "node tests/packaged.cjs"
+    "test:packaged": "node tests/packaged.cjs",
+    "desktop:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-desktop.ps1",
+    "test:desktop:security": "node tests/webview2-security.cjs",
+    "test:desktop:lifecycle": "node tests/webview2-lifecycle.cjs",
+    "benchmark:desktop": "node tests/benchmark-desktop.cjs",
+    "test:desktop:connection": "node tests/connection-orb.cjs",
+    "test:desktop:school": "node tests/school-upgrade.cjs",
+    "test:desktop:all": "npm run build && node tests/desktop.cjs && node tests/webview2-security.cjs && node tests/school-upgrade.cjs && node tests/question-library.cjs && node tests/live-lab-native.cjs && node tests/monitoring.cjs && node tests/speech-dictation.cjs && node tests/assistant-workspace.cjs && node tests/teacher-layout.cjs && node tests/workflow-ui.cjs && node tests/exam-folders-ui.cjs && node tests/student-space-tools.cjs && node tests/student-companion.cjs && node tests/student-lock.cjs && node tests/connection-orb.cjs && node tests/webview2-lifecycle.cjs",
+    "test:desktop:companion": "node tests/student-companion.cjs",
+    "test:desktop:tools": "node tests/student-space-tools.cjs",
+    "test:desktop:student-lock": "node tests/student-lock.cjs",
+    "test:desktop:layout": "node tests/teacher-layout.cjs",
+    "test:desktop:library": "node tests/question-library.cjs",
+    "test:desktop:monitoring": "node tests/monitoring.cjs",
+    "test:lab": "node tests/live-lab-ui.cjs",
+    "test:desktop:lab": "node tests/live-lab-native.cjs",
+    "test:assistant:local": "node --import tsx tests/assistant-workspace-live.ts",
+    "test:desktop:assistant": "node tests/assistant-workspace.cjs",
+    "test:desktop:speech": "node tests/speech-dictation.cjs",
+    "speech:setup": "node scripts/setup-speech.cjs",
+    "test:desktop:workflow": "node tests/workflow-ui.cjs",
+    "test:desktop:teacher-overlay": "node tests/teacher-overlay-ui.cjs",
+    "test:desktop:exam-folders": "node tests/exam-folders-ui.cjs",
+    "desktop:dual": "node scripts/desktop-dual.cjs"
   },
   "dependencies": {
+    "@adi1816/genie-effect": "0.1.2",
     "@fastify/websocket": "^11.0.0",
     "@fontsource/tajawal": "^5.2.0",
+    "@reduxjs/toolkit": "^2.13.0",
     "better-sqlite3": "^12.0.0",
     "csv-parse": "^7.0.3",
+    "exceljs": "4.4.0",
     "fastify": "^5.0.0",
     "katex": "^0.19.0",
     "lucide-react": "^0.468.0",
+    "mathjs": "^15.2.0",
+    "mathlive": "0.111.1",
     "motion": "^14.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -44,8 +71,6 @@
     "@types/ws": "^8.5.0",
     "@vitejs/plugin-react": "^4.4.0",
     "concurrently": "^9.0.0",
-    "electron": "^40.0.0",
-    "electron-builder": "^26.0.0",
     "esbuild": "^0.25.0",
     "playwright": "^1.64.0",
     "prettier": "^3.9.10",
@@ -54,48 +79,11 @@
     "typescript": "^5.8.0",
     "vite": "^6.0.0"
   },
-  "build": {
-    "appId": "school.alshereqi.exams",
-    "productName": "Alshereqi Exams",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "desktop/*.cjs",
-      "package.json",
-      "node_modules/**/*",
-      "build/icon.png"
-    ],
-    "extraResources": [
-      {
-        "from": "worker",
-        "to": "worker",
-        "filter": [
-          "**/*",
-          "!__pycache__/**",
-          "!build/**",
-          "!dist/**"
-        ]
-      }
-    ],
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico",
-      "signAndEditExecutable": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "include": "scripts/installer.nsh",
-      "perMachine": true
-    },
-    "beforePack": "scripts/check-worker.cjs"
-  },
   "description": "Arabic offline LAN school examinations",
-  "author": "Alshereqi School"
+  "author": "Alshereqi School",
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  }
 }

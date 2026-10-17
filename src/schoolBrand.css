@@ -1,0 +1,32 @@
+.school-brand {
+  display: inline-block;
+  position: relative;
+  width: 240px;
+  aspect-ratio: 1784 / 735;
+  overflow: hidden;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+/* The original transparent PNG is unchanged. Its empty outer margins sit outside this frame. */
+.school-brand > img {
+  display: block;
+  position: absolute;
+  width: 112.108%;
+  max-width: none;
+  height: auto;
+  left: -5.718%;
+  top: -85.443%;
+}
+.header-branding {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+  margin-inline-start: 20px;
+}
+.topbar .header-branding .ministry-brand { margin-inline-start: 0; }
+.topbar .school-brand { width: 58px; }
+@media (max-width: 800px) {
+  .header-branding { gap: 7px; margin-inline-start: 8px; }
+  .topbar .school-brand { width: 48px; }
+}

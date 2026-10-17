@@ -1,0 +1,115 @@
+.speech-dictation {
+  color: #7892b3;
+  font-size: 11px;
+}
+.speech-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.speech-controls .speech-mic {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.speech-controls select {
+  width: 82px;
+  min-height: 30px;
+  padding: 4px 6px;
+  border: 1px solid #e1eaf6;
+  background: #f8faff;
+  border-radius: 9px;
+  color: #6d88ab;
+  font: inherit;
+}
+.speech-dictation.is-listening .speech-mic {
+  color: #bb5972;
+  background: #fff0f4;
+}
+.speech-status {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  margin-top: 7px;
+  background: #f0f6ff;
+  max-width: 360px;
+}
+.speech-status b {
+  color: #b35d75;
+  font-weight: 500;
+}
+.speech-status span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.speech-error,
+.speech-hint {
+  font-size: 11px;
+  line-height: 1.8;
+  max-width: 360px;
+  margin: 7px 0;
+}
+.speech-error {
+  color: #b35d75;
+}
+.speech-error button {
+  display: block;
+  border: 0;
+  background: transparent;
+  color: #5685c5;
+  font: inherit;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.orb-composer {
+  flex-wrap: wrap;
+}
+.orb-composer .speech-dictation {
+  order: 3;
+  width: 100%;
+  border-top: 1px solid #edf2f9;
+  padding-top: 6px;
+}
+.orb-composer .speech-mic {
+  border: 0;
+  background: #f5f8fd;
+  border-radius: 9px;
+  padding: 7px;
+  color: #7892b3;
+  font: inherit;
+}
+
+.speech-local {
+  font-size: 10px;
+  color: #6aa593;
+}
+.reply-speech {
+  display: block;
+  margin-top: 9px;
+}
+.reply-speech-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  font-size: 11px;
+  color: #7e98b9;
+  background: #f5f9ff;
+  border: 1px solid #e2ebf8;
+  border-radius: 10px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+.reply-speech-button.is-active {
+  color: #b3687e;
+  background: #fff4f7;
+}
+.reply-speech > small {
+  display: block;
+  margin-top: 5px;
+  color: #b3687e;
+  font-size: 11px;
+}

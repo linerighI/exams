@@ -1,0 +1,196 @@
+/* Window motion: @adi1816/genie-effect (MIT); layout springs: Motion. */
+.orb-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.orb-chat.is-expanded {
+  border-radius: 24px;
+}
+.floating-assistant .orb-panel-tabs button {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  box-shadow: none;
+}
+.orb-tab-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+  box-shadow: 0 3px 14px #3d608510;
+  z-index: -1;
+}
+.orb-tab-label {
+  position: relative;
+}
+.floating-assistant :is(.orb-chat, .orb-tool-window) button {
+  transition:
+    background-color 0.18s,
+    color 0.18s,
+    box-shadow 0.2s,
+    border-color 0.2s,
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.floating-assistant :is(.orb-chat, .orb-tool-window) button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px #527fba12;
+}
+.floating-assistant :is(.orb-chat, .orb-tool-window) button:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+.floating-assistant :is(.orb-chat, .orb-tool-window) button:focus-visible {
+  outline: 2px solid #7aabed;
+  outline-offset: 3px;
+}
+.orb-chat header button svg,
+.orb-tool-window header button svg {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.orb-chat header button:hover svg,
+.orb-tool-window header button:hover svg {
+  transform: rotate(-8deg) scale(1.12);
+}
+.orb-pane .orb-quick-tools > *,
+.orb-pane .orb-context-guide > *,
+.orb-pane .orb-context-stats > *,
+.orb-pane .workflow-tool-step,
+.orb-pane .orb-shortcuts > *,
+.orb-pane .orb-result,
+.orb-command-list,
+.orb-quick-pages[open] > div,
+.orb-tool-message {
+  animation: orb-detail-arrive 0.38s both cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.orb-pane .orb-context-guide > :nth-child(2),
+.orb-pane .orb-context-stats > :nth-child(2),
+.orb-pane .orb-quick-tools > :nth-child(2),
+.orb-pane .workflow-tool-step:nth-child(2) {
+  animation-delay: 0.045s;
+}
+.orb-pane .orb-context-guide > :nth-child(3),
+.orb-pane .orb-context-stats > :nth-child(3),
+.orb-pane .workflow-tool-step:nth-child(3) {
+  animation-delay: 0.09s;
+}
+.orb-pane .orb-context-guide > :nth-child(4),
+.orb-pane .workflow-tool-step:nth-child(n + 4) {
+  animation-delay: 0.13s;
+}
+.orb-context-stats > span {
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
+}
+.orb-context-stats > span:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px #51729a12;
+}
+.orb-working > span {
+  animation: orb-thinking 1.4s ease-in-out infinite;
+}
+.orb-composer {
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.orb-composer:focus-within {
+  box-shadow: 0 0 0 3px #92b6ed20;
+}
+.assistant-orb::before,
+.assistant-orb::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.assistant-orb::before {
+  border: 1px solid #b8ddff80;
+  box-shadow: 0 0 18px #83beff30;
+  animation: orb-breathe 4s ease-in-out infinite;
+}
+.assistant-orb::after {
+  inset: 1px;
+  border: 1px solid transparent;
+  border-top-color: #c8eaffb0;
+  border-bottom-color: #9bcfff50;
+  animation: orb-orbit 12s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.assistant-orb:is(:hover, .is-open, .is-busy)::after {
+  opacity: 1;
+}
+.assistant-orb.is-busy::after {
+  animation-duration: 1.8s;
+}
+.assistant-orb .orb-main {
+  transition: box-shadow 0.3s;
+}
+.assistant-orb:hover .orb-main {
+  box-shadow: 0 0 25px #8ac8ff90;
+}
+.orb-genie-layer {
+  isolation: isolate;
+}
+.orb-genie-layer .genie-effect-panel {
+  left: 0;
+  top: 0;
+  direction: ltr;
+}
+.orb-genie-layer .orb-chat {
+  backdrop-filter: none;
+  background: #f6f9ff;
+}
+.orb-genie-layer * {
+  caret-color: transparent;
+}
+@keyframes orb-detail-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: scale(0.97);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.95;
+  }
+}
+@keyframes orb-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orb-thinking {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .floating-assistant *,
+  .floating-assistant *::before,
+  .floating-assistant *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .floating-assistant button:hover,
+  .floating-assistant button:active,
+  .floating-assistant button:hover svg,
+  .floating-assistant .orb-context-stats > span:hover {
+    transform: none !important;
+  }
+}

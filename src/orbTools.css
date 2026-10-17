@@ -1,0 +1,86 @@
+.floating-assistant .assistant-orb {
+  z-index: 15002;
+}
+.floating-assistant .orb-chat {
+  z-index: 15001;
+}
+.orb-tool-window {
+  position: fixed;
+  z-index: 15000;
+  direction: rtl;
+  width: min(510px, calc(100vw - 32px));
+  max-height: calc(100dvh - 110px);
+  display: flex;
+  flex-direction: column;
+  background: #f8faff;
+  border: 1px solid #cfdff4;
+  border-radius: 20px;
+  box-shadow: 0 18px 70px #25437335;
+  resize: both;
+  overflow: hidden;
+  min-width: 300px;
+  min-height: 200px;
+}
+.orb-tool-window.is-large {
+  width: min(760px, calc(100vw - 32px));
+}
+.orb-tool-window > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(110deg, #e7f0ff, #f3f0ff);
+  padding: 12px 15px;
+  cursor: move;
+  touch-action: none;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.orb-tool-window > header strong,
+.orb-tool-window > header span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.orb-tool-window > header strong {
+  font-size: 14px;
+}
+.orb-tool-window > header button {
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  color: #5a779e;
+}
+.orb-tool-body {
+  overflow: auto;
+  padding: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.orb-tool-body .teacher-calculator-wrap {
+  max-width: 420px;
+  margin: auto;
+}
+.orb-tool-body .teacher-geometry-frame {
+  height: 360px;
+}
+.orb-tool-message {
+  padding: 10px;
+  background: #e9f5ef;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #427766;
+}
+.orb-quick-tools {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.orb-quick-tools button {
+  padding: 8px 12px;
+  background: #edf3ff;
+  border: 1px solid #d9e5f8;
+  border-radius: 12px;
+  color: #496f9f;
+  font-size: 12px;
+}

@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, BookOpen, UploadCloud, Loader2, AlertCircle } from 'lucide-react';
+import {
+  ArrowRight,
+  Sparkles,
+  BookOpen,
+  UploadCloud,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  SlidersHorizontal,
+  Settings2,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { api, fileBase64 } from './api';
 import MathText from './MathText';
 import type { Exam } from './types';
@@ -7,7 +20,11 @@ import './workspace.css';
 import { motion } from 'motion/react';
 import BookQuestionReview from './BookQuestionReview';
 import BankWizard from './BankWizard';
+import BookLibrary from './BookLibrary';
+import BankQuestionCollection, { ChapterRename, chapterLabel } from './BankQuestionCollection';
+import FocusWindow from './FocusWindow';
 import './exchange.css';
+import './bankDashboard.css';
 type Props = {
   notify: (s: string) => void;
   openExam: (e: Exam) => void;
@@ -15,6 +32,10 @@ type Props = {
 };
 export { default as AssistantView } from './Assistant';
 export function BooksView({ notify, openExam }: Props) {
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [bankPanel, setBankPanel] = useState<'files' | 'exam' | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [destinationFolder, setDestinationFolder] = useState<string | null>(null);
   const [books, setBooks] = useState<any[]>([]),
     [book, setBook] = useState<any>(),
     [questions, setQuestions] = useState<any[]>([]),
@@ -31,6 +52,15 @@ export function BooksView({ notify, openExam }: Props) {
     [page, setPage] = useState(1),
     [from, setFrom] = useState(1),
     [to, setTo] = useState(1);
+  const filteredQuestions = questions.filter(
+    (q) =>
+      (!status || q.status === status) &&
+      (!difficulty || q.difficulty === difficulty) &&
+      (!chapter || q.chapter === chapter) &&
+      `${q.text} ${q.chapter}`.includes(query),
+  );
+  const approvedCount = questions.filter((q) => q.status === 'approved').length;
+  const chapters = [...new Set(questions.map((q) => q.chapter).filter(Boolean))];
   const [meta, setMeta] = useState({ title: '', subject: '', grade: '', term: 'الأول' });
   const [uploadError, setUploadError] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -54,12 +84,21 @@ export function BooksView({ notify, openExam }: Props) {
     return () => clearInterval(timer);
   }, []);
   async function open(b: any) {
-    setBook(await api(`/api/books/${b.id}`));
+    const loaded = await api(`/api/books/${b.id}`);
+    if (b.id !== book?.id) {
+      setQuery('');
+      setStatus('');
+      setDifficulty('');
+      setChapter('');
+      setFiltersOpen(false);
+      setBankPanel(null);
+    }
+    setBook(loaded);
     setQuestions(await api(`/api/books/${b.id}/questions`));
     setQuestion(undefined);
     setPreview('');
     setPage(1);
-    setTo(b.pageCount);
+    setTo(loaded.pageCount);
   }
   const job = jobs.find((j) => j.bookId === book?.id);
   async function showPage(n: number) {
@@ -78,13 +117,12 @@ export function BooksView({ notify, openExam }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="page-title">
+      <div className="page-title" hidden={!!book}>
         <div>
-          <span className="eyebrow">معرفة محفوظة، لكل امتحان</span>
-          <h1>الكتب وبنك الأسئلة</h1>
-          <p>أسئلة منظمة حسب المنهج مع المعادلات ورسومات الكتاب الأصلية.</p>
+          <h1>{book ? 'بنك الأسئلة' : 'الكتب وبنك الأسئلة'}</h1>
+          {!book && <p>اختر كتابًا لمراجعة أسئلته أو أضف بنكًا جديدًا.</p>}
         </div>
-        <div className="library-totals">
+        <div className="library-totals" hidden={!!book}>
           <span>
             <BookOpen size={20} />
             <strong>{books.length}</strong> كتب في مكتبتك
@@ -95,19 +133,49 @@ export function BooksView({ notify, openExam }: Props) {
           </span>
         </div>
       </div>
-      <BankWizard
+      <details className="bank-import-window">
+        <summary>
+          <UploadCloud size={19} /> إضافة بنك أسئلة <span>من كتاب أو ملف جاهز</span>
+        </summary>
+        <BankWizard
+          books={books}
+          notify={notify}
+          onImported={async (id) => {
+            if (destinationFolder)
+              await api('/api/library/move', 'PUT', { bookIds: [id], folderId: destinationFolder });
+            await refresh();
+            await open({ id });
+            document.querySelector('.bank-import-window')?.removeAttribute('open');
+          }}
+        />
+      </details>
+      <BookLibrary
         books={books}
+        hidden={!!book}
+        openBook={(value) => void run(() => open(value))}
         notify={notify}
-        onImported={async (id) => {
-          await refresh();
-          await open({ id });
+        importBank={(folderId) => {
+          setDestinationFolder(folderId);
+          const panel = document.querySelector<HTMLDetailsElement>('.bank-import-window');
+          if (panel) {
+            panel.open = true;
+            panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          }
+        }}
+        uploadBook={(folderId) => {
+          setDestinationFolder(folderId);
+          setUploadError('');
+          setUploadOpen(true);
         }}
       />
-      <div className="book-layout">
-        <aside className="card book-list">
-          <h3>مكتبتك المحفوظة</h3>
-          <details>
-            <summary>خيارات متقدمة: إضافة كتاب أصلي</summary>
+      {uploadOpen && (
+        <FocusWindow
+          title="رفع كتاب PDF"
+          onClose={() => {
+            if (!uploading) setUploadOpen(false);
+          }}
+        >
+          <div className="library-source-form">
             {(['title', 'subject', 'grade'] as const).map((key, i) => (
               <label className="field" key={key}>
                 {['عنوان الكتاب', 'المادة', 'الصف'][i]}
@@ -149,8 +217,14 @@ export function BooksView({ notify, openExam }: Props) {
                           title,
                           pdf: await fileBase64(file),
                         });
+                        if (destinationFolder)
+                          await api('/api/library/move', 'PUT', {
+                            bookIds: [b.id],
+                            folderId: destinationFolder,
+                          });
                         await refresh();
                         await open(b);
+                        setUploadOpen(false);
                       } catch (error) {
                         setUploadError((error as Error).message);
                         throw error;
@@ -168,278 +242,446 @@ export function BooksView({ notify, openExam }: Props) {
                 <span>{uploadError}</span>
               </div>
             )}
-          </details>
-          {books.map((b) => (
-            <button className="history" key={b.id} onClick={() => void run(() => open(b))}>
-              <BookOpen />
-              <span>
-                {b.title}
-                <small>
-                  {b.grade} · {b.questions} سؤال
-                </small>
-              </span>
-            </button>
-          ))}
-        </aside>
+          </div>
+        </FocusWindow>
+      )}
+      {book && (
+        <button
+          className="library-back text-button"
+          onClick={() => {
+            setBook(undefined);
+            setQuestion(undefined);
+          }}
+        >
+          <ArrowRight size={18} />
+          العودة إلى المكتبة
+        </button>
+      )}
+      <div className="book-layout library-detail-layout" hidden={!book}>
         <section className="card book-content">
           {!book ? (
             <div className="empty">
               <BookOpen size={50} />
-              <h2>مكتبتك تبدأ بكتاب</h2>
-              <p>جهّز طلبك في الأعلى، ثم استورد بنك الأسئلة من موقع المساعد.</p>
+              <h2>{books.length ? 'اختر كتابًا من المكتبة' : 'أضف أول بنك أسئلة'}</h2>
+              <p>
+                {books.length
+                  ? 'ستظهر أسئلته هنا للمراجعة والتعديل.'
+                  : 'افتح «إضافة بنك أسئلة» للبدء.'}
+              </p>
             </div>
           ) : (
             <>
-              <h2>{book.title}</h2>
-              <div className="workspace-toolbar">
-                {book.hasCompanion && (
-                  <button
-                    className="secondary"
-                    onClick={() =>
-                      void run(async () => {
-                        const { pdf } = await api(`/api/books/${book.id}/companion`);
-                        const bytes = Uint8Array.from(atob(pdf), (c) => c.charCodeAt(0));
-                        const url = URL.createObjectURL(
-                          new Blob([bytes], { type: 'application/pdf' }),
-                        );
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = 'bank-companion.pdf';
-                        link.click();
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                      })
-                    }
-                  >
-                    تنزيل PDF المرافق
+              <header className="bank-dashboard-header">
+                <div>
+                  <span className="bank-eyebrow">
+                    {book.subject} · الصف {book.grade}
+                  </span>
+                  <h2>{book.title}</h2>
+                </div>
+                <div className="bank-header-actions">
+                  <button className="secondary" onClick={() => setBankPanel('files')}>
+                    <Settings2 size={17} />
+                    ملفات الكتاب وإعداداته
                   </button>
-                )}
-                <button
-                  className="secondary"
-                  onClick={() =>
-                    void run(async () => {
-                      if (window.desktop) {
-                        await window.desktop.exportBankPDF(book.id);
-                      } else {
-                        const { html } = await api(`/api/books/${book.id}/document`);
-                        const frame = document.createElement('iframe');
-                        frame.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0';
-                        frame.onload = async () => {
-                          await frame.contentDocument?.fonts.ready;
-                          frame.contentWindow?.print();
-                          setTimeout(() => frame.remove(), 60000);
-                        };
-                        document.body.appendChild(frame);
-                        frame.srcdoc = html;
-                      }
-                    })
-                  }
-                >
-                  تصدير بنك PDF محليًا
-                </button>
-                {!book.hasPdf && (
-                  <label className="secondary file-button">
-                    <UploadCloud size={16} /> إرفاق الكتاب الأصلي للقص
-                    <input
-                      aria-label="الكتاب الأصلي للقص"
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file)
-                          void run(async () => {
-                            await api(`/api/books/${book.id}/source`, 'POST', {
-                              pdf: await fileBase64(file),
-                            });
-                            await open(book);
-                            await refresh();
-                            notify('تم ربط المصدر وقص الصور المتاحة محليًا');
-                          });
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-              <details className="advanced-api">
-                <summary>خيارات التوليد المتقدمة</summary>
-                <div className="workspace-toolbar">
-                  <label>
-                    هدف البنك{' '}
-                    <input
-                      type="number"
-                      min={50}
-                      max={500}
-                      value={target}
-                      onChange={(e) => setTarget(+e.target.value)}
-                    />
-                  </label>
-                  <button
-                    className="primary"
-                    disabled={busy || job?.status === 'running'}
-                    onClick={() =>
-                      void run(async () => {
-                        await api(`/api/books/${book.id}/process`, 'POST', { target });
-                        await refresh();
-                      })
-                    }
-                  >
-                    {job?.status === 'paused' ? 'متابعة المعالجة' : 'تحليل الكتاب وبناء البنك'}
+                  <button className="primary" onClick={() => setBankPanel('exam')}>
+                    <Plus size={17} />
+                    إنشاء امتحان
                   </button>
-                  {job?.status === 'running' && (
-                    <button
-                      onClick={() => void run(() => api(`/api/book-jobs/${job.id}/pause`, 'POST'))}
-                    >
-                      إيقاف مؤقت
-                    </button>
-                  )}
-                  <button onClick={() => void run(() => open(book))}>تحديث الأسئلة</button>
                 </div>
-                {job && (
-                  <div className="book-progress" role="status">
-                    <strong>{job.message}</strong>
-                    <progress max={book.pageCount} value={job.nextPage - 1} />
-                    <small>
-                      {job.nextPage - 1} / {book.pageCount} صفحة · {job.completed || 0} سؤال ·{' '}
-                      {job.tokens || 0} رمز مستخدم
-                      {job.cropWarnings > 0 && ` · ${job.cropWarnings} صور تحتاج مراجعة`}
-                    </small>
-                  </div>
-                )}
-              </details>
-              <details>
-                <summary>صفحات الكتاب والاستثناءات</summary>
-                <div className="workspace-toolbar">
-                  من
-                  <input
-                    aria-label="من صفحة"
-                    type="number"
-                    value={from}
-                    onChange={(e) => setFrom(+e.target.value)}
-                  />
-                  إلى
-                  <input
-                    aria-label="إلى صفحة"
-                    type="number"
-                    value={to}
-                    onChange={(e) => setTo(+e.target.value)}
-                  />
-                  <button onClick={() => void run(() => range(false))}>استبعاد النطاق</button>
-                  <button onClick={() => void run(() => range(true))}>تضمين النطاق</button>
-                </div>
-                <div className="book-pages">
-                  {book.pages.map((p: any) => (
-                    <button
-                      title={p.reason}
-                      className={(p.override ?? p.included) ? '' : 'excluded'}
-                      key={p.page}
-                      onClick={() => void run(() => showPage(p.page))}
-                    >
-                      صفحة {p.page}
-                      <small>{p.chapter || p.reason}</small>
-                    </button>
-                  ))}
-                </div>
-                {preview && <img className="page-preview" src={preview} alt={`صفحة ${page}`} />}
-              </details>
-              <div className="workspace-toolbar">
-                <input
-                  placeholder="بحث في الأسئلة والفصول"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="">كل الحالات</option>
-                  <option value="draft">للمراجعة</option>
-                  <option value="approved">معتمد</option>
-                </select>
-                <select
-                  aria-label="صعوبة أسئلة البنك"
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                >
-                  <option value="">كل مستويات الصعوبة</option>
-                  {['سهل', 'متوسط', 'صعب'].map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-                <select
-                  aria-label="فصل أسئلة البنك"
-                  value={chapter}
-                  onChange={(e) => setChapter(e.target.value)}
-                >
-                  <option value="">جميع الفصول</option>
-                  {[...new Set(questions.map((q) => q.chapter))].map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-                <label>
-                  عدد أسئلة الامتحان
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={count}
-                    onChange={(e) => setCount(+e.target.value)}
-                  />
-                </label>
-                <button
-                  className="primary"
-                  onClick={() =>
-                    void run(async () =>
-                      openExam(
-                        await api('/api/bank/exam', 'POST', {
-                          bookId: book.id,
-                          count,
-                          chapter: chapter || undefined,
-                          difficulty: difficulty || undefined,
-                        }),
-                      ),
-                    )
-                  }
-                >
-                  إنشاء مسودة من البنك
-                </button>
+              </header>
+              <div className="bank-dashboard-metrics" aria-label="ملخص بنك الأسئلة">
+                {[
+                  ['', questions.length, 'جميع الأسئلة', BookOpen],
+                  ['approved', approvedCount, 'جاهزة للامتحان', CheckCircle2],
+                  ['draft', questions.length - approvedCount, 'بانتظار المراجعة', AlertCircle],
+                ].map(([value, total, label, Icon]: any) => (
+                  <button
+                    key={label}
+                    className={`bank-metric metric-${value || 'all'}`}
+                    aria-pressed={status === value}
+                    onClick={() => setStatus(value)}
+                  >
+                    <span className="bank-metric-icon">
+                      <Icon size={21} />
+                    </span>
+                    <span>
+                      {label}
+                      <strong>{total}</strong>
+                    </span>
+                    <ChevronLeft size={17} />
+                  </button>
+                ))}
               </div>
-              <div className="bank-grid">
-                {questions
-                  .filter(
-                    (q) =>
-                      (!status || q.status === status) &&
-                      (!difficulty || q.difficulty === difficulty) &&
-                      (!chapter || q.chapter === chapter) &&
-                      `${q.text} ${q.chapter}`.includes(query),
-                  )
-                  .map((q) => (
-                    <motion.button
-                      className="bank-question"
-                      key={q.id}
-                      whileHover={{ y: -4 }}
-                      whileTap={{ scale: 0.98 }}
-                      layout
-                      onClick={() => {
-                        setQuestion({ ...q });
-                        setPreview('');
-                      }}
-                    >
-                      <span className="pill">
-                        {q.status === 'approved' ? 'معتمد' : 'للمراجعة'} · صفحة {q.page}
-                      </span>
-                      <MathText text={q.text} />
-                      {q.cropWarning && (
-                        <small className="bank-crop-warning">
-                          <AlertCircle size={13} />
-                          {q.image ? 'راجع قص الرسم' : 'الصورة تحتاج تحديدًا'}
-                        </small>
+              {bankPanel === 'files' && (
+                <FocusWindow title="ملفات الكتاب وإعداداته" wide onClose={() => setBankPanel(null)}>
+                  <div className="bank-book-actions">
+                    <div className="workspace-toolbar">
+                      {book.hasCompanion && (
+                        <button
+                          className="secondary"
+                          onClick={() =>
+                            void run(async () => {
+                              const { pdf } = await api(`/api/books/${book.id}/companion`);
+                              const bytes = Uint8Array.from(atob(pdf), (c) => c.charCodeAt(0));
+                              const url = URL.createObjectURL(
+                                new Blob([bytes], { type: 'application/pdf' }),
+                              );
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = 'bank-companion.pdf';
+                              link.click();
+                              setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            })
+                          }
+                        >
+                          تنزيل PDF المرافق
+                        </button>
                       )}
-                      {q.image && <img src={q.image} alt="رسم السؤال" />}
-                      <small>
-                        {q.chapter} · {q.difficulty}
-                      </small>
-                    </motion.button>
-                  ))}
+                      <button
+                        className="secondary"
+                        onClick={() =>
+                          void run(async () => {
+                            if (window.desktop) {
+                              await window.desktop.exportBankPDF(book.id);
+                            } else {
+                              const { html } = await api(`/api/books/${book.id}/document`);
+                              const frame = document.createElement('iframe');
+                              frame.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0';
+                              frame.onload = async () => {
+                                await frame.contentDocument?.fonts.ready;
+                                frame.contentWindow?.print();
+                                setTimeout(() => frame.remove(), 60000);
+                              };
+                              document.body.appendChild(frame);
+                              frame.srcdoc = html;
+                            }
+                          })
+                        }
+                      >
+                        تصدير بنك PDF محليًا
+                      </button>
+                      {!book.hasPdf && (
+                        <label className="secondary file-button">
+                          <UploadCloud size={16} /> إرفاق الكتاب الأصلي للقص
+                          <input
+                            aria-label="الكتاب الأصلي للقص"
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file)
+                                void run(async () => {
+                                  await api(`/api/books/${book.id}/source`, 'POST', {
+                                    pdf: await fileBase64(file),
+                                  });
+                                  await open(book);
+                                  await refresh();
+                                  notify('تم ربط المصدر وقص الصور المتاحة محليًا');
+                                });
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <details className="advanced-api">
+                      <summary>خيارات التوليد المتقدمة</summary>
+                      <div className="workspace-toolbar">
+                        <label>
+                          هدف البنك{' '}
+                          <input
+                            type="number"
+                            min={50}
+                            max={500}
+                            value={target}
+                            onChange={(e) => setTarget(+e.target.value)}
+                          />
+                        </label>
+                        <button
+                          className="primary"
+                          disabled={busy || job?.status === 'running'}
+                          onClick={() =>
+                            void run(async () => {
+                              await api(`/api/books/${book.id}/process`, 'POST', { target });
+                              await refresh();
+                            })
+                          }
+                        >
+                          {job?.status === 'paused'
+                            ? 'متابعة المعالجة'
+                            : 'تحليل الكتاب وبناء البنك'}
+                        </button>
+                        {job?.status === 'running' && (
+                          <button
+                            onClick={() =>
+                              void run(() => api(`/api/book-jobs/${job.id}/pause`, 'POST'))
+                            }
+                          >
+                            إيقاف مؤقت
+                          </button>
+                        )}
+                        <button onClick={() => void run(() => open(book))}>تحديث الأسئلة</button>
+                      </div>
+                      {job && (
+                        <div className="book-progress" role="status">
+                          <strong>{job.message}</strong>
+                          <progress max={book.pageCount} value={job.nextPage - 1} />
+                          <small>
+                            {job.nextPage - 1} / {book.pageCount} صفحة · {job.completed || 0} سؤال ·{' '}
+                            {job.tokens || 0} رمز مستخدم
+                            {job.cropWarnings > 0 && ` · ${job.cropWarnings} صور تحتاج مراجعة`}
+                          </small>
+                        </div>
+                      )}
+                    </details>
+                    <details>
+                      <summary>صفحات الكتاب والاستثناءات</summary>
+                      <div className="workspace-toolbar">
+                        من
+                        <input
+                          aria-label="من صفحة"
+                          type="number"
+                          value={from}
+                          onChange={(e) => setFrom(+e.target.value)}
+                        />
+                        إلى
+                        <input
+                          aria-label="إلى صفحة"
+                          type="number"
+                          value={to}
+                          onChange={(e) => setTo(+e.target.value)}
+                        />
+                        <button onClick={() => void run(() => range(false))}>استبعاد النطاق</button>
+                        <button onClick={() => void run(() => range(true))}>تضمين النطاق</button>
+                      </div>
+                      <div className="book-pages">
+                        {book.pages.map((p: any) => (
+                          <button
+                            title={p.reason}
+                            className={(p.override ?? p.included) ? '' : 'excluded'}
+                            key={p.page}
+                            onClick={() => void run(() => showPage(p.page))}
+                          >
+                            صفحة {p.page}
+                            <small>{p.chapter || p.reason}</small>
+                          </button>
+                        ))}
+                      </div>
+                      {preview && (
+                        <img className="page-preview" src={preview} alt={`صفحة ${page}`} />
+                      )}
+                    </details>
+                  </div>
+                </FocusWindow>
+              )}
+              <div className="bank-dashboard-body">
+                <section className="bank-question-board" aria-label="أسئلة البنك">
+                  <div className="bank-section-heading">
+                    <h3>الأسئلة</h3>
+                    <span>{filteredQuestions.length} سؤال</span>
+                  </div>
+                  <div className="bank-search-row">
+                    <input
+                      aria-label="البحث في أسئلة البنك"
+                      placeholder="ابحث عن سؤال…"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    <button
+                      className="secondary"
+                      aria-expanded={filtersOpen}
+                      onClick={() => setFiltersOpen(!filtersOpen)}
+                    >
+                      <SlidersHorizontal size={16} />
+                      تصفية{status || difficulty || chapter ? ' •' : ''}
+                    </button>
+                  </div>
+                  {(status || difficulty || chapter || query) && (
+                    <div className="bank-active-filters">
+                      <span>
+                        {[
+                          status === 'approved' ? 'معتمد' : status === 'draft' ? 'للمراجعة' : '',
+                          difficulty,
+                          chapter,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || 'نتائج البحث'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setStatus('');
+                          setDifficulty('');
+                          setChapter('');
+                          setQuery('');
+                        }}
+                      >
+                        مسح التصفية
+                      </button>
+                    </div>
+                  )}
+                  <div className="workspace-toolbar bank-question-filters" hidden={!filtersOpen}>
+                    <select
+                      aria-label="حالة أسئلة البنك"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
+                      <option value="">كل الحالات</option>
+                      <option value="draft">للمراجعة</option>
+                      <option value="approved">معتمد</option>
+                    </select>
+                    <select
+                      aria-label="صعوبة أسئلة البنك"
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value)}
+                    >
+                      <option value="">كل مستويات الصعوبة</option>
+                      {['سهل', 'متوسط', 'صعب'].map((d) => (
+                        <option key={d}>{d}</option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="فصل أسئلة البنك"
+                      value={chapter}
+                      onChange={(e) => setChapter(e.target.value)}
+                    >
+                      <option value="">جميع الفصول</option>
+                      {[...new Set(questions.map((q) => q.chapter))].map((c) => (
+                        <option key={c} value={c}>
+                          {chapterLabel(c)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <BankQuestionCollection
+                    key={book.id}
+                    bookId={book.id}
+                    questions={filteredQuestions}
+                    allQuestions={questions}
+                    notify={notify}
+                    onChanged={async () => {
+                      await open(book);
+                      await refresh();
+                    }}
+                    renderQuestion={(q) => (
+                      <motion.button
+                        className="bank-question"
+                        key={q.id}
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        layout
+                        onClick={() => {
+                          setQuestion({ ...q });
+                          setPreview('');
+                        }}
+                      >
+                        <span className="bank-question-top">
+                          <span
+                            className={`pill ${q.status === 'approved' ? 'is-approved' : 'is-draft'}`}
+                          >
+                            {q.status === 'approved' ? 'معتمد' : 'للمراجعة'}
+                          </span>
+                          <small>ص {q.page}</small>
+                        </span>
+                        <MathText text={q.text} />
+                        {q.cropWarning && (
+                          <small className="bank-crop-warning">
+                            <AlertCircle size={13} />
+                            {q.image ? 'راجع قص الرسم' : 'الصورة تحتاج تحديدًا'}
+                          </small>
+                        )}
+                        {q.image && <img src={q.image} alt="رسم السؤال" />}
+                        <small>
+                          {chapterLabel(q.chapter)} · {q.difficulty}
+                        </small>
+                      </motion.button>
+                    )}
+                  />
+                </section>
+                <aside className="bank-insights">
+                  <section className="bank-chapters">
+                    <h3>
+                      الفصول <span>{chapters.length}</span>
+                    </h3>
+                    <button aria-pressed={!chapter} onClick={() => setChapter('')}>
+                      <span>جميع الفصول</span>
+                      <b>{questions.length}</b>
+                    </button>
+                    {chapters.map((name) => (
+                      <div className="bank-chapter-row" key={name}>
+                        <button aria-pressed={chapter === name} onClick={() => setChapter(name)}>
+                          <span>{chapterLabel(name)}</span>
+                          <b>{questions.filter((q) => q.chapter === name).length}</b>
+                        </button>
+                        <ChapterRename
+                          bookId={book.id}
+                          name={name}
+                          onChanged={async () => {
+                            setChapter('');
+                            await open(book);
+                          }}
+                          notify={notify}
+                        />
+                      </div>
+                    ))}
+                  </section>
+                  <section className="bank-difficulty">
+                    <h3>مستويات الصعوبة</h3>
+                    {['سهل', 'متوسط', 'صعب'].map((name) => {
+                      const total = questions.filter((q) => q.difficulty === name).length;
+                      return (
+                        <button
+                          key={name}
+                          aria-pressed={difficulty === name}
+                          onClick={() => setDifficulty(difficulty === name ? '' : name)}
+                        >
+                          <span>
+                            {name}
+                            <b>{total}</b>
+                          </span>
+                          <progress
+                            aria-label={`عدد الأسئلة: ${name}`}
+                            value={total}
+                            max={Math.max(1, questions.length)}
+                          />
+                        </button>
+                      );
+                    })}
+                  </section>
+                </aside>
               </div>
-              {questions.length === 0 && (
-                <p className="muted">استورد ملف البنك من الأعلى لبدء المراجعة.</p>
+              {bankPanel === 'exam' && (
+                <FocusWindow title="إنشاء امتحان من هذا البنك" onClose={() => setBankPanel(null)}>
+                  <p className="muted">اختر عدد الأسئلة. تُستخدم تصفية الفصل والصعوبة الحالية.</p>
+                  <div className="workspace-toolbar">
+                    <label>
+                      عدد أسئلة الامتحان
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={count}
+                        onChange={(e) => setCount(+e.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="primary"
+                      onClick={() =>
+                        void run(async () =>
+                          openExam(
+                            await api('/api/bank/exam', 'POST', {
+                              bookId: book.id,
+                              count,
+                              chapter: chapter || undefined,
+                              difficulty: difficulty || undefined,
+                            }),
+                          ),
+                        )
+                      }
+                    >
+                      إنشاء مسودة من البنك
+                    </button>
+                  </div>
+                </FocusWindow>
               )}
             </>
           )}

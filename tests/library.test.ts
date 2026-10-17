@@ -50,7 +50,7 @@ test('visual processing checkpoints survive quota errors and server restarts', a
     await call('/api/setup', 'POST', { school: 'مدرسة', password: 'password123' });
     let token = await login();
     const config = (await call('/api/settings', 'GET', undefined, token)).json();
-    await call('/api/settings', 'PUT', { ...config, geminiKey: 'test-key' }, token);
+    await call('/api/settings', 'PUT', { ...config, aiProvider: 'gemini', geminiKey: 'test-key' }, token);
     server.store.put('books', {
       id: 'visual',
       title: 'رياضيات',

@@ -1,5 +1,40 @@
 export const assistantCommands = [
   {
+    id: 'guide',
+    ar: 'دليل',
+    aliases: ['guide', 'شرح'],
+    label: 'دليل التطبيق',
+    description: 'شرح الميزات الحالية وطريقة استخدامها',
+  },
+  {
+    id: 'tools',
+    ar: 'أدوات',
+    aliases: ['tools', 'ادوات'],
+    label: 'أدوات المعلم',
+    description: 'افتح الحاسبة والرسم والتخطيط مباشرة',
+  },
+  {
+    id: 'folders',
+    ar: 'مجلدات',
+    aliases: ['folders'],
+    label: 'مجلدات البنوك',
+    description: 'المجلدات المحفوظة وعدد أسئلتها',
+  },
+  {
+    id: 'readiness',
+    ar: 'جاهزية',
+    aliases: ['readiness'],
+    label: 'جاهزية البنوك',
+    description: 'المعتمد والمسودات والصور الناقصة',
+  },
+  {
+    id: 'room',
+    ar: 'مراقبة',
+    aliases: ['room'],
+    label: 'غرفة المراقبة',
+    description: 'افتح الأجهزة والإجابات والكاميرات',
+  },
+  {
     id: 'prompt',
     ar: 'طلب',
     aliases: ['prompt', 'صياغة'],

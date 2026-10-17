@@ -1,0 +1,384 @@
+/* Shared utility features live behind the left orb; pages keep their own controls. */
+.orb-panel-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 10px 14px;
+  background: #f0f4fb;
+  border-bottom: 1px solid #e4ebf6;
+  flex-shrink: 0;
+}
+.orb-panel-tabs button {
+  flex: 1;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 5px;
+  background: transparent;
+  color: #8297b3;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.orb-panel-tabs button[aria-selected='true'] {
+  background: white;
+  color: #537aaf;
+  box-shadow: 0 3px 12px #3d60850a;
+}
+.orb-utility-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  flex: 1;
+  min-height: 0;
+}
+.orb-context-guide > small {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #8198b9;
+  font-size: 11px;
+}
+.orb-context-guide h3 {
+  font-size: 19px;
+  color: #405e86;
+  line-height: 1.8;
+  margin: 15px 0;
+}
+.orb-context-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: #e9f1ff;
+  color: #4e78b0;
+  border: 1px solid #d8e6fa;
+  border-radius: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.orb-context-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 20px 0;
+}
+.orb-context-stats span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-radius: 13px;
+  padding: 13px 3px;
+  background: #eef5ff;
+  color: #8196b5;
+  font-size: 10px;
+}
+.orb-context-stats span:nth-child(2) {
+  background: #eaf5f0;
+  color: #6f9a88;
+}
+.orb-context-stats span:nth-child(3) {
+  background: #f0edfb;
+  color: #9489b6;
+}
+.orb-context-stats b {
+  font-size: 22px;
+  color: #5f84b8;
+  font-weight: 600;
+}
+.orb-context-stats span:nth-child(2) b {
+  color: #67a088;
+}
+.orb-context-stats span:nth-child(3) b {
+  color: #9181b6;
+}
+.orb-quick-pages summary {
+  font-size: 11px;
+  color: #8c9db5;
+  cursor: pointer;
+  padding: 7px 0;
+}
+.orb-quick-pages > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+.orb-quick-pages button {
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid #e4ebf5;
+  border-radius: 10px;
+  background: #fff;
+  color: #6c87aa;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.orb-workflow-heading h3 {
+  color: #53729c;
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 0 0 12px;
+}
+.orb-workflow-heading > button {
+  background: transparent;
+  border: 0;
+  color: #8a9dbb;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.orb-workflow .workflow-tool-sequence {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 17px;
+}
+.orb-workflow .workflow-tool-step {
+  background: #fff;
+  justify-content: space-between;
+  border: 1px solid #e1e9f5;
+  border-radius: 14px;
+}
+.orb-workflow .workflow-tool-step:nth-child(3n + 2) {
+  background: #f1f8f4;
+  border-color: #deede5;
+}
+.orb-workflow .workflow-tool-step:nth-child(3n + 3) {
+  background: #f4f1fb;
+  border-color: #e8e1f5;
+}
+.orb-workflow .workflow-tool-open {
+  font-size: 11px;
+  text-align: start;
+  line-height: 1.8;
+  padding: 12px 9px;
+}
+.orb-workflow .workflow-tool-open > span {
+  flex-shrink: 0;
+}
+.orb-workflow .workflow-step-controls {
+  flex-shrink: 0;
+}
+.orb-workflow .workflow-tool-drop {
+  justify-content: center;
+  font-size: 10px;
+  border: 0;
+  padding: 2px;
+  color: #9baec5;
+}
+.orb-add-tool select {
+  width: 100%;
+  padding: 12px;
+  background: #f3f6fc;
+  border: 1px dashed #cddbee;
+  border-radius: 12px;
+  color: #7b95b7;
+  font: inherit;
+  font-size: 11px;
+}
+.orb-chat {
+  background: #f9fbff;
+  backdrop-filter: none;
+}
+.orb-chat > header {
+  padding: 13px 16px;
+}
+.orb-chat > header strong {
+  font-size: 13px;
+}
+.teacher-session-shell .page-surface:not(.assistant-surface) {
+  background: linear-gradient(135deg, #f8fafc, #f8faff 70%, #f7faf9);
+}
+.teacher-tools-page .teacher-tools-heading p {
+  display: none;
+}
+.teacher-tools-page .teacher-tools-heading {
+  margin-bottom: 18px;
+}
+.teacher-tools-context {
+  background: #eff4fb !important;
+  border-color: #e1e9f5 !important;
+  padding: 13px !important;
+}
+.teacher-tools-context select {
+  background: #ffffffbd !important;
+}
+.teacher-tool-grid .teacher-tool-card:nth-child(4n + 1) {
+  background: #f2effb;
+  border-color: #e6dff5;
+}
+.teacher-tool-grid .teacher-tool-card:nth-child(4n + 2) {
+  background: #edf4ff;
+  border-color: #dfe8f7;
+}
+.teacher-tool-grid .teacher-tool-card:nth-child(4n + 3) {
+  background: #eaf5f0;
+  border-color: #dcece3;
+}
+.teacher-tool-grid .teacher-tool-card:nth-child(4n) {
+  background: #fbf4e9;
+  border-color: #f1e6d5;
+}
+.teacher-tool-grid .teacher-tool-card {
+  border-radius: 19px;
+  padding: 17px;
+  box-shadow: none;
+}
+.teacher-tool-grid .tool-tile-open > span:last-child {
+  font-size: 10px;
+  opacity: 0.8;
+}
+.teacher-tool-card .teacher-tool-icon {
+  background: #ffffffb5;
+}
+.teacher-tool-workbench {
+  background: transparent !important;
+  border: 0 !important;
+}
+.teacher-tool-workbench-body {
+  padding: 20px !important;
+}
+.tool-window-info {
+  padding-bottom: 4px !important;
+  margin-bottom: 0 !important;
+}
+.tool-window-info details summary {
+  font-size: 10px;
+  color: #96a6bd;
+}
+.blueprint-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  background: linear-gradient(110deg, #eef0fb, #edf5ff);
+  border-radius: 17px;
+  margin-bottom: 22px;
+}
+.blueprint-summary h3 {
+  font-size: 17px;
+  margin: 0 0 5px;
+  color: #526d98;
+}
+.blueprint-summary > div > span {
+  font-size: 11px;
+  color: #8b9fbc;
+}
+.blueprint-summary .field {
+  margin: 0;
+  max-width: 140px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.blueprint-summary input {
+  background: white !important;
+  text-align: center;
+  font-size: 20px !important;
+  font-weight: 600;
+  color: #6b88b5 !important;
+}
+.tool-blueprint-table {
+  gap: 8px !important;
+}
+.tool-blueprint-row {
+  grid-template-columns: minmax(140px, 1fr) 70px 60px 60px 28px !important;
+  gap: 9px !important;
+  padding: 10px;
+  border-radius: 13px;
+  background: #f0f5fc;
+}
+.tool-blueprint-row.heading {
+  background: transparent;
+  padding-top: 0;
+  padding-bottom: 2px;
+  font-size: 10px;
+}
+.tool-blueprint-row:not(.heading):nth-child(3n) {
+  background: #eef6f1;
+}
+.tool-blueprint-row:not(.heading):nth-child(3n + 1) {
+  background: #f3effa;
+}
+.tool-blueprint-row > input {
+  background: #ffffffb8 !important;
+  border-color: #ffffff !important;
+  min-height: 38px !important;
+  font-size: 12px !important;
+}
+.tool-blueprint-row > strong {
+  color: #648bb7;
+  display: grid;
+  place-items: center;
+  background: #ffffff9e;
+  border-radius: 11px;
+  min-height: 36px;
+  font-size: 17px;
+}
+.blueprint-help {
+  margin: 14px 3px;
+  color: #8b9fbc;
+  font-size: 10px;
+}
+.blueprint-help summary {
+  cursor: pointer;
+}
+.blueprint-help p {
+  font-size: 11px;
+  line-height: 1.9;
+  max-width: 580px;
+}
+.tool-blueprint .tool-actions {
+  padding-top: 8px !important;
+  margin-top: 8px !important;
+}
+.book-content .bank-metric:nth-child(1) {
+  background: #edf4ff !important;
+}
+.book-content .bank-metric:nth-child(2) {
+  background: #eef6f0 !important;
+}
+.book-content .bank-metric:nth-child(3) {
+  background: #f3eefb !important;
+}
+.class-folders > button:nth-child(3n + 2) {
+  background: #eef6f1;
+  border-color: #deece3;
+}
+.class-folders > button:nth-child(3n + 3) {
+  background: #f3effb;
+  border-color: #e7e1f4;
+}
+.teacher-session-shell .exam-card {
+  border-top: 3px solid #c8dcf6;
+}
+.teacher-session-shell .exam-card:nth-child(3n + 2) {
+  border-top-color: #c1dfcf;
+}
+.teacher-session-shell .exam-card:nth-child(3n + 3) {
+  border-top-color: #dbcfed;
+}
+@media (max-width: 650px) {
+  .blueprint-summary {
+    padding: 13px;
+    gap: 10px;
+  }
+  .blueprint-summary h3 {
+    font-size: 14px;
+  }
+  .blueprint-summary .field {
+    max-width: 100px;
+  }
+  .tool-blueprint-row {
+    grid-template-columns: minmax(90px, 1fr) 48px 40px 40px 24px !important;
+    gap: 5px !important;
+    padding: 7px;
+  }
+  .teacher-tool-workbench-body {
+    padding: 12px !important;
+  }
+}

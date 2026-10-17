@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { id } from './store';
 import { ollamaRequest } from './ollama';
 import { geminiGenerate } from './gemini';
+import { openaiGenerate } from './openai';
 import { lessonPages, lessonExcerpt } from '../src/sourceContent';
 import type { Question, Source } from '../src/types';
 const item = z.object({
@@ -40,7 +41,7 @@ export async function generate(
   signal: AbortSignal,
   progress: (n: number, message?: string, questions?: Question[]) => void,
   options: {
-    provider?: 'ollama' | 'gemini';
+    provider?: 'ollama' | 'gemini' | 'openai';
     key?: string;
     existing?: Question[];
     excludeFiller?: boolean;
@@ -58,7 +59,7 @@ export async function generate(
     value.normalize('NFKC').replace(/[\s\p{P}\u064b-\u065f\u0640]/gu, '');
   const seen = new Set<string>(questions.map((q) => normalize(q.text)));
   const usedPages = new Set<number>();
-  const cloud = options.provider === 'gemini';
+  const cloud = options.provider === 'gemini' || options.provider === 'openai';
   const batchSize = cloud ? 5 : 2;
   const attempts = Math.ceil((count - questions.length) / batchSize) + 4;
   for (let batch = 0; questions.length < count && batch < attempts; batch++) {
@@ -113,7 +114,7 @@ export async function generate(
       AbortSignal.timeout(cloud ? 180000 : 5 * 60000),
     ]);
     const payload = cloud
-      ? await geminiGenerate(model, options.key || '', system, prompt, schema, requestSignal)
+      ? await (options.provider === 'openai' ? openaiGenerate : geminiGenerate)(model, options.key || '', system, prompt, schema, requestSignal)
       : await ollamaRequest(
           'chat',
           {

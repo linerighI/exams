@@ -12,11 +12,18 @@ import { modelPattern, modelStatus, ollamaRequest } from './ollama';
 import { extractPDF } from './pdf';
 import { csvCell } from '../src/csv';
 import { registerLibrary } from './library';
+import { registerLiveLab } from './liveLab';
 import { registerAssistant } from './assistant';
 import { gradeKey, sectionKey } from './classMatch';
 import { openTenantStores, accountView } from './tenants';
 import { registerPromptTools } from './promptTools';
 import type { Exam, Attempt, Session, Settings } from '../src/types';
+import { normalizePairingCode, pairingKey, pairingProof } from './pairing';
+import { assignQuestions, attemptQuestions, deliveryCapacity } from './examDelivery';
+import { providerModel } from './provider';
+import { registerStudentRoster, nationalStudent } from './studentRoster';
+import { registerWorkflow } from './workflow';
+import { registerExamFolders } from './examFolders';
 const text = z.string().trim().min(1).max(300);
 const image = z
   .string()
@@ -33,6 +40,7 @@ const question = z.object({
   difficulty: z.string().optional(),
   bankId: z.string().max(100).optional(),
   geometryId: z.string().max(100).optional(),
+  chapter: z.string().max(300).optional(),
 });
 const examInput = z.object({
   title: text,
@@ -47,7 +55,25 @@ const examInput = z.object({
   cameraRequired: z.boolean(),
   opensAt: z.string(),
   closesAt: z.string(),
-  questions: z.array(question).max(100),
+  questions: z.array(question).max(500),
+  delivery: z
+    .object({
+      mode: z.literal('random'),
+      count: z.number().int().min(1).max(100),
+      quotas: z
+        .array(
+          z.object({
+            chapter: text,
+            difficulty: z.enum(['سهل', 'متوسط', 'صعب']),
+            count: z.number().int().positive().max(100),
+          }),
+        )
+        .min(1)
+        .max(500),
+    })
+    .optional(),
+  calculatorAllowed: z.boolean().default(false),
+  geogebraAllowed: z.boolean().default(false),
   sourceId: text.optional(),
   sourcePages: z.array(z.number().int().positive()).max(10000).optional(),
   sourceExcludeFiller: z.boolean().optional(),
@@ -69,18 +95,25 @@ export async function createApp(options: {
   https?: any;
   workerDirectory?: string;
   pairingCode?: string;
+  pairingFingerprint?: string;
   secretProtection?: SecretProtection;
 }) {
   const tenancy = openTenantStores(options.directory);
   const store = tenancy.store;
   const protection = options.secretProtection || localSecretProtection(options.directory);
-  const geminiKey = () => {
-    const value = store.getSetting('gemini-key');
+  const pairKey =
+    options.pairingCode && options.pairingFingerprint
+      ? pairingKey(options.pairingCode, options.pairingFingerprint)
+      : undefined;
+  const geminiKey = (requested?: 'gemini' | 'openai' | 'ollama') => {
+    const provider = requested || store.getSetting('config').aiProvider;
+    if (provider === 'ollama') return '';
+    const value = store.getSetting(provider === 'openai' ? 'openai-key' : 'gemini-key');
     if (!value) return '';
     try {
       return protection.open(value);
     } catch {
-      throw fail('تعذرت قراءة مفتاح Gemini. أدخله مرة أخرى في الإعدادات');
+      throw fail('تعذرت قراءة مفتاح API. أدخله مرة أخرى في الإعدادات');
     }
   };
   const app = Fastify({
@@ -108,6 +141,26 @@ export async function createApp(options: {
     return session;
   };
   const teacher = (req: any) => auth(req, 'teacher');
+  registerExamFolders(app, store, teacher);
+  registerWorkflow(app, store, teacher, !!options.https);
+  registerStudentRoster(
+    app,
+    store,
+    teacher,
+    () =>
+      tenancy
+        .accounts()
+        .filter((a) => a.id !== store.tenantId())
+        .map((a) => tenancy.forTeacher(a.id)),
+    (grade, section) => tenancy.checkGrade(store.tenantId(), grade, section),
+  );
+  registerLiveLab(
+    app,
+    store,
+    auth,
+    (token) => sessions.has(token),
+    (grade, section) => tenancy.allowed(store.tenantId(), grade, section),
+  );
   app.addHook('onRequest', (req, reply, done) => {
     const token = String(req.headers.authorization || '').replace(/^Bearer /, '');
     const session = sessions.get(token);
@@ -128,6 +181,21 @@ export async function createApp(options: {
     .min(3)
     .max(40)
     .regex(/^[\p{L}\p{N}._-]+$/u);
+  const assignedClasses = z
+    .array(z.string().max(450))
+    .max(200)
+    .transform((v) => [...new Set(v)]);
+  const resolveClasses = (ids: string[]) =>
+    ids.map((id) => {
+      const item = tenancy.classes().find((c) => c.id === id);
+      if (!item)
+        throw fail('الصف والشعبة غير موجودين في قائمة الطلاب. حدّث القائمة ثم أعد المحاولة.');
+      return { id: item.id, grade: item.grade, section: item.section };
+    });
+  app.get('/api/teacher-classes', async (req) => {
+    admin(req);
+    return tenancy.classes();
+  });
   app.get('/api/account', async (req) => {
     const s = teacher(req);
     return accountView(tenancy.account(s.teacherId || 'master')!);
@@ -139,21 +207,45 @@ export async function createApp(options: {
   app.post('/api/teachers', async (req) => {
     admin(req);
     const input = z
-      .object({ username: usernameSchema, name: text, password: z.string().min(8).max(128) })
+      .object({
+        username: usernameSchema,
+        name: text,
+        password: z.string().min(8).max(128),
+        classes: assignedClasses.default([]),
+      })
       .parse(req.body);
-    return accountView(tenancy.create(input.username, input.name, input.password));
+    return accountView(
+      tenancy.create(
+        input.username,
+        input.name,
+        input.password,
+        false,
+        resolveClasses(input.classes),
+      ),
+    );
   });
   app.patch('/api/teachers/:id', async (req) => {
     const s = admin(req);
-    const input = z.object({ disabled: z.boolean() }).parse(req.body);
+    const input = z
+      .object({ disabled: z.boolean().optional(), classes: assignedClasses.optional() })
+      .refine((v) => v.disabled !== undefined || v.classes !== undefined)
+      .parse(req.body);
     const a = tenancy.account((req.params as any).id);
     if (!a || a.id === s.teacherId || a.isAdmin)
       throw fail('لا يمكن إيقاف حساب المدير أو حسابك', 400);
-    a.disabled = input.disabled;
+    if (input.disabled !== undefined) a.disabled = input.disabled;
+    if (input.classes !== undefined) {
+      const own = tenancy.forTeacher(a.id);
+      if (own.all('attempts').some((attempt) => !attempt.submittedAt))
+        throw fail('انتظر انتهاء محاولات الطلاب الجارية قبل تغيير الصفوف المسندة', 409);
+      a.classes = resolveClasses(input.classes);
+      delete a.grades;
+    }
     tenancy.save(a);
     for (const [token, session] of sessions)
       if (session.teacherId === a.id) {
-        sessions.delete(token);
+        if (input.disabled !== undefined) sessions.delete(token);
+        else if (session.role === 'teacher') session.teacher = accountView(a);
       }
     for (const ws of sockets) if (socketOwners.get(ws) === a.id) ws.close();
     return accountView(a);
@@ -183,18 +275,19 @@ export async function createApp(options: {
     return s.teacher;
   });
   const library = registerLibrary(app, store, teacher, geminiKey, options.workerDirectory);
-  registerPromptTools(app, store, teacher);
+  registerPromptTools(app, store, teacher, geminiKey);
   registerAssistant(app, store, teacher, geminiKey, library);
   const visible = (exam: Exam, session: Session) =>
     session.role === 'teacher' ||
     (gradeKey(session.student?.grade || '') === gradeKey(exam.grade) &&
       (!exam.section || sectionKey(session.student?.section || '') === sectionKey(exam.section)));
   const gradeAttempt = (attempt: Attempt, exam: Exam) => {
+    const questions = attemptQuestions(attempt, exam);
     attempt.score =
       Math.round(
-        exam.questions.reduce(
+        questions.reduce(
           (sum, q) =>
-            sum + (attempt.answers[q.id] === q.correct ? exam.total / exam.questions.length : 0),
+            sum + (attempt.answers[q.id] === q.correct ? exam.total / questions.length : 0),
           0,
         ) * 100,
       ) / 100;
@@ -223,8 +316,10 @@ export async function createApp(options: {
   };
   const cleanAttempt = (attempt: Attempt, session: Session) => {
     const exam: Exam = store.get('exams', attempt.examId);
+    const { assignedQuestions, assignmentRank, ...safeAttempt } = attempt;
     return {
-      ...attempt,
+      ...safeAttempt,
+      questionCount: attemptQuestions(attempt, exam).length,
       ...(session.role === 'teacher'
         ? {
             studentName: store.get('students', attempt.studentId)?.name,
@@ -271,9 +366,18 @@ export async function createApp(options: {
     setup: !tenancy.accounts().length,
     time: Date.now(),
   }));
+  app.post('/api/pair/proof', async (req) => {
+    const { nonce } = z.object({ nonce: z.string().regex(/^[a-f0-9]{64}$/) }).parse(req.body);
+    if (!pairKey || !options.pairingFingerprint)
+      throw fail('حدّث تطبيق جهاز المعلم لاستخدام الربط المبسط', 409);
+    return { proof: pairingProof(pairKey, nonce, options.pairingFingerprint) };
+  });
   app.post('/api/pair', async (req) => {
     const data = z.object({ code: text }).parse(req.body);
-    if (!options.pairingCode || data.code !== options.pairingCode)
+    if (
+      !options.pairingCode ||
+      normalizePairingCode(data.code) !== normalizePairingCode(options.pairingCode)
+    )
       throw fail('رمز الاقتران غير صحيح', 403);
     return { school: store.getSetting('config').school };
   });
@@ -315,16 +419,19 @@ export async function createApp(options: {
       valid = !!account;
       if (account) owner = account.id;
     } else {
+      const matches: { student: any; owner: string }[] = [];
       for (const a of tenancy.accounts().filter((a) => !a.disabled)) {
-        const found = tenancy
-          .forTeacher(a.id)
-          .all('students')
-          .find((s) => s.code === data.code?.trim().toUpperCase());
-        if (found) {
-          student = found;
-          owner = a.id;
-          break;
+        const own = tenancy.forTeacher(a.id);
+        const found =
+          own.all('students').find((s) => s.code === data.code?.trim().toUpperCase()) ||
+          (await nationalStudent(own, data.code || ''));
+        if (found && tenancy.allowed(a.id, found.grade, found.section)) {
+          matches.push({ student: found, owner: a.id });
         }
+      }
+      if (matches.length === 1) {
+        student = matches[0].student;
+        owner = matches[0].owner;
       }
       valid = !!student;
     }
@@ -335,7 +442,7 @@ export async function createApp(options: {
       });
       throw fail(
         data.role === 'student'
-          ? 'رمز دخول الطالب غير صحيح. استخدم الرمز الموجود في صفحة الطلاب والصفوف؛ رمز الامتحان يُستخدم بعد الدخول.'
+          ? 'الرقم الوطني أو رمز دخول الطالب غير صحيح. استخدم البيانات المسجلة لدى المدرسة؛ رمز الامتحان يُستخدم بعد الدخول.'
           : 'بيانات الدخول غير صحيحة',
         401,
       );
@@ -353,6 +460,25 @@ export async function createApp(options: {
   });
   app.post('/api/logout', async (req) => {
     const session = auth(req);
+    if (session.role === 'student') {
+      const key = `student-exit:${session.teacherId}`;
+      const limiter = failures.get(key);
+      if (limiter && limiter.count >= 10 && Date.now() - limiter.at < 60000)
+        throw fail('محاولات كثيرة. انتظر دقيقة ثم اطلب من المعلم إدخال كلمة المرور', 429);
+      const password = z
+        .object({ password: z.string().min(1).max(128) })
+        .parse(req.body || {}).password;
+      const account = tenancy.account(session.teacherId || 'master');
+      if (!account || account.disabled || !verifyPassword(password, account.password)) {
+        failures.set(key, {
+          count: (limiter && Date.now() - limiter.at < 60000 ? limiter.count : 0) + 1,
+          at: Date.now(),
+        });
+        throw fail('كلمة مرور المعلم غير صحيحة. جلسة الطالب ما زالت مقفلة', 403);
+      }
+      failures.delete(key);
+      store.audit(`خروج الطالب ${session.student!.id} بإذن المعلم`);
+    }
     sessions.delete(session.token);
     return { ok: true };
   });
@@ -361,6 +487,7 @@ export async function createApp(options: {
     return {
       ...store.getSetting('config'),
       hasGeminiKey: !!store.getSetting('gemini-key'),
+      hasOpenaiKey: !!store.getSetting('openai-key'),
       ramGB: Math.round(totalmem() / 1024 ** 3),
     };
   });
@@ -372,7 +499,13 @@ export async function createApp(options: {
         retentionDays: z.number().int().min(1).max(3650),
         model: z.string().regex(modelPattern),
         pythonPath: z.string().max(600),
-        aiProvider: z.enum(['ollama', 'gemini']).default('ollama'),
+        aiProvider: z.enum(['ollama', 'gemini', 'openai']).default('ollama'),
+        openaiModel: z
+          .string()
+          .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,100}$/)
+          .default('gpt-4.1-mini'),
+        openaiKey: z.string().trim().max(500).optional(),
+        clearOpenaiKey: z.boolean().optional(),
         geminiModel: z
           .string()
           .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,100}$/)
@@ -382,11 +515,25 @@ export async function createApp(options: {
         clearGeminiKey: z.boolean().optional(),
       })
       .parse(req.body);
-    const { geminiKey: key, clearGeminiKey, ...config } = data;
+    const { geminiKey: key, clearGeminiKey, openaiKey, clearOpenaiKey, ...config } = data;
     if (clearGeminiKey) store.db.prepare('DELETE FROM settings WHERE key=?').run('gemini-key');
     else if (key) store.setSetting('gemini-key', protection.seal(key));
+    if (clearOpenaiKey) store.db.prepare('DELETE FROM settings WHERE key=?').run('openai-key');
+    else if (openaiKey) store.setSetting('openai-key', protection.seal(openaiKey));
     store.setSetting('config', config);
-    return { ...config, hasGeminiKey: !!store.getSetting('gemini-key') };
+    return {
+      ...config,
+      hasGeminiKey: !!store.getSetting('gemini-key'),
+      hasOpenaiKey: !!store.getSetting('openai-key'),
+    };
+  });
+  app.put('/api/ai/provider', async (req) => {
+    teacher(req);
+    const { provider } = z
+      .object({ provider: z.enum(['ollama', 'openai', 'gemini']) })
+      .parse(req.body);
+    store.setSetting('config', { ...store.getSetting('config'), aiProvider: provider });
+    return { provider };
   });
   const resolveModel = async () => {
     const config = store.getSetting('config');
@@ -406,7 +553,7 @@ export async function createApp(options: {
     const started = Date.now();
     try {
       const config = store.getSetting('config');
-      if (config.aiProvider === 'gemini') {
+      if (config.aiProvider === 'gemini' || config.aiProvider === 'openai') {
         const result = await generate(
           {
             id: 'benchmark',
@@ -422,15 +569,15 @@ export async function createApp(options: {
           [1],
           1,
           'سهل',
-          config.geminiModel,
+          providerModel(config),
           AbortSignal.timeout(180000),
           () => {},
-          { provider: 'gemini', key: geminiKey() },
+          { provider: config.aiProvider, key: geminiKey() },
         );
         return {
           seconds: Math.round((Date.now() - started) / 100) / 10,
           text: result[0].text,
-          model: config.geminiModel,
+          model: providerModel(config),
         };
       }
       const status = await resolveModel();
@@ -494,11 +641,16 @@ export async function createApp(options: {
         section: r.section || r['الشعبة'],
       }),
     );
+    for (const input of inputs) tenancy.checkGrade(store.tenantId(), input.grade, input.section);
     if (new Set(inputs.map((s) => s.id)).size !== inputs.length)
       throw fail('توجد أرقام طلاب مكررة في الملف');
     store.db.transaction(() => {
       for (const s of inputs)
-        store.put('students', { ...s, code: store.get('students', s.id)?.code || code() });
+        store.put('students', {
+          ...store.get('students', s.id),
+          ...s,
+          code: store.get('students', s.id)?.code || code(),
+        });
     })();
     store.audit(`استيراد ${inputs.length} طالب`);
     return { count: inputs.length };
@@ -511,7 +663,14 @@ export async function createApp(options: {
         (e: Exam) => visible(e, session) && (session.role === 'teacher' || e.status !== 'draft'),
       )
       .map((e: Exam) =>
-        session.role === 'teacher' ? e : { ...e, questions: [], code: undefined },
+        session.role === 'teacher'
+          ? e
+          : {
+              ...e,
+              questions: [],
+              delivery: e.delivery ? { mode: 'random', count: e.delivery.count } : undefined,
+              code: undefined,
+            },
       );
   });
   app.post('/api/exams', async (req) => {
@@ -560,6 +719,35 @@ export async function createApp(options: {
       exam.questions.some((q) => new Set(q.options).size !== 4)
     )
       throw fail('راجع الأسئلة والخيارات قبل النشر');
+    if (!exam.delivery && exam.questions.length > 100)
+      throw fail('الامتحان الثابت يقبل 100 سؤال كحد أقصى؛ فعّل السحب العشوائي للمجموعات الأكبر');
+    if (exam.delivery) {
+      const capacity = deliveryCapacity(exam);
+      const students = store
+        .all('students')
+        .filter(
+          (s) =>
+            gradeKey(s.grade) === gradeKey(exam.grade) &&
+            (!exam.section || sectionKey(s.section) === sectionKey(exam.section)),
+        );
+      if (capacity < BigInt(Math.max(2, students.length)))
+        throw fail(
+          'مجموعة الأسئلة لا توفر نماذج مختلفة كافية لطلاب الصف. أضف أسئلة أو عدّل التوزيع قبل النشر',
+        );
+      for (const q of exam.questions) {
+        if (!q.bankId) continue; // Manually authored questions are reviewed in the exam editor.
+        const bank = store.get('bank_questions', q.bankId);
+        if (!bank || bank.status !== 'approved' || (bank.requiresImage && !bank.image))
+          throw fail('تحتوي مجموعة السحب على سؤال غير معتمد. راجع البنك وأعد الاختيار');
+        if (
+          q.text !== bank.text ||
+          q.correct !== bank.correct ||
+          JSON.stringify(q.options) !== JSON.stringify(bank.options) ||
+          q.image !== bank.image
+        )
+          throw fail('تغيّر سؤال من البنك بعد اختياره. حدّث مجموعة الأسئلة قبل النشر');
+      }
+    }
     if (
       !Number.isFinite(Date.parse(exam.opensAt)) ||
       !Number.isFinite(Date.parse(exam.closesAt)) ||
@@ -622,8 +810,13 @@ export async function createApp(options: {
       if (old.submittedAt) throw fail('تم تسليم هذه المحاولة. اطلب إعادة فتحها من المعلم', 409);
       return {
         attempt: cleanAttempt(old, session),
-        questions: exam.questions.map(({ correct, explanation, ...q }) => q),
-        exam: { title: exam.title, total: exam.total },
+        questions: attemptQuestions(old, exam).map(({ correct, explanation, ...q }) => q),
+        exam: {
+          title: exam.title,
+          total: exam.total,
+          calculatorAllowed: !!exam.calculatorAllowed,
+          geogebraAllowed: !!exam.geogebraAllowed,
+        },
         serverNow: Date.now(),
       };
     }
@@ -654,13 +847,19 @@ export async function createApp(options: {
       status: 'active',
       cameraExempt: !!exemption,
       cameraAvailable: input.cameraAvailable,
+      ...assignQuestions(exam, store.all('attempts')),
     };
     store.put('attempts', attempt);
     broadcast({ type: 'attempts' });
     return {
       attempt: cleanAttempt(attempt, session),
-      questions: exam.questions.map(({ correct, explanation, ...q }) => q),
-      exam: { title: exam.title, total: exam.total },
+      questions: attemptQuestions(attempt, exam).map(({ correct, explanation, ...q }) => q),
+      exam: {
+        title: exam.title,
+        total: exam.total,
+        calculatorAllowed: !!exam.calculatorAllowed,
+        geogebraAllowed: !!exam.geogebraAllowed,
+      },
       serverNow: now,
     };
   });
@@ -668,10 +867,15 @@ export async function createApp(options: {
     const { attempt, session, exam } = ownAttempt(req, (req.params as any).id);
     return {
       attempt: cleanAttempt(attempt, session),
-      questions: exam.questions.map(({ correct, explanation, ...q }) =>
+      questions: attemptQuestions(attempt, exam).map(({ correct, explanation, ...q }) =>
         session.role === 'teacher' ? { ...q, correct, explanation } : q,
       ),
-      exam: { title: exam.title, total: exam.total },
+      exam: {
+        title: exam.title,
+        total: exam.total,
+        calculatorAllowed: !!exam.calculatorAllowed,
+        geogebraAllowed: !!exam.geogebraAllowed,
+      },
       serverNow: Date.now(),
     };
   });
@@ -692,7 +896,8 @@ export async function createApp(options: {
       })
       .parse(req.body);
     for (const answer of data.answers)
-      if (!exam.questions.some((q) => q.id === answer.questionId)) throw fail('سؤال غير موجود');
+      if (!attemptQuestions(attempt, exam).some((q) => q.id === answer.questionId))
+        throw fail('سؤال غير موجود');
     const late = !!attempt.submittedAt || Date.now() >= attempt.deadline;
     for (const answer of data.answers) {
       if (answer.revision <= (attempt.revisions[answer.questionId] || 0)) continue;
@@ -893,11 +1098,11 @@ export async function createApp(options: {
     if (!source) throw fail('المصدر غير موجود', 404);
     const config = store.getSetting('config');
     const status =
-      config.aiProvider === 'gemini'
+      config.aiProvider === 'gemini' || config.aiProvider === 'openai'
         ? {
             ready: !!geminiKey(),
-            model: config.geminiModel,
-            error: 'أدخل مفتاح Gemini من إعدادات المعلم أولًا',
+            model: providerModel(config),
+            error: 'أدخل مفتاح مزود الذكاء الاصطناعي من إعدادات المعلم أولًا',
           }
         : await resolveModel();
     if (!status.ready)
@@ -932,7 +1137,7 @@ export async function createApp(options: {
       },
       {
         provider: config.aiProvider || 'ollama',
-        key: config.aiProvider === 'gemini' ? geminiKey() : '',
+        key: config.aiProvider === 'gemini' || config.aiProvider === 'openai' ? geminiKey() : '',
         existing: input.existing,
         excludeFiller: input.excludeFiller,
       },
@@ -988,6 +1193,9 @@ export async function createApp(options: {
   });
   app.get('/api/backup', async (req) => {
     teacher(req);
+    for (const table of ['students', 'exams'])
+      for (const row of tenancy.forTeacher(store.tenantId()).all(table))
+        tenancy.checkGrade(store.tenantId(), row.grade, row.section);
     const tables = [
       'settings',
       'students',
@@ -1013,7 +1221,9 @@ export async function createApp(options: {
           store.db
             .prepare(`SELECT * FROM ${t}`)
             .all()
-            .filter((row: any) => t !== 'settings' || row.key !== 'gemini-key'),
+            .filter(
+              (row: any) => t !== 'settings' || !['gemini-key', 'openai-key'].includes(row.key),
+            ),
         ]),
       ),
     };
@@ -1028,6 +1238,9 @@ export async function createApp(options: {
     },
     async (req) => {
       teacher(req);
+      for (const table of ['students', 'exams'])
+        for (const row of tenancy.forTeacher(store.tenantId()).all(table))
+          tenancy.checkGrade(store.tenantId(), row.grade, row.section);
       if (store.all('attempts').some((a) => !a.submittedAt))
         throw fail('أوقف الامتحانات النشطة قبل الاستعادة');
       const data = z
@@ -1076,6 +1289,12 @@ export async function createApp(options: {
             if (k in row) {
               try {
                 JSON.parse(String(row[k]));
+                if (k === 'data' && ['students', 'exams'].includes(table))
+                  tenancy.checkGrade(
+                    store.tenantId(),
+                    JSON.parse(String(row[k])).grade,
+                    JSON.parse(String(row[k])).section,
+                  );
               } catch {
                 throw fail('بيانات النسخة غير صالحة');
               }
@@ -1083,6 +1302,7 @@ export async function createApp(options: {
         }
       }
       const existingKey = store.getSetting('gemini-key');
+      const existingOpenaiKey = store.getSetting('openai-key');
       await library.stop();
       store.db.transaction(() => {
         store.db.exec(
@@ -1094,11 +1314,13 @@ export async function createApp(options: {
             `INSERT INTO ${table} (${fields.join(',')}) VALUES (${fields.map(() => '?').join(',')})`,
           );
           for (const row of data.tables[table] || []) {
-            if (table === 'settings' && row.key === 'gemini-key') continue;
+            if (table === 'settings' && ['gemini-key', 'openai-key'].includes(String(row.key)))
+              continue;
             insert.run(...fields.map((k) => row[k]));
           }
         }
         if (existingKey) store.setSetting('gemini-key', existingKey);
+        if (existingOpenaiKey) store.setSetting('openai-key', existingOpenaiKey);
       })();
       for (const [token, session] of sessions)
         if (session.teacherId === store.tenantId()) sessions.delete(token);

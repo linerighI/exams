@@ -1,16 +1,5 @@
-import { useEffect, useState } from 'react';
-import {
-  GraduationCap,
-  BookOpen,
-  School,
-  Sparkles,
-  ShieldCheck,
-  Wifi,
-  Monitor,
-  Search,
-  ArrowLeft,
-  Loader2,
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { GraduationCap, BookOpen, School, Wifi, Monitor, ArrowLeft, Loader2 } from 'lucide-react';
 import { api, setToken } from './api';
 import Orb from './BlueOrb';
 import MinistryBrand from './MinistryBrand';
@@ -19,12 +8,14 @@ import './exchange.css';
 import './welcome.css';
 import { findSnapshot, type Snapshot } from './offline';
 import type { Session } from './types';
+import ConnectionDialog from './ConnectionDialog';
+import { useTeacherConnection } from './useTeacherConnection';
+import { cachedStudentHash, credentialSalt } from './studentCredential';
 export const scope = () =>
   `${localStorage.getItem('school-scope') || 'development'}:${localStorage.getItem('school-account-scope') || 'master'}`;
 export default function Welcome({
   onLogin,
   onHost,
-  notify,
   onResume,
 }: {
   onLogin: (s: Session) => void;
@@ -42,11 +33,16 @@ export default function Welcome({
   const [studentCode, setStudentCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [host, setHost] = useState('');
-  const [pairCode, setPairCode] = useState('');
-  const [pin, setPin] = useState('');
-  const [found, setFound] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const studentInput = useRef<HTMLInputElement>(null);
+  const { connection, tone, accept, refresh: refreshConnection } = useTeacherConnection();
+  useEffect(() => {
+    if (connection.school) setSchool(connection.school);
+  }, [connection.school]);
+  useEffect(() => {
+    if (!connectOpen && mode === 'student') studentInput.current?.focus();
+  }, [connectOpen, mode]);
   const status = async () => {
     const data = await api('/api/status');
     setSetup(data.setup);
@@ -62,6 +58,10 @@ export default function Welcome({
     if (!window.desktop) return;
     if (value === 'teacher' && !launch) {
       setSetup(false);
+      if (!connection.local) {
+        setReady(false);
+        return;
+      }
       setBusy(true);
       try {
         await status();
@@ -75,12 +75,13 @@ export default function Welcome({
     }
     if (value === 'student') {
       setSetup(false);
+      setReady(true);
       setBusy(true);
       try {
         await status();
         setSetup(false);
       } catch {
-        setReady(false);
+        setReady(true);
       } finally {
         setBusy(false);
       }
@@ -92,35 +93,7 @@ export default function Welcome({
       onHost(info);
       localStorage.setItem('school-scope', info.fingerprint);
       await status();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  const scan = async () => {
-    setBusy(true);
-    try {
-      const results = await window.desktop!.discover();
-      setFound(results);
-      if (results.length) setHost(results[0].host);
-      else notify('لم نجد خادمًا. أدخل عنوان المعلم يدويًا');
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  const pair = async () => {
-    setBusy(true);
-    try {
-      await window.desktop!.pair(
-        host,
-        JSON.stringify({ code: pairCode.trim().toUpperCase(), fingerprint: pin.trim() }),
-      );
-      localStorage.setItem('school-scope', pin.trim());
-      await status();
-      setSetup(false);
+      await refreshConnection();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -151,15 +124,19 @@ export default function Welcome({
       });
       setToken(value.token);
       localStorage.setItem('school-account-scope', value.teacherId || 'master');
-      if (value.student)
+      if (value.student) {
+        const salt = credentialSalt();
         localStorage.setItem(
           `student:${scope()}`,
           JSON.stringify({
             student: { ...value.student, code: undefined },
             teacherId: value.teacherId,
-            codeHash: await digest(studentCode),
+            credentialVersion: 2,
+            salt,
+            codeHash: await cachedStudentHash(studentCode, salt),
           }),
         );
+      }
       onLogin(value);
     } catch (e) {
       if (mode === 'student') {
@@ -168,7 +145,14 @@ export default function Welcome({
           const prefix = `student:${localStorage.getItem('school-scope') || 'development'}`;
           for (const key of Object.keys(localStorage).filter((k) => k.startsWith(prefix))) {
             const cached = JSON.parse(localStorage.getItem(key) || 'null');
-            if (cached?.codeHash !== hash) continue;
+            if (
+              !cached ||
+              cached.codeHash !==
+                (cached.credentialVersion === 2
+                  ? await cachedStudentHash(studentCode, cached.salt)
+                  : hash)
+            )
+              continue;
             const cachedScope = key.slice('student:'.length);
             const snapshot = await findSnapshot(cached.student.id, cachedScope);
             if (snapshot) {
@@ -188,6 +172,7 @@ export default function Welcome({
         } catch {}
       }
       setError((e as Error).message);
+      if (mode === 'student' && window.desktop && !connection.connected) setConnectOpen(true);
     } finally {
       setBusy(false);
     }
@@ -202,16 +187,76 @@ export default function Welcome({
       <div className="welcome-frame">
         <div className="login-layout">
           <section className="login-story">
-            <span className="prism-wordmark" dir="rtl">
-              امتحانات
-            </span>
-            <div className="prism-orb" aria-hidden="true">
-              <Orb size={3.1} animationSpeedBase={0.35} />
+            <div className="prism-story-brand">
+              <span className="prism-wordmark">امتحانات</span>
+              <span className="prism-school">{school}</span>
             </div>
-            <div className="prism-glass" aria-hidden="true" />
+            <button
+              type="button"
+              className={`prism-orb connection-orb-button is-${tone}`}
+              aria-label={
+                connection.connected ? 'عرض حالة الاتصال بجهاز المعلم' : 'الاتصال بجهاز المعلم'
+              }
+              disabled={!window.desktop}
+              onClick={() => setConnectOpen(true)}
+            >
+              <span aria-hidden="true">
+                <Orb size={1.65} tone={tone} animationSpeedBase={0.35} />
+              </span>
+              <span className="orb-connection-label" aria-live="polite">
+                <i />
+                {tone === 'green'
+                  ? 'تم الاتصال بأمان'
+                  : connection.connected
+                    ? connection.local
+                      ? 'الجهاز الرئيسي جاهز'
+                      : 'متصل بجهاز المعلم'
+                    : 'اضغط للاتصال'}
+              </span>
+            </button>
             <div className="prism-caption">
-              <h1>مساحتك التعليمية</h1>
-              <p>{school}</p>
+              <span className="prism-story-label">
+                {mode === 'teacher' ? 'من التحضير إلى النتائج' : 'خطوتك التالية واضحة'}
+              </span>
+              <h1>
+                {mode === 'teacher' ? 'حضّر امتحانك.\nوتابع أثره.' : 'ابدأ بثقة.\nوتابع تقدمك.'}
+              </h1>
+              <p>
+                {mode === 'teacher'
+                  ? 'أسئلتك وطلابك ونتائجهم، في مساحة واحدة.'
+                  : 'ادخل برمزك الخاص للوصول إلى امتحانات صفك.'}
+              </p>
+            </div>
+            <ol
+              className="prism-guide"
+              aria-label={mode === 'teacher' ? 'خطوات المعلم' : 'خطوات الطالب'}
+            >
+              {(mode === 'teacher'
+                ? [
+                    ['جهّز أسئلتك', 'أنشئ امتحانًا يدويًا أو اختر من بنك الأسئلة.'],
+                    ['أشرك طلابك', 'شارك رموز الدخول واتصل عبر شبكة المدرسة.'],
+                    ['تابع النتائج', 'راجع الإجابات وتابع تقدم كل طالب.'],
+                  ]
+                : [
+                    ['اتصل بجهاز المعلم', 'اضغط على الكرة واختر الجهاز، ثم أدخل رمز الاتصال.'],
+                    ['أدخل بياناتك', 'استخدم رقمك الوطني المسجل أو الرمز الذي أعطاك إياه المعلم.'],
+                    ['ابدأ امتحانك', 'اختر الامتحان المتاح وتابع الوقت أثناء الحل.'],
+                  ]
+              ).map(([title, description], index) => (
+                <li key={title}>
+                  <span className="prism-step-number" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="prism-network-note">
+              <Wifi size={16} aria-hidden="true" />
+              <span>اتصال محلي بين المعلم والطلاب عبر شبكة المدرسة</span>
             </div>
           </section>
           <section className="card login-card">
@@ -244,138 +289,88 @@ export default function Welcome({
                 </button>
               </>
             )}
-            {window.desktop && mode === 'student' && !ready ? (
-              <div className="pair-form">
-                <button className="secondary wide" disabled={busy} onClick={() => void scan()}>
-                  <Search size={17} /> البحث عن جهاز المعلم
-                </button>
-                {found.map((h) => (
-                  <button className="found-host" key={h.host} onClick={() => setHost(h.host)}>
-                    <Wifi size={17} />
-                    {h.school}
-                    <span dir="ltr">{h.host}</span>
-                  </button>
-                ))}
-                <label className="field">
-                  عنوان جهاز المعلم
-                  <input
-                    dir="ltr"
-                    placeholder="192.168.1.10"
-                    value={host}
-                    onChange={(e) => setHost(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  رمز الاقتران
-                  <input dir="ltr" value={pairCode} onChange={(e) => setPairCode(e.target.value)} />
-                </label>
-                <label className="field">
-                  بصمة الأمان المعروضة لدى المعلم
-                  <textarea
-                    rows={2}
-                    dir="ltr"
-                    placeholder="SHA-256"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                  />
-                </label>
-                <button
-                  className="primary wide"
-                  disabled={busy || !host || !pairCode || !pin}
-                  onClick={() => void pair()}
-                >
-                  ربط هذا الجهاز <ArrowLeft size={17} />
-                </button>
-                <button
-                  className="text-button"
-                  onClick={() => {
-                    setReady(true);
-                    setSetup(false);
-                  }}
-                >
-                  استخدام الاتصال المحفوظ / استعادة محاولة
-                </button>
-              </div>
-            ) : (
-              ready && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void login();
-                  }}
-                >
-                  {mode === 'teacher' ? (
-                    <>
-                      <label className="field">
-                        اسم المستخدم
-                        <input
-                          aria-label="اسم المستخدم"
-                          autoComplete="username"
-                          required
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          minLength={3}
-                          maxLength={40}
-                        />
-                      </label>
-                      {setup && (
-                        <label className="field">
-                          اسم المعلم
-                          <input
-                            value={teacherName}
-                            required
-                            onChange={(e) => setTeacherName(e.target.value)}
-                          />
-                        </label>
-                      )}
-                      {setup && (
-                        <label className="field">
-                          اسم المدرسة
-                          <input value={school} onChange={(e) => setSchool(e.target.value)} />
-                        </label>
-                      )}
-                      <label className="field">
-                        {setup ? 'إنشاء كلمة مرور للمعلم' : 'كلمة مرور المعلم'}
-                        <span className="prism-password">
-                          <input
-                            aria-label={setup ? 'إنشاء كلمة مرور للمعلم' : 'كلمة مرور المعلم'}
-                            type={showPassword ? 'text' : 'password'}
-                            autoComplete={setup ? 'new-password' : 'current-password'}
-                            minLength={setup ? 8 : 1}
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder={setup ? 'ثمانية أحرف على الأقل' : 'أدخل كلمة المرور'}
-                          />
-                          <button
-                            type="button"
-                            className="password-toggle"
-                            aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? 'إخفاء' : 'إظهار'}
-                          </button>
-                        </span>
-                      </label>
-                    </>
-                  ) : (
+            {ready && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void login();
+                }}
+              >
+                {mode === 'teacher' ? (
+                  <>
                     <label className="field">
-                      رمز الطالب الخاص بك
+                      اسم المستخدم
                       <input
-                        dir="ltr"
+                        aria-label="اسم المستخدم"
+                        autoComplete="username"
                         required
-                        value={studentCode}
-                        onChange={(e) => setStudentCode(e.target.value)}
-                        placeholder="الرمز الذي أعطاك إياه المعلم"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        minLength={3}
+                        maxLength={40}
                       />
                     </label>
-                  )}
-                  <button className="primary wide" disabled={busy}>
-                    {busy ? <Loader2 className="spin" size={18} /> : <ArrowLeft size={18} />}{' '}
-                    {setup && mode === 'teacher' ? 'إعداد حساب المدرسة' : 'دخول إلى مساحتي'}
-                  </button>
-                </form>
-              )
+                    {setup && (
+                      <label className="field">
+                        اسم المعلم
+                        <input
+                          value={teacherName}
+                          required
+                          onChange={(e) => setTeacherName(e.target.value)}
+                        />
+                      </label>
+                    )}
+                    {setup && (
+                      <label className="field">
+                        اسم المدرسة
+                        <input value={school} onChange={(e) => setSchool(e.target.value)} />
+                      </label>
+                    )}
+                    <label className="field">
+                      {setup ? 'إنشاء كلمة مرور للمعلم' : 'كلمة مرور المعلم'}
+                      <span className="prism-password">
+                        <input
+                          aria-label={setup ? 'إنشاء كلمة مرور للمعلم' : 'كلمة مرور المعلم'}
+                          type={showPassword ? 'text' : 'password'}
+                          autoComplete={setup ? 'new-password' : 'current-password'}
+                          minLength={setup ? 8 : 1}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={setup ? 'ثمانية أحرف على الأقل' : 'أدخل كلمة المرور'}
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? 'إخفاء' : 'إظهار'}
+                        </button>
+                      </span>
+                    </label>
+                  </>
+                ) : (
+                  <label className="field">
+                    الرقم الوطني أو رمز الطالب
+                    <input
+                      ref={studentInput}
+                      type="password"
+                      autoComplete="off"
+                      maxLength={40}
+                      dir="ltr"
+                      required
+                      value={studentCode}
+                      onChange={(e) => setStudentCode(e.target.value)}
+                      placeholder="رقمك الوطني المسجل لدى المدرسة"
+                    />
+                  </label>
+                )}
+                <button className="primary wide" disabled={busy}>
+                  {busy ? <Loader2 className="spin" size={18} /> : <ArrowLeft size={18} />}{' '}
+                  {setup && mode === 'teacher' ? 'إعداد حساب المدرسة' : 'دخول إلى مساحتي'}
+                </button>
+              </form>
             )}
             {error && (
               <div className="error-note" role="alert">
@@ -388,6 +383,22 @@ export default function Welcome({
           </section>
         </div>
       </div>
+      {connectOpen && window.desktop && (
+        <ConnectionDialog
+          connection={connection}
+          tone={tone}
+          onClose={() => setConnectOpen(false)}
+          onConnected={(info) => {
+            accept(info);
+            if (info.fingerprint) localStorage.setItem('school-scope', info.fingerprint);
+            if (info.school) setSchool(info.school);
+            setMode('student');
+            setReady(true);
+            setSetup(false);
+            setError('');
+          }}
+        />
+      )}
     </motion.div>
   );
 }

@@ -1,18 +1,23 @@
-const { _electron: electron } = require('playwright');
+const desktopDriver = require('./webview2-driver.cjs');
 const { mkdtempSync, mkdirSync, readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const assert = require('node:assert/strict');
 (async () => {
   mkdirSync('.data', { recursive: true });
+  mkdirSync('test-results', { recursive: true });
   const directory = resolve(mkdtempSync('.data/desktop-'));
+  const port = await desktopDriver.freePort();
   const env = {
     ...process.env,
     SCHOOL_TEST_DATA: directory,
-    SCHOOL_TEST_PORT: '4320',
+    SCHOOL_TEST_PORT: String(port),
     SCHOOL_HEADLESS_TEST: '1',
+    SCHOOL_DEVELOPMENT: process.env.SCHOOL_PACKAGED_EXE ? '0' : '1',
+    SCHOOL_TEST_SAVE_DIR: resolve('test-results'),
   };
   delete env.ELECTRON_RUN_AS_NODE;
-  const desktop = await electron.launch({ executablePath: require('electron'), args: ['.'], env });
+  const desktop = await desktopDriver.launch({ env, executablePath: process.env.SCHOOL_PACKAGED_EXE,
+    args: process.env.SCHOOL_TEST_SOFTWARE_RENDERING === '1' ? ['--software-rendering'] : [] });
   try {
     const page = await desktop.firstWindow();
     await page.waitForLoadState();
@@ -24,13 +29,10 @@ const assert = require('node:assert/strict');
     await page.getByRole('heading', { name: 'مرحبًا أستاذي، ماذا ننجز اليوم؟' }).waitFor();
     const info = await page.evaluate(() => window.desktop.host());
     assert.ok(info.fingerprint);
-    assert.equal(info.port, 4320);
+    assert.equal(info.port, port);
     const settings = await page.evaluate(() => window.desktop.request('/api/settings'));
     assert.equal(settings.school, 'مدرسة محمد الشريقي');
-    const pdfPath = resolve('test-results/offline-bank.pdf');
-    await desktop.evaluate(({ dialog }, pdfPath) => {
-      dialog.showSaveDialog = async () => ({ canceled: false, filePath: pdfPath });
-    }, pdfPath);
+    const pdfPath = resolve('test-results/question-bank.pdf');
     const imported = await page.evaluate(() =>
       window.desktop.request('/api/bank/import/commit', 'POST', {
         data: {
@@ -86,7 +88,7 @@ const assert = require('node:assert/strict');
     assert.equal(
       await page.getByRole('button', { name: 'إرفاق صورة الرسم' }).isEnabled(),
       true,
-      'GeoGebra initializes in Electron offline',
+      'GeoGebra initializes in WebView2 offline',
     );
     await page.evaluate(() =>
       document
@@ -128,7 +130,7 @@ const assert = require('node:assert/strict');
     assert.equal(result.school, 'مدرسة محمد الشريقي');
     await page.screenshot({ path: 'test-results/desktop.png' });
     console.log(
-      'Desktop passed: packaged assets, sandboxed preload, TLS host, teacher setup/login, UDP discovery, certificate pin rejection, pairing.',
+      'Desktop passed: bundled assets, restricted WebView2 bridge, TLS host, teacher setup/login, UDP discovery, certificate pin rejection, pairing.',
     );
   } finally {
     await desktop.close();

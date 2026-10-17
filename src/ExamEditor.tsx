@@ -16,6 +16,8 @@ import MathText, { FormulaEditor } from './MathText';
 import GeometryEditor from './GeometryEditor';
 import ExamBankPicker from './ExamBankPicker';
 import type { Exam, Question } from './types';
+import ExamDeliverySettings from './ExamDeliverySettings';
+import { defaultDelivery, groupKey, poolGroups } from './examDelivery';
 const uid = () => crypto.randomUUID();
 const localDate = (date: Date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -33,6 +35,9 @@ export default function ExamEditor({
   const [form, setForm] = useState(
     () =>
       initial || {
+        delivery: undefined as Exam['delivery'],
+        calculatorAllowed: false,
+        geogebraAllowed: false,
         title: '',
         subject: '',
         grade: '',
@@ -54,6 +59,9 @@ export default function ExamEditor({
   const [geometry, setGeometry] = useState(false);
   const [editorStep, setEditorStep] = useState(initial?.questions.length ? 2 : 0);
   const [editQuestion, setEditQuestion] = useState(false);
+  const [reviewPool, setReviewPool] = useState(false);
+  const randomDelivery = form.delivery;
+  const reviewTitle = randomDelivery ? 'مراجعة التوزيع والمجموعة' : 'مراجعة الأسئلة';
   useEffect(() => {
     document.querySelector('.editor-surface')?.scrollTo({ top: 0, behavior: 'instant' });
   }, [editorStep]);
@@ -104,7 +112,7 @@ export default function ExamEditor({
         <span className="pill blue">{initial ? `النسخة ${initial.version}` : 'امتحان جديد'}</span>
       </div>
       <div className="exam-stages" role="tablist" aria-label="خطوات إعداد الامتحان">
-        {['اختيار من البنك', 'إعدادات الامتحان', 'مراجعة الأسئلة'].map((title, i) => (
+        {['اختيار من البنك', 'إعدادات الامتحان', reviewTitle].map((title, i) => (
           <button
             role="tab"
             aria-selected={editorStep === i}
@@ -115,11 +123,20 @@ export default function ExamEditor({
             <span>{String(i + 1).padStart(2, '0')}</span>
             <strong>{title}</strong>
             <small>
-              {['بنوك وأسئلة معتمدة', 'الصف والوقت والدرجات', 'معاينة كما يراها الطالب'][i]}
+              {['بنوك وأسئلة معتمدة', 'الصف والوقت والدرجات', randomDelivery ? 'مجموعة الأسئلة ونصيب كل طالب' : 'معاينة كما يراها الطالب'][i]}
             </small>
           </button>
         ))}
       </div>
+      {geometry && q && (
+        <GeometryEditor
+          notify={notify}
+          geometryId={q.geometryId}
+          initialPrompt={q.text}
+          onClose={() => setGeometry(false)}
+          onSave={(image, geometryId) => patchQuestion({ image, geometryId, bankId: undefined })}
+        />
+      )}
       <div className="editor-layout">
         <div className="editor-main">
           <section className="card editor-section" hidden={editorStep !== 0}>
@@ -135,6 +152,9 @@ export default function ExamEditor({
                   grade: prev.grade || book.grade,
                   term: prev.term || book.term,
                   questions: [...prev.questions, ...questions],
+                  delivery:
+                    prev.delivery ||
+                    (!initial ? defaultDelivery([...prev.questions, ...questions]) : undefined),
                 }));
                 setEditIndex(form.questions.length);
                 setEditorStep(2);
@@ -219,7 +239,13 @@ export default function ExamEditor({
               </label>
               <label className="field">
                 عدد الأسئلة المضافة
-                <input type="number" min={1} max={100} value={form.questions.length} readOnly />
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={form.delivery?.count || form.questions.length}
+                  readOnly
+                />
               </label>
               <label className="field">
                 بداية الإتاحة
@@ -264,15 +290,95 @@ export default function ExamEditor({
               />{' '}
               الكاميرا شرط لبدء هذا الامتحان، مع إمكانية استثناء الطالب
             </label>
+            <div className="exam-tool-permissions">
+              <h3>أدوات الطالب أثناء الامتحان</h3>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={!!form.calculatorAllowed}
+                  onChange={(e) => update('calculatorAllowed', e.target.checked)}
+                />
+                السماح بالآلة الحاسبة
+              </label>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={!!form.geogebraAllowed}
+                  onChange={(e) => update('geogebraAllowed', e.target.checked)}
+                />
+                السماح بـ GeoGebra للرسم والاستكشاف
+              </label>
+              <small className="muted">تُحفظ الصلاحيات مع الامتحان وتعمل الأدوات محليًا.</small>
+            </div>
+            <ExamDeliverySettings
+              questions={form.questions}
+              delivery={form.delivery}
+              onChange={(value) => {
+                update('delivery', value);
+                setReviewPool(false);
+              }}
+            />
           </section>
           <section className="card editor-section questions-section" hidden={editorStep !== 2}>
+            {randomDelivery && (
+              <div className="random-delivery-review">
+                <div className="section-heading">
+                  <span className="step">٣</span>
+                  <div>
+                    <h2>مراجعة التوزيع والمجموعة</h2>
+                    <p>يُسحب نموذج الطالب عند بدء المحاولة وفق التوزيع المعتمد أدناه.</p>
+                  </div>
+                </div>
+                <div className="delivery-summary">
+                  <strong>{form.questions.length} سؤالًا في المجموعة</strong>
+                  <span aria-hidden="true">←</span>
+                  <strong>{randomDelivery.count} سؤالًا لكل طالب</strong>
+                </div>
+                <p className="info-note">
+                  لا توجد ورقة أسئلة موحدة للطلاب. يحصل كل طالب على العدد والتوزيع نفسيهما،
+                  وقد يشترك الطلاب في بعض الأسئلة. تُحفظ أسئلة كل محاولة وإجاباتها للتصحيح.
+                </p>
+                <div className="delivery-table" role="table" aria-label="ملخص توزيع الأسئلة العشوائية">
+                  <div role="row">
+                    <strong role="columnheader">الموضوع / الصعوبة</strong>
+                    <strong role="columnheader">في المجموعة</strong>
+                    <strong role="columnheader">لكل طالب</strong>
+                  </div>
+                  {poolGroups(form.questions).map((group) => {
+                    const count = randomDelivery.quotas.find((quota) =>
+                      groupKey(quota.chapter, quota.difficulty) === groupKey(group.chapter, group.difficulty),
+                    )?.count || 0;
+                    return (
+                      <div role="row" key={groupKey(group.chapter, group.difficulty)}>
+                        <span role="cell">{group.chapter}<small>{group.difficulty}</small></span>
+                        <span role="cell">{group.available}</span>
+                        <strong role="cell">{count}</strong>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="muted">يتحقق النظام عند النشر من صحة التوزيع وكفاية النماذج لطلاب الصف.</p>
+                <div className="random-review-actions">
+                  <button className="secondary small" onClick={() => setEditorStep(1)}>
+                    <Pencil size={16} /> تعديل التوزيع
+                  </button>
+                  <button className="secondary small" onClick={() => setEditorStep(0)}>
+                    <BookOpen size={16} /> إضافة من البنك
+                  </button>
+                  <button className="primary small" aria-expanded={reviewPool} onClick={() => setReviewPool(!reviewPool)}>
+                    <Eye size={16} /> {reviewPool ? 'إخفاء أسئلة المجموعة' : 'مراجعة أسئلة المجموعة'}
+                  </button>
+                </div>
+              </div>
+            )}
+            <div hidden={!!randomDelivery && !reviewPool}>
             <div className="section-heading">
               <span className="step">٣</span>
               <div>
                 <h2>
-                  مراجعة الأسئلة <span className="count">{form.questions.length}</span>
+                  {randomDelivery ? 'أسئلة المجموعة' : 'مراجعة الأسئلة'} <span className="count">{form.questions.length}</span>
                 </h2>
-                <p>اختر الإجابة الصحيحة وعدّل أي سؤال قبل الاعتماد.</p>
+                <p>{randomDelivery ? 'هذه مجموعة السحب الكاملة؛ ترتيبها هنا لا يمثل نموذج طالب.' : 'اختر الإجابة الصحيحة وعدّل أي سؤال قبل الاعتماد.'}</p>
               </div>
               <button
                 className="secondary small"
@@ -351,6 +457,9 @@ export default function ExamEditor({
                     <h2>
                       <MathText text={q.text} />
                     </h2>
+                    <button className="secondary small" onClick={() => setGeometry(true)}>
+                      رسم لهذا السؤال · GeoGebra
+                    </button>
                     {q.image && <img src={q.image} alt="رسم السؤال" />}
                     <div className="preview-answers">
                       {q.options.map((option, i) => (
@@ -379,14 +488,6 @@ export default function ExamEditor({
                   <button className="secondary" onClick={() => setGeometry(true)}>
                     إنشاء رسم هندسي · GeoGebra
                   </button>
-                  {geometry && (
-                    <GeometryEditor
-                      notify={notify}
-                      geometryId={q.geometryId}
-                      onClose={() => setGeometry(false)}
-                      onSave={(image, geometryId) => patchQuestion({ image, geometryId })}
-                    />
-                  )}
                   {q.image && (
                     <div className="attached-image">
                       <img src={q.image} />
@@ -397,29 +498,53 @@ export default function ExamEditor({
                   )}
                   <div className="answer-editor">
                     {q.options.map((option, i) => (
-                      <label key={i} className={q.correct === i ? 'correct' : ''}>
+                      <div
+                        key={i}
+                        className={`answer-edit-option ${q.correct === i ? 'correct' : ''}`}
+                      >
                         <input
                           type="radio"
                           name="correct"
+                          aria-label={`اعتماد الخيار ${i + 1}`}
                           checked={q.correct === i}
                           onChange={() => patchQuestion({ correct: i })}
                         />
                         <span>{['أ', 'ب', 'ج', 'د'][i]}</span>
-                        <input
-                          aria-label={`الخيار ${i + 1}`}
-                          placeholder={`الخيار ${i + 1}`}
+                        <FormulaEditor
+                          ariaLabel={`الخيار ${i + 1}`}
+                          tools={false}
+                          showPreview={false}
                           value={option}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             patchQuestion({
-                              options: q.options.map((o, j) => (j === i ? e.target.value : o)),
+                              options: q.options.map((o, j) => (j === i ? value : o)),
                             })
                           }
                         />
                         {q.correct === i && <CheckCircle2 size={17} />}
-                      </label>
+                      </div>
                     ))}
                   </div>
                   <div className="form-grid">
+                    <label className="field">
+                      الموضوع / الفصل
+                      <input
+                        value={q.chapter || ''}
+                        placeholder="عام"
+                        onChange={(e) => patchQuestion({ chapter: e.target.value })}
+                      />
+                    </label>
+                    <label className="field">
+                      صعوبة السؤال
+                      <select
+                        value={q.difficulty || 'متوسط'}
+                        onChange={(e) => patchQuestion({ difficulty: e.target.value })}
+                      >
+                        {['سهل', 'متوسط', 'صعب'].map((level) => (
+                          <option key={level}>{level}</option>
+                        ))}
+                      </select>
+                    </label>
                     <label className="field">
                       صفحة المصدر
                       <input
@@ -444,14 +569,15 @@ export default function ExamEditor({
                         }}
                       />
                     </label>
-                    <label className="field span2">
+                    <div className="field span2">
                       تفسير الإجابة للمعلم
-                      <textarea
-                        rows={2}
+                      <FormulaEditor
+                        tools={false}
+                        showPreview={false}
                         value={q.explanation}
-                        onChange={(e) => patchQuestion({ explanation: e.target.value })}
+                        onChange={(explanation) => patchQuestion({ explanation })}
                       />
-                    </label>
+                    </div>
                   </div>
                 </div>
               </>
@@ -462,6 +588,7 @@ export default function ExamEditor({
                 <p>اختر أسئلة من البنك، أو أضف سؤالًا يدويًا للمراجعة.</p>
               </div>
             )}
+            </div>
           </section>
           <div className="editor-step-controls">
             <button
@@ -473,7 +600,7 @@ export default function ExamEditor({
             </button>
             {editorStep < 2 && (
               <button className="primary" onClick={() => setEditorStep(editorStep + 1)}>
-                التالي: {editorStep === 0 ? 'إعدادات الامتحان' : 'مراجعة الأسئلة'}
+                التالي: {editorStep === 0 ? 'إعدادات الامتحان' : reviewTitle}
               </button>
             )}
           </div>
@@ -495,7 +622,11 @@ export default function ExamEditor({
             </div>
             <div>
               <dt>الأسئلة</dt>
-              <dd>{form.questions.length}</dd>
+              <dd>
+                {form.delivery
+                  ? `${form.delivery.count} للطالب / ${form.questions.length} في المجموعة`
+                  : form.questions.length}
+              </dd>
             </div>
             <div>
               <dt>المدة</dt>
@@ -506,16 +637,14 @@ export default function ExamEditor({
               <dd>{form.total}</dd>
             </div>
           </dl>
-          <div className="info-note">
-            راجع كل سؤال وإجابته ورسمه قبل الاعتماد.
-          </div>
+          <div className="info-note">{randomDelivery ? 'راجع توزيع الموضوعات والصعوبات وأسئلة المجموعة قبل الاعتماد.' : 'راجع كل سؤال وإجابته ورسمه قبل الاعتماد.'}</div>
           <label className="check-label approval">
             <input
               type="checkbox"
               checked={approved}
               onChange={(e) => setApproved(e.target.checked)}
             />{' '}
-            راجعت الأسئلة والإجابات وأعتمد محتوى الامتحان.
+            {randomDelivery ? 'راجعت التوزيع وأسئلة المجموعة وإجاباتها وأعتمد السحب العشوائي.' : 'راجعت الأسئلة والإجابات وأعتمد محتوى الامتحان.'}
           </label>
           <button
             className="primary wide"

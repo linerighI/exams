@@ -1,0 +1,577 @@
+/* Layout and disclosure only; retain the school's blue/white surfaces. */
+.app-shell.studio-mode .sidebar nav {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 3px;
+  margin: -3px;
+}
+.app-shell.studio-mode .sidebar nav > button {
+  flex: 0 0 44px;
+  min-height: 44px;
+  transform: none !important;
+  opacity: 1;
+}
+.app-shell.studio-mode .sidebar nav > button svg {
+  flex: 0 0 20px;
+}
+.app-shell.studio-mode .sidebar .brand,
+.app-shell.studio-mode .sidebar .network-status,
+.app-shell.studio-mode .sidebar .logout {
+  flex-shrink: 0;
+}
+.navigation-tooltip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  background: #fff;
+  color: #46658b;
+  box-shadow: 0 6px 22px #385b9222;
+  border: 1px solid #dce7f6;
+  border-radius: 11px;
+  padding: 9px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  direction: rtl;
+}
+.focus-window {
+  direction: rtl;
+  padding: 0;
+  color: #344f73;
+  background: #f8faff;
+  border: 1px solid #dce7f6;
+  border-radius: 24px;
+  width: min(760px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  box-shadow: 0 25px 100px #25437333;
+  overflow: hidden;
+}
+.focus-window.is-wide {
+  width: min(1120px, calc(100vw - 48px));
+}
+.focus-window::backdrop {
+  background: #1e355b45;
+}
+.focus-window[open] {
+  display: flex;
+  flex-direction: column;
+}
+.focus-window-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 23px;
+  border-bottom: 1px solid #e1eaf6;
+  background: #fff;
+  flex-shrink: 0;
+}
+.focus-window-heading h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.focus-window-heading button {
+  display: grid;
+  place-items: center;
+  padding: 7px;
+  border-radius: 9px;
+  color: #6d88aa;
+}
+.focus-window-body {
+  overflow-y: auto;
+  padding: 20px;
+  overscroll-behavior: contain;
+}
+.focus-window-body .teacher-tool-workbench {
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+}
+.focus-window-body .teacher-tool-workbench > header {
+  padding-top: 10px;
+}
+.focus-window-body .teacher-tool-workbench h2 {
+  display: none;
+}
+.teacher-session-shell .teacher-tools-heading {
+  margin-bottom: 16px;
+}
+.teacher-session-shell .teacher-tools-context {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  max-width: 720px;
+  padding: 13px 16px;
+  margin-bottom: 18px;
+}
+.teacher-session-shell .tools-catalog-bar {
+  margin-bottom: 20px;
+}
+.teacher-session-shell .teacher-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.teacher-session-shell .teacher-tool-card {
+  position: relative;
+  padding: 0;
+  min-height: 150px;
+  border-radius: 20px;
+}
+.teacher-session-shell .teacher-tool-card .tool-tile-open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  padding: 24px 14px 18px;
+  gap: 10px;
+  text-align: center;
+  border-radius: inherit;
+}
+.teacher-session-shell .teacher-tool-card h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.teacher-session-shell .tool-tile-open > span:last-child {
+  color: #8299b6;
+  font-size: 11px;
+}
+.teacher-session-shell .teacher-tool-card > .tool-favorite {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+}
+.teacher-session-shell .teacher-tool-card:has(:focus-visible) {
+  outline: 2px solid #89acd9;
+  outline-offset: 3px;
+}
+.teacher-session-shell .teacher-resource-card {
+  min-height: auto;
+}
+.teacher-session-shell .teacher-resource-card details {
+  font-size: 11px;
+  color: #7891af;
+  margin: 10px 0;
+}
+.teacher-session-shell .teacher-resource-card summary {
+  cursor: pointer;
+}
+.teacher-session-shell .tools-source-note {
+  font-size: 10px;
+  max-width: 720px;
+}
+.teacher-home-shortcuts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.teacher-home-shortcuts button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border: 1px solid #e0e9f6;
+  border-radius: 11px;
+  color: #5579a5;
+  background: #f8faff;
+  font-size: 12px;
+}
+.teacher-session-shell .studio-intro {
+  max-width: 1000px;
+  padding: 25px 28px;
+}
+.teacher-session-shell .studio-intro:has(.home-overview) {
+  padding-top: 24px;
+}
+.teacher-session-shell .intro-greeting h1 {
+  font-size: clamp(22px, 2vw, 30px);
+}
+.teacher-session-shell .home-overview {
+  margin: 20px 0 14px;
+}
+.teacher-session-shell .studio-action-cards {
+  margin-top: 12px;
+  gap: 14px;
+}
+.teacher-session-shell .studio-action-card {
+  min-height: 165px;
+}
+.teacher-session-shell .studio-action-card .paper-scene {
+  height: 105px;
+}
+.teacher-session-shell .home-recent {
+  margin-top: 22px;
+}
+.history-library-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  margin: 12px;
+  border: 1px solid #e1eaf7;
+  border-radius: 14px;
+  font-size: 13px;
+  color: #6688b3;
+  background: white;
+}
+.teacher-session-shell .studio-history {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+}
+.teacher-session-shell .studio-starters {
+  font-size: 11px;
+  margin-top: 18px;
+}
+.teacher-session-shell .studio-starters > span {
+  display: none;
+}
+.bank-import-window {
+  border: 1px solid #dce7f6;
+  background: white;
+  border-radius: 18px;
+  margin-bottom: 22px;
+  overflow: hidden;
+}
+.bank-import-window > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 18px 22px;
+  color: #476f9f;
+  font-weight: 700;
+  list-style: none;
+}
+.bank-import-window > summary::after {
+  content: '+';
+  font-size: 22px;
+  margin-inline-start: auto;
+}
+.bank-import-window[open] > summary::after {
+  content: '−';
+}
+.bank-import-window > summary > span {
+  font-size: 12px;
+  color: #8b9eb6;
+  font-weight: 400;
+}
+.bank-import-window .exchange-studio {
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+}
+.bank-import-window .exchange-badge {
+  display: none;
+}
+.bank-import-window .exchange-heading {
+  padding-bottom: 10px;
+}
+.bank-import-window .exchange-heading h2 {
+  font-size: 19px;
+}
+.bank-import-window .exchange-steps button {
+  padding: 12px;
+}
+.teacher-session-shell .library-search {
+  width: 100%;
+  border: 1px solid #e2eaf5;
+  border-radius: 11px;
+  background: #f8faff;
+  padding: 11px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.teacher-session-shell .book-list .history.selected {
+  background: #edf4ff;
+  border-color: #cedff6;
+}
+.teacher-session-shell .book-list > details {
+  margin-bottom: 17px;
+  font-size: 12px;
+}
+.teacher-session-shell .book-layout {
+  grid-template-columns: 270px minmax(0, 1fr);
+  align-items: start;
+}
+.teacher-session-shell .book-content {
+  min-height: 450px;
+}
+.teacher-session-shell .page-title h1 {
+  font-size: 30px;
+}
+.teacher-session-shell .page-title p {
+  font-size: 13px;
+  margin-top: 6px;
+}
+.teacher-session-shell .exam-grid {
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+}
+.teacher-session-shell .exam-card {
+  overflow: hidden;
+  padding: 0 22px 18px;
+}
+.teacher-session-shell .exam-card-top {
+  height: 125px;
+  position: relative;
+  margin: 0 -22px 18px;
+  background: linear-gradient(115deg, #f4f8ff, #eaf2ff);
+}
+.teacher-session-shell .exam-card-top > .pill {
+  position: absolute;
+  top: 15px;
+  right: 16px;
+}
+.exam-illustration {
+  width: 100%;
+  height: 125px;
+}
+.teacher-session-shell .exam-card h3 {
+  font-size: 20px;
+  line-height: 1.7;
+}
+.exam-status-tabs {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.exam-status-tabs button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 17px;
+  border: 1px solid #e0e9f6;
+  border-radius: 13px;
+  color: #7690b0;
+  background: #fff;
+  font-size: 13px;
+}
+.exam-status-tabs button[aria-pressed='true'] {
+  color: #446eaa;
+  background: #eaf2ff;
+  border-color: #bcd2ef;
+  font-weight: 700;
+}
+.exam-status-tabs span {
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 11px;
+  background: #f5f8fd;
+}
+.teacher-disclosure {
+  border: 1px solid #dde7f4;
+  border-radius: 15px;
+  background: #fff;
+  margin-bottom: 17px;
+  overflow: hidden;
+}
+.teacher-disclosure > summary {
+  padding: 14px 18px;
+  cursor: pointer;
+  color: #6a88b0;
+  font-size: 12px;
+}
+.teacher-disclosure > summary svg {
+  vertical-align: middle;
+  margin-inline-end: 8px;
+}
+.teacher-disclosure .toolbar {
+  border: 0;
+  margin: 0;
+  box-shadow: none;
+}
+.class-folders {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  margin-bottom: 14px;
+}
+.class-folders button {
+  display: grid;
+  grid-template-columns: 27px 1fr;
+  column-gap: 10px;
+  row-gap: 4px;
+  text-align: right;
+  border: 1px solid #dfe8f5;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px 19px;
+  min-width: 165px;
+  flex-shrink: 0;
+  color: #6b87aa;
+}
+.class-folders button > svg {
+  grid-row: span 2;
+  align-self: center;
+  color: #91afd3;
+}
+.class-folders strong {
+  font-size: 13px;
+}
+.class-folders span {
+  font-size: 11px;
+  color: #8b9fb9;
+}
+.class-folders button[aria-pressed='true'] {
+  background: #eef5ff;
+  border-color: #a9c5e8;
+}
+@media (max-width: 1050px) {
+  .teacher-session-shell .teacher-tool-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .teacher-session-shell .book-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .teacher-session-shell .teacher-tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .teacher-session-shell .teacher-tools-context {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .teacher-session-shell .book-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bank-import-window > summary > span {
+    display: none;
+  }
+  .teacher-session-shell .studio-intro {
+    padding: 20px 16px;
+  }
+  .focus-window.is-wide {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+  .focus-window-body {
+    padding: 13px;
+  }
+}
+
+.tool-window-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  font-size: 12px;
+  color: #7a91af;
+  margin-bottom: 12px;
+}
+.tool-window-info summary {
+  cursor: pointer;
+  padding: 7px 0;
+}
+.tool-window-info p {
+  max-width: 650px;
+  line-height: 1.8;
+}
+.focus-window .teacher-tool-workbench-body {
+  padding: 18px;
+}
+.focus-window .teacher-calculator-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.focus-window .tool-explainer {
+  align-self: stretch;
+  font-size: 12px;
+}
+.focus-window .tool-explainer summary {
+  cursor: pointer;
+  color: #6889b2;
+}
+
+.bank-import-window .exchange-setup {
+  grid-template-columns: minmax(0, 1fr);
+}
+.bank-import-window .exchange-fields {
+  max-width: 960px;
+}
+.bank-import-window .exchange-provider {
+  grid-template-columns: minmax(0, 1fr);
+}
+.bank-import-window .prompt-workbench {
+  border: 1px solid #e1e9f5;
+  border-radius: 14px;
+  padding: 16px;
+}
+.bank-import-window .prompt-workbench > summary {
+  cursor: pointer;
+  color: #6386b3;
+  font-size: 13px;
+}
+.bank-import-window .prompt-workbench[open] > summary {
+  margin-bottom: 20px;
+}
+.bank-draft-disclosure {
+  margin: 8px 0 20px;
+  padding: 12px 16px;
+  border: 1px solid #e1eaf7;
+  border-radius: 13px;
+  background: #f8fbff;
+}
+.bank-draft-disclosure > summary {
+  cursor: pointer;
+  color: #5f82af;
+  font-size: 13px;
+  font-weight: 700;
+}
+.bank-draft-disclosure .workspace-toolbar {
+  margin-bottom: 0;
+}
+.bank-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0;
+}
+.bank-section-heading h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #55769e;
+}
+.bank-section-heading > span {
+  color: #8ca2bd;
+  font-size: 12px;
+}
+.teacher-session-shell .bank-question-filters > input {
+  min-width: 180px;
+  flex: 1;
+}
+
+.teacher-session-shell .toolbar > .search-box {
+  flex: 1 1 260px;
+  min-width: 180px;
+}
+.teacher-session-shell .toolbar > .search-box input {
+  min-width: 0;
+  width: 100%;
+}
+.teacher-session-shell .toolbar > select {
+  width: 180px;
+  flex: 0 1 180px;
+}
+.teacher-session-shell .toolbar > .muted {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bank-book-actions {
+  border-bottom: 1px solid #e4edf8;
+  margin: 0 0 17px;
+  padding: 0 0 14px;
+}
+.bank-book-actions > summary {
+  font-size: 12px;
+  color: #7693b7;
+  cursor: pointer;
+  padding: 8px 0;
+}
+.bank-book-actions[open] > summary {
+  margin-bottom: 15px;
+}

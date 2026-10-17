@@ -1,0 +1,511 @@
+.workflow-guide {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px 20px;
+  margin: 0 0 20px;
+  background: linear-gradient(105deg, #eaf3ff, #f8fbff 68%);
+  border: 1px solid #dbe8fa;
+  border-radius: 23px;
+  color: #38597f;
+}
+.workflow-guide-orb {
+  width: 65px;
+  height: 65px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.workflow-guide-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 180px;
+}
+.workflow-guide-copy small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #7d9bc1;
+  font-size: 10px;
+}
+.workflow-guide-copy strong {
+  font-size: 14px;
+}
+.workflow-guide-copy > span {
+  font-size: 11px;
+  color: #7893b5;
+}
+.workflow-stages {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid #dfeaf8;
+  padding-top: 13px;
+}
+.workflow-stages button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: white;
+  border: 1px solid #e1eaf7;
+  color: #5d80ac;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.workflow-stages button span {
+  border-radius: 50%;
+  background: #eef5ff;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+.workflow-stages button[aria-current] {
+  border-color: #83a9dd;
+  background: #e3efff;
+}
+.workflow-stages p {
+  width: 100%;
+  font-size: 11px;
+  margin: 4px;
+  color: #8299b9;
+}
+.tools-workflow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(112deg, #deecff, #f5f9ff 63%, #e8f3f1);
+  border: 1px solid #d7e6fb;
+  border-radius: 27px;
+  padding: 27px 30px 20px;
+  margin: 0 0 24px;
+  min-height: 245px;
+}
+.tools-workflow-intro {
+  position: relative;
+  z-index: 2;
+  max-width: 75%;
+}
+.tools-workflow-intro small {
+  color: #789ac5;
+  font-size: 11px;
+}
+.tools-workflow-intro h2 {
+  font-size: 27px;
+  color: #345a88;
+  margin: 7px 0 10px;
+}
+.tools-workflow-intro p {
+  font-size: 12px;
+  color: #7390b1;
+  margin: 0 0 16px;
+}
+.tools-orb-halo {
+  position: absolute;
+  left: 6%;
+  top: -26px;
+  opacity: 0.8;
+  z-index: -1;
+  pointer-events: none;
+}
+.tools-background-orb-action {
+  position: absolute;
+  left: 4%;
+  top: 4px;
+  width: 190px;
+  height: 160px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  z-index: 1;
+}
+.tools-background-orb-action:focus-visible {
+  outline: 2px solid #7ba3d8;
+  outline-offset: -8px;
+}
+.workflow-tool-sequence {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+.workflow-tool-step {
+  background: #ffffffdc;
+  border: 1px solid #dce7f7;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 14px #5178ab06;
+}
+.workflow-tool-open {
+  font: inherit;
+  font-size: 11px;
+  color: #476d9c;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 12px 10px;
+}
+.workflow-tool-open > span {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #ebf3ff;
+}
+.workflow-step-controls {
+  display: flex;
+  padding: 0 6px;
+  gap: 1px;
+}
+.workflow-step-controls button {
+  font: inherit;
+  font-size: 13px;
+  border: 0;
+  background: transparent;
+  color: #8ca4c5;
+  cursor: pointer;
+  padding: 5px;
+}
+.workflow-step-controls button:disabled {
+  opacity: 0.25;
+}
+.workflow-tool-drop {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border: 1px dashed #b6cdea;
+  border-radius: 14px;
+  color: #89a6c9;
+  font-size: 11px;
+}
+.teacher-tool-card[draggable='true'] {
+  cursor: grab;
+}
+.teacher-tool-card.drop-target {
+  outline: 2px solid #84b0eb;
+}
+.tool-arrange {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  margin: 0 0 8px;
+}
+.tool-arrange button {
+  background: #f1f6ff;
+  color: #7493ba;
+  border: 1px solid #e4ecf9;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 9px;
+  font-size: 10px;
+}
+.roster-intro {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 23px;
+}
+.roster-orb {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 75px;
+  position: relative;
+  flex-shrink: 0;
+}
+.roster-intro h3 {
+  color: #3a5d8a;
+  margin: 3px 0 8px;
+}
+.roster-intro p {
+  font-size: 12px;
+  color: #7893b7;
+  margin: 0;
+  line-height: 1.9;
+}
+.roster-drop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 27px;
+  border: 1px dashed #aac8ed;
+  background: #f1f7ff;
+  border-radius: 20px;
+  color: #658dbd;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+.roster-drop span {
+  font-size: 11px;
+}
+.roster-drop input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.roster-drop.is-busy {
+  opacity: 0.6;
+}
+.roster-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 15px 0;
+}
+.roster-options .field {
+  font-size: 12px;
+}
+.roster-mapping summary {
+  cursor: pointer;
+  color: #6a8db9;
+  font-size: 12px;
+}
+.roster-totals {
+  display: flex;
+  gap: 18px;
+  color: #6488b7;
+  font-size: 13px;
+  padding: 20px 0;
+}
+.roster-table {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #e0eafa;
+  border-radius: 16px;
+  margin: 0 0 18px;
+}
+.roster-table table {
+  width: 100%;
+  font-size: 12px;
+}
+.roster-table th {
+  position: sticky;
+  top: 0;
+  background: #f2f7ff;
+}
+.roster-review .form-error p {
+  margin: 5px;
+}
+.roster-complete {
+  text-align: center;
+  padding: 35px;
+  color: #6087ba;
+}
+.roster-complete > svg {
+  color: #70b69c;
+}
+.prompt-orb-launch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 18px;
+  background: linear-gradient(105deg, #e9f2ff, #f7faff);
+  border: 1px solid #dbe8fb;
+  border-radius: 20px;
+  cursor: pointer;
+  text-align: start;
+  color: #476f9f;
+  margin: 18px 0;
+}
+.prompt-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 65px;
+  height: 65px;
+  flex-shrink: 0;
+}
+.prompt-orb-launch > span:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.prompt-orb-launch strong {
+  font-size: 14px;
+}
+.prompt-orb-launch small {
+  font-size: 11px;
+  color: #7d9ac1;
+}
+.prompt-orb-window {
+  transform-origin: 90% 100%;
+}
+.prompt-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 15px 0 22px;
+}
+.prompt-suggestions button {
+  font-size: 11px;
+}
+.prompt-orb-window .prompt-proposal textarea {
+  min-height: 280px;
+}
+.prompt-orb-window > .field textarea {
+  min-height: 90px;
+}
+.zunis-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: radial-gradient(ellipse at 50% 40%, #deedff, #f5f9ff 65%);
+  color: #4c78ad;
+}
+.zunis-emblem {
+  width: 100px;
+  height: 100px;
+  display: grid;
+  place-items: center;
+  background: #ffffffbb;
+  border: 1px solid white;
+  border-radius: 31px;
+  box-shadow: 0 15px 70px #6e9ed332;
+}
+.zunis-splash h1 {
+  font-size: 35px;
+  letter-spacing: 4px;
+  margin: 15px 0 4px;
+}
+.zunis-splash p {
+  margin: 3px;
+}
+.zunis-splash small {
+  font-size: 12px;
+  color: #8aa4c6;
+}
+.zunis-splash button {
+  margin-top: 18px;
+}
+.zunis-powered {
+  font-size: 10px;
+  letter-spacing: 1px;
+  position: absolute;
+  bottom: 35px;
+  color: #94acca;
+}
+.zunis-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 10px;
+  background: transparent;
+  border: 0;
+  color: #8fa6c4;
+  cursor: pointer;
+}
+.zunis-details {
+  color: #54759e;
+}
+.zunis-details p {
+  font-size: 13px;
+  line-height: 1.9;
+}
+.zunis-details ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  font-size: 13px;
+}
+.zunis-details li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.zunis-note {
+  color: #91a5c0;
+  font-size: 11px !important;
+  border-top: 1px solid #e3edf9;
+  padding-top: 15px;
+}
+@media (max-width: 850px) {
+  .roster-options {
+    grid-template-columns: 1fr;
+  }
+  .tools-workflow {
+    padding: 20px;
+  }
+  .tools-workflow-intro {
+    max-width: 80%;
+  }
+  .tools-workflow-intro h2 {
+    font-size: 23px;
+  }
+  .tools-orb-halo {
+    left: -40px;
+    opacity: 0.4;
+  }
+  .tools-background-orb-action {
+    left: -15px;
+    width: 110px;
+  }
+  .workflow-guide {
+    padding: 10px;
+    gap: 9px;
+  }
+  .workflow-guide > .secondary {
+    margin-inline-start: auto;
+  }
+  .workflow-tool-sequence {
+    gap: 7px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tools-orb-halo *,
+  .workflow-guide-orb *,
+  .roster-orb *,
+  .prompt-orb * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.tool-workflow-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 8px 18px;
+  color: #8aa2c2;
+  font-size: 11px;
+}
+
+.focus-window:has(.prompt-orb-window){transform-origin:90% 95%;animation:prompt-window-arrive .38s cubic-bezier(.2,.8,.2,1) both;}
+.focus-window:has(.prompt-orb-window.is-closing){animation:prompt-window-leave .22s ease-in both;pointer-events:none;}
+@keyframes prompt-window-arrive{from{opacity:0;transform:translateY(45px) scale(.72);clip-path:ellipse(15% 10% at 90% 95%);}to{opacity:1;transform:translateY(0) scale(1);clip-path:ellipse(160% 160% at 90% 95%);}}
+@keyframes prompt-window-leave{from{opacity:1;transform:scale(1);clip-path:ellipse(160% 160% at 90% 95%);}to{opacity:0;transform:translateY(45px) scale(.72);clip-path:ellipse(3% 3% at 90% 95%);}}
+@media(prefers-reduced-motion:reduce){.focus-window:has(.prompt-orb-window){animation:none;}}

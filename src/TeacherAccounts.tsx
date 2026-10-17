@@ -1,7 +1,48 @@
 import { useEffect, useState } from 'react';
 import { Users, Plus, ShieldCheck, UserRound, LockKeyhole } from 'lucide-react';
 import { api } from './api';
-import type { TeacherAccount } from './types';
+import type { TeacherAccount, SchoolClass } from './types';
+import './teacherAssignments.css';
+
+function GradeSelection({
+  choices,
+  value,
+  onChange,
+  disabled = false,
+}: {
+  choices: SchoolClass[];
+  value: string[];
+  onChange: (grades: string[]) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <fieldset className="teacher-grade-selection" disabled={disabled}>
+      <legend>الصفوف المسندة</legend>
+      <div>
+        {choices.map(({ id, grade, section, count }) => {
+          return (
+            <label key={id}>
+              <input
+                type="checkbox"
+                checked={value.includes(id)}
+                onChange={(e) =>
+                  onChange(e.target.checked ? [...value, id] : value.filter((g) => g !== id))
+                }
+              />
+              <span>
+                {grade} · {section}
+                {count !== undefined && <small> · {count} طالب</small>}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {!choices.length && (
+        <small>لا توجد صفوف مسجلة بعد. أضف الطلاب أو استورد قائمتهم أولًا.</small>
+      )}
+    </fieldset>
+  );
+}
 export default function TeacherAccounts({ notify }: { notify: (s: string) => void }) {
   const [account, setAccount] = useState<TeacherAccount>(),
     [accounts, setAccounts] = useState<TeacherAccount[]>([]),
@@ -9,12 +50,18 @@ export default function TeacherAccounts({ notify }: { notify: (s: string) => voi
     [name, setName] = useState(''),
     [currentPassword, setCurrentPassword] = useState(''),
     [password, setPassword] = useState(''),
-    [form, setForm] = useState({ username: '', name: '', password: '' });
+    [form, setForm] = useState({ username: '', name: '', password: '', classes: [] as string[] }),
+    [classes, setClasses] = useState<SchoolClass[]>([]),
+    [editingGrades, setEditingGrades] = useState(''),
+    [assigned, setAssigned] = useState<string[]>([]);
   const refresh = async () => {
     const own = await api('/api/account');
     setAccount(own);
     setName(own.name);
-    if (own.isAdmin) setAccounts(await api('/api/teachers'));
+    if (own.isAdmin) {
+      setAccounts(await api('/api/teachers'));
+      setClasses(await api('/api/teacher-classes'));
+    }
   };
   useEffect(() => {
     void refresh().catch((e) => notify(e.message));
@@ -61,6 +108,14 @@ export default function TeacherAccounts({ notify }: { notify: (s: string) => voi
               <strong>{account.username}</strong>
               <span className="pill">{account.isAdmin ? 'مدير الحسابات' : 'معلم'}</span>
             </div>
+            {!account.isAdmin && (
+              <p className="assigned-grade-summary">
+                صفوفك:{' '}
+                {account.classes?.length
+                  ? account.classes.map((c) => `${c.grade} · ${c.section}`).join('، ')
+                  : 'لم تُسند صفوف بعد؛ تواصل مع مدير الحسابات'}
+              </p>
+            )}
             <div className="form-grid">
               <label className="field">
                 الاسم المعروض
@@ -103,7 +158,7 @@ export default function TeacherAccounts({ notify }: { notify: (s: string) => voi
                   e.preventDefault();
                   void run(async () => {
                     await api('/api/teachers', 'POST', form);
-                    setForm({ username: '', name: '', password: '' });
+                    setForm({ username: '', name: '', password: '', classes: [] });
                     notify('تم إنشاء حساب المعلم');
                   });
                 }}
@@ -143,6 +198,12 @@ export default function TeacherAccounts({ notify }: { notify: (s: string) => voi
                     />
                   </label>
                 </div>
+                <GradeSelection
+                  choices={classes}
+                  value={form.classes}
+                  onChange={(v) => setForm({ ...form, classes: v })}
+                  disabled={busy}
+                />
                 <button className="primary" disabled={busy}>
                   <Plus size={15} />
                   إنشاء حساب المعلم
@@ -155,10 +216,33 @@ export default function TeacherAccounts({ notify }: { notify: (s: string) => voi
                     <span>
                       <strong>{a.name}</strong>
                       <small dir="ltr">{a.username}</small>
+                      {!a.isAdmin && (
+                        <small>
+                          {a.classes?.length
+                            ? a.classes.map((c) => `${c.grade} · ${c.section}`).join('، ')
+                            : 'لا توجد صفوف مسندة'}
+                        </small>
+                      )}
                     </span>
                     <span className="pill">
                       {a.isAdmin ? 'مدير' : a.disabled ? 'موقوف' : 'نشط'}
                     </span>
+                    {!a.isAdmin && (
+                      <button
+                        className="secondary small"
+                        disabled={busy}
+                        onClick={() => {
+                          setEditingGrades(editingGrades === a.id ? '' : a.id);
+                          setAssigned(
+                            a.classes
+                              ?.map((c) => c.id)
+                              .filter((id) => classes.some((c) => c.id === id)) || [],
+                          );
+                        }}
+                      >
+                        إسناد الصفوف
+                      </button>
+                    )}
                     {!a.isAdmin && (
                       <button
                         className="text-button"
@@ -171,6 +255,29 @@ export default function TeacherAccounts({ notify }: { notify: (s: string) => voi
                       >
                         {a.disabled ? 'تفعيل' : 'إيقاف الحساب'}
                       </button>
+                    )}
+                    {editingGrades === a.id && (
+                      <div className="teacher-grade-editor">
+                        <GradeSelection
+                          choices={classes}
+                          value={assigned}
+                          onChange={setAssigned}
+                          disabled={busy}
+                        />
+                        <button
+                          className="primary small"
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async () => {
+                              await api(`/api/teachers/${a.id}`, 'PATCH', { classes: assigned });
+                              setEditingGrades('');
+                              notify('حُفظت الصفوف المسندة');
+                            })
+                          }
+                        >
+                          حفظ الصفوف
+                        </button>
+                      </div>
                     )}
                   </article>
                 ))}

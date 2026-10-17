@@ -23,8 +23,8 @@ const assert = require('node:assert/strict');
     SCHOOL_API_PORT: String(apiPort),
     SCHOOL_UI_PORT: String(uiPort),
   };
-  const server = spawn(require('electron'), ['--import', 'tsx', 'server/dev.ts'], {
-    env: { ...env, ELECTRON_RUN_AS_NODE: '1' },
+  const server = spawn(process.execPath, ['--import', 'tsx', 'server/dev.ts'], {
+    env,
     stdio: 'inherit',
   });
   const vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1'], {
@@ -50,6 +50,10 @@ const assert = require('node:assert/strict');
     permissions: ['camera'],
   });
   const page = await context.newPage();
+  page.on('dialog', (dialog) => {
+    if (dialog.type() === 'beforeunload') void dialog.accept();
+    else void dialog.dismiss();
+  });
   const shot = async (options) => {
     await page.waitForFunction(() =>
       [
@@ -132,6 +136,7 @@ const assert = require('node:assert/strict');
     assert.ok((await orb.boundingBox()).x > orbBox.x + 100);
     await orb.click();
     const orbDialog = page.getByRole('dialog', { name: 'المساعد العائم', exact: true });
+    await orbDialog.getByRole('tab', {name:'المحادثة',exact:true}).click();
     await orbDialog.getByLabel('رسالة المساعد العائم').fill('جهز امتحانًا');
     await orbDialog.getByRole('button', { name: 'إرسال للمساعد العائم' }).click();
     await orbDialog.locator('.orb-message.assistant .katex').first().waitFor();
@@ -149,11 +154,13 @@ const assert = require('node:assert/strict');
       if (/\/api\/(?:generate|assistant\/messages|books\/[^/]+\/process)/.test(r.url()))
         aiRequests++;
     });
+    await page.locator('.library-action-create').click();
     await page.getByLabel('طلب البنك: عنوان الكتاب').fill('بنك تجريبي خارجي');
     await page.getByLabel('طلب البنك: المادة').fill('رياضيات');
     await page.getByLabel('طلب البنك: الصف').fill('العاشر');
     await shot({ path: 'test-results/bank-wizard-1366.png', fullPage: true });
-    await page.getByRole('button', { name: 'جهّز رحلتك' }).click();
+    await page.getByRole('button', { name: 'التالي: اختيار المساعد' }).click();
+    await page.locator('.prompt-workbench > summary').click();
     await page.getByLabel('معاينة الطلب').waitFor();
     const template = await page.getByLabel('معاينة الطلب').inputValue();
     assert.ok(!template.includes('25 سؤال'));
@@ -212,7 +219,8 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'حفظ البنك كمسودات', exact: false }).click();
     await page.getByText('حُفظ 1 سؤالًا', { exact: true }).waitFor();
     assert.equal(aiRequests, 0);
-    await page.locator('.book-list summary').click();
+    await page.getByRole('button', { name: 'العودة إلى المكتبة', exact: true }).click();
+    await page.getByRole('button', { name: /رفع كتاب PDF/ }).click();
     await page.getByLabel('المادة', { exact: true }).fill('رياضيات');
     await page.getByLabel('الصف', { exact: true }).fill('العاشر');
     const reviewQuestion = {
@@ -416,17 +424,27 @@ const assert = require('node:assert/strict');
     await page.setViewportSize({ width: 1920, height: 1080 });
     await shot({ path: 'test-results/teacher-1920.png', fullPage: true });
     await page.getByRole('button', { name: 'الإعدادات', exact: true }).click();
-    await page.getByRole('heading', { name: 'الذكاء الاصطناعي المحلي' }).waitFor();
+    await page
+      .getByRole('navigation', { name: 'أقسام الإعدادات' })
+      .getByRole('button', { name: 'الذكاء الاصطناعي', exact: true })
+      .click();
+    await page.getByRole('heading', { name: 'اختر مساعدك' }).waitFor();
     const modelStatus = await call('/api/model', 'GET', undefined, teacher);
     if (modelStatus.ready) {
       await page.getByText('النموذج جاهز', { exact: true }).waitFor();
-      assert.equal(await page.locator('.settings-grid select').inputValue(), modelStatus.model);
-      await page.locator('.settings-grid select').selectOption('qwen3:1.7b');
+      assert.equal(
+        await page.getByLabel('النموذج المحلي', { exact: true }).inputValue(),
+        modelStatus.model,
+      );
+      await page.getByLabel('النموذج المحلي', { exact: true }).selectOption('qwen3:1.7b');
       if (!modelStatus.models.includes('qwen3:1.7b')) {
         await page.getByText('النموذج غير مثبت', { exact: true }).waitFor();
-        assert.equal(await page.getByRole('button', { name: 'اختبار التوليد' }).isDisabled(), true);
+        assert.equal(
+          await page.getByRole('button', { name: 'اختبار الاتصال والتوليد' }).isDisabled(),
+          true,
+        );
       }
-      await page.locator('.settings-grid select').selectOption(modelStatus.model);
+      await page.getByLabel('النموذج المحلي', { exact: true }).selectOption(modelStatus.model);
     }
     await shot({ path: 'test-results/model-settings-1920.png', fullPage: true });
     await page.getByRole('button', { name: 'الرئيسية والمساعد', exact: true }).click();
@@ -482,16 +500,22 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'إنشاء رسم هندسي · GeoGebra' }).click();
     await page.getByRole('heading', { name: 'محرر الرسومات الهندسية' }).waitFor();
     for (let i = 0; i < 100; i++) {
-      if (await page.getByRole('button', { name: 'إنشاء الرسم باستخدام Gemini' }).isEnabled())
+      if (
+        await page
+          .getByRole('button', { name: 'تحليل السؤال وإنشاء رسم بالمزود المختار' })
+          .isEnabled()
+      )
         break;
       await page.waitForTimeout(300);
     }
     assert.equal(
-      await page.getByRole('button', { name: 'إنشاء الرسم باستخدام Gemini' }).isEnabled(),
+      await page
+        .getByRole('button', { name: 'تحليل السؤال وإنشاء رسم بالمزود المختار' })
+        .isEnabled(),
       true,
       'GeoGebra loads locally',
     );
-    await page.getByRole('button', { name: 'إنشاء الرسم باستخدام Gemini' }).click();
+    await page.getByRole('button', { name: 'تحليل السؤال وإنشاء رسم بالمزود المختار' }).click();
     await page.waitForTimeout(600);
     await shot({ path: 'test-results/geometry-offline-1920.png', fullPage: true });
     await page.getByRole('button', { name: 'إرفاق صورة الرسم' }).click();
@@ -514,6 +538,10 @@ const assert = require('node:assert/strict');
       false,
     );
     await page.getByRole('button', { name: 'الإعدادات', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'أقسام الإعدادات' })
+      .getByRole('button', { name: 'حسابات المعلمين', exact: true })
+      .click();
     await page.getByRole('heading', { name: 'حسابات المعلمين', exact: true }).waitFor();
     await page.getByLabel('اسم مستخدم المعلم الجديد').fill('teacher-ui');
     await page.getByLabel('اسم المعلم الجديد').fill('معلم الواجهة');
@@ -527,7 +555,7 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'دخول إلى مساحتي' }).click();
     await page.getByRole('heading', { name: 'مرحبًا أستاذي، ماذا ننجز اليوم؟' }).waitFor();
     await page.getByRole('button', { name: 'الكتب وبنك الأسئلة', exact: true }).click();
-    assert.equal(await page.locator('.book-list .history').count(), 0);
+    assert.equal(await page.locator('.library-book-card').count(), 0);
     await shot({ path: 'test-results/private-teacher-library-1366.png', fullPage: true });
     await page.getByRole('button', { name: 'تسجيل الخروج' }).click();
     await page.getByLabel('اسم المستخدم', { exact: true }).fill('admin');
@@ -537,8 +565,7 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'الطلاب والصفوف', exact: true }).click();
     for (const [name, slug] of [
       ['الطلاب والصفوف', 'students'],
-      ['المتابعة المباشرة', 'live'],
-      ['النتائج والتقارير', 'results'],
+      ['المتابعة والنتائج', 'monitor'],
       ['الامتحانات', 'exams'],
     ]) {
       await page.getByRole('button', { name, exact: true }).click();
@@ -555,6 +582,7 @@ const assert = require('node:assert/strict');
       }
     }
     await page.getByRole('button', { name: 'الطلاب والصفوف', exact: true }).click();
+    await page.locator('.teacher-disclosure > summary').click();
     await page.getByLabel('اختيار طالب لتجربة الدخول').selectOption(student.id);
     await page.getByRole('button', { name: 'دخول بصفة الطالب', exact: true }).click();
     await page.getByRole('heading', { name: 'أهلًا بك، أحمد' }).waitFor();
@@ -580,10 +608,7 @@ const assert = require('node:assert/strict');
     await page.setViewportSize({ width: 1366, height: 768 });
     await shot({ path: 'test-results/exam-1366.png', fullPage: true });
     await page.reload();
-    await page.getByRole('button', { name: 'أنا طالب' }).click();
-    await page.getByLabel('رمز الطالب الخاص بك').fill(student.code);
-    await page.getByRole('button', { name: 'دخول إلى مساحتي' }).click();
-    await page.getByRole('button', { name: 'متابعة الامتحان' }).click();
+    await page.locator('.exam-question').waitFor();
     await page.getByRole('heading', { name: 'ما الكوكب الذي نعيش عليه؟' }).waitFor();
     assert.equal(await page.locator('.student-options button.selected').count(), 1);
     await page.getByRole('button', { name: 'تسليم الامتحان', exact: true }).click();
@@ -601,6 +626,11 @@ const assert = require('node:assert/strict');
       .getByRole('button', { name: 'ابدأ الامتحان' })
       .click();
     await page.locator('.exam-question .katex').first().waitFor();
+    assert.equal(
+      await page.locator('.student-tools').count(),
+      0,
+      'Math tools stay hidden when the teacher has not enabled them',
+    );
     assert.equal(await page.locator('.student-options .katex').count(), 4);
     await shot({ path: 'test-results/math-student-1366.png', fullPage: true });
     await page.setViewportSize({ width: 1920, height: 1080 });

@@ -9,6 +9,7 @@ export type Question = {
   difficulty?: string;
   bankId?: string;
   geometryId?: string;
+  chapter?: string;
 };
 export type Exam = {
   id: string;
@@ -33,8 +34,15 @@ export type Exam = {
   resultsPublished: boolean;
   version: number;
   createdAt: string;
+  delivery?: {
+    mode: 'random';
+    count: number;
+    quotas: { chapter: string; difficulty: string; count: number }[];
+  };
+  calculatorAllowed?: boolean;
+  geogebraAllowed?: boolean;
 };
-export type Student = { id: string; name: string; grade: string; section: string; code: string };
+export type Student = { id: string; name: string; grade: string; section: string; code: string; loginMethod?: 'national' };
 export type Attempt = {
   id: string;
   examId: string;
@@ -51,6 +59,9 @@ export type Attempt = {
   status: string;
   cameraExempt: boolean;
   cameraAvailable: boolean;
+  assignedQuestions?: Question[];
+  assignmentRank?: string;
+  questionCount?: number;
   photos?: { id: string; createdAt: number }[];
   cameraRequests?: { id: string; state: string; createdAt: number }[];
 };
@@ -64,7 +75,9 @@ export type Settings = {
   retentionDays: number;
   model: string;
   pythonPath: string;
-  aiProvider?: 'ollama' | 'gemini';
+  aiProvider?: 'ollama' | 'gemini' | 'openai';
+  openaiModel?: string;
+  hasOpenaiKey?: boolean;
   geminiModel?: string;
   localSpeed?: 'fast' | 'manual';
   hasGeminiKey?: boolean;
@@ -75,7 +88,10 @@ export type TeacherAccount = {
   name: string;
   isAdmin: boolean;
   disabled: boolean;
+  grades?: string[];
+  classes?: SchoolClass[];
 };
+export type SchoolClass = {id:string;grade:string;section:string;count?:number};
 export type Session = {
   token: string;
   role: 'teacher' | 'student';
@@ -84,6 +100,9 @@ export type Session = {
   teacher?: TeacherAccount;
 };
 export interface DesktopAPI {
+  studentSession: () => Promise<Session | null>;
+  connectionState: () => Promise<TeacherConnection>;
+  connectTeacher: (host: string, code: string) => Promise<TeacherConnection>;
   request: (path: string, method?: string, body?: unknown) => Promise<any>;
   host: () => Promise<any>;
   discover: () => Promise<any[]>;
@@ -94,9 +113,20 @@ export interface DesktopAPI {
   downloadModel: (model: string) => Promise<any>;
   openOllama: () => Promise<void>;
   openProvider: (provider: string) => Promise<void>;
+  speechStatus: () => Promise<{ready:boolean;engine:string;offline:boolean}>;
+  transcribeSpeech: (pcm:string, language:'ar'|'en') => Promise<{text:string}>;
+  synthesizeSpeech: (text:string, language:'ar'|'en') => Promise<{audio:string;sampleRate:number}>;
+  openTeacherResource: (url: string) => Promise<void>;
   exportBankPDF: (bookId: string) => Promise<boolean>;
   onEvent: (callback: (event: any) => void) => () => void;
 }
+export type TeacherConnection = {
+  connected: boolean;
+  local: boolean;
+  school?: string;
+  host?: string;
+  fingerprint?: string;
+};
 declare global {
   interface Window {
     desktop?: DesktopAPI;

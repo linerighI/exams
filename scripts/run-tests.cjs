@@ -1,10 +1,12 @@
 const { spawnSync } = require('node:child_process');
-const { readdirSync } = require('node:fs');
+const { readdirSync, existsSync } = require('node:fs');
+const { resolve, delimiter } = require('node:path');
+const pythonScripts = resolve('worker/build/venv/Scripts');
 const files = readdirSync('tests')
   .filter((n) => n.endsWith('.test.ts'))
   .map((n) => 'tests/' + n);
-const result = spawnSync(require('electron'), ['--import', 'tsx', '--test', ...files], {
+const result = spawnSync(process.execPath, ['--import', 'tsx', '--test', ...files], {
   stdio: 'inherit',
-  env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+  env: { ...process.env, ...(existsSync(resolve(pythonScripts, 'python.exe')) ? { PATH: pythonScripts + delimiter + process.env.PATH } : {}) },
 });
 process.exit(result.status ?? 1);

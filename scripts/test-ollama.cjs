@@ -1,6 +1,6 @@
 const { spawnSync } = require('node:child_process');
-const result = spawnSync(require('electron'), ['--import', 'tsx', 'tests/ollama-live.ts'], {
+const result = spawnSync(process.execPath, ['--import', 'tsx', 'tests/ollama-live.ts'], {
   stdio: 'inherit',
-  env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+  env: process.env,
 });
 process.exit(result.status ?? 1);

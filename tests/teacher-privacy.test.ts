@@ -21,15 +21,17 @@ test('teachers have isolated databases, students, banks, conversations, jobs, cr
     const login = async (username: string, password: string) =>
       (await call('/api/login', 'POST', { role: 'teacher', username, password })).json();
     let a = (await login('admin', 'password123')).token;
+    server.store.put('students',{id:'class-fixture',name:'طالب',grade:'العاشر',section:'D'});
     const bob = (
       await call(
         '/api/teachers',
         'POST',
-        { username: 'teacher2', name: 'معلم ثان', password: 'teacher222' },
+        { username: 'teacher2', name: 'معلم ثان', password: 'teacher222', classes: ['["10","د"]'] },
         a,
       )
     ).json();
     assert.ok(bob.id);
+    server.store.db.prepare('DELETE FROM students WHERE id=?').run('class-fixture');
     assert.equal(bob.password, undefined);
     let b = (await login('teacher2', 'teacher222')).token;
     assert.ok(b);

@@ -1,4 +1,6 @@
-import { app, BrowserWindow, ipcMain, dialog, session, safeStorage, shell } from 'electron';
+import { safeStorage } from './backend-platform';
+import { createInterface } from 'node:readline';
+import { resolve } from 'node:path';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { request, Agent } from 'node:https';
@@ -11,19 +13,48 @@ import selfsigned from 'selfsigned';
 import { createApp } from '../server/app';
 import { modelPattern, ollamaRequest } from '../server/ollama';
 import { providers } from '../src/bankExchange';
-let win: BrowserWindow;
+import { trustedTeacherResource } from '../src/teacherResources';
+import { isIP } from 'node:net';
+import { timingSafeEqual } from 'node:crypto';
+import { newPairingCode, normalizePairingCode, pairingKey, pairingProof } from '../server/pairing';
+const root = resolve(process.env.SCHOOL_APP_ROOT || process.cwd());
+const app = {
+  isPackaged: process.env.NODE_ENV === 'production',
+  getPath: (_: string) => process.env.SCHOOL_DESKTOP_DATA_DIR || resolve('.data/webview2'),
+  getAppPath: () => root,
+};
+const send = (message: unknown) => process.stdout.write(JSON.stringify(message) + '\n');
+const win = { webContents: { send: (event: string, value: unknown) => send({ event, value }) } };
+const nativePending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>();
+let nativeSequence = 0;
+function nativeCall(method: string, ...args: unknown[]): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const nativeId = ++nativeSequence;
+    nativePending.set(nativeId, { resolve, reject });
+    send({ nativeId, method, args });
+  });
+}
+const shell = { openExternal: (url: string) => nativeCall('open-external', url) };
+const dialog = {
+  showSaveDialog: (_: unknown, options: unknown) => nativeCall('save-dialog', options),
+  showOpenDialog: (_: unknown, options: unknown) => nativeCall('open-dialog', options),
+  showMessageBox: (_: unknown, options: unknown) => nativeCall('confirm-dialog', options),
+};
+const handlers = new Map<string, (...args: any[]) => any>();
+const handle = (name: string, fn: (...args: any[]) => any) => handlers.set(name, fn);
+
 let server: Awaited<ReturnType<typeof createApp>> | undefined;
 let udp: dgram.Socket | undefined;
 let target: { host: string; fingerprint: string } | undefined;
 let token = '';
 let role = '';
+let studentSession: any;
 let pairCode = '';
 let eventSocket: WebSocket | undefined;
 let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-const port = !app.isPackaged ? Number(process.env.SCHOOL_TEST_PORT || 4310) : 4310;
+const port =
+  process.env.SCHOOL_TEST_MODE === '1' ? Number(process.env.SCHOOL_TEST_PORT || 4310) : 4310;
 const discoveryPort = port + 1;
-if (!app.isPackaged && process.env.SCHOOL_TEST_DATA)
-  app.setPath('userData', process.env.SCHOOL_TEST_DATA);
 const normalize = (s: string) => s.replaceAll(':', '').toUpperCase();
 const dataPath = () => join(app.getPath('userData'), 'school');
 function stopEvents() {
@@ -84,6 +115,8 @@ function secureRequest(
   path: string,
   method = 'GET',
   body?: unknown,
+  authorization = token,
+  timeout = 190000,
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const bytes = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
@@ -97,7 +130,7 @@ function secureRequest(
         agent: false,
         headers: {
           ...(bytes ? { 'Content-Type': 'application/json', 'Content-Length': bytes.length } : {}),
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(authorization ? { Authorization: `Bearer ${authorization}` } : {}),
         },
       },
       (res) => {
@@ -132,14 +165,20 @@ function secureRequest(
       }),
     );
     req.on('error', reject);
-    req.setTimeout(190000, () => req.destroy(new Error('انتهت مهلة الاتصال بجهاز المعلم')));
+    req.setTimeout(timeout, () =>
+      req.destroy(new Error('تعذر الوصول إلى جهاز المعلم. تحقق من شبكة المدرسة')),
+    );
   });
 }
 function persistTarget() {
   if (!target) return;
   mkdirSync(dataPath(), { recursive: true });
   const encrypted = safeStorage.isEncryptionAvailable();
-  const json = JSON.stringify({ ...target, ...(encrypted ? { token, role } : {}) });
+  const json = JSON.stringify({
+    ...target,
+    localHost: !!server,
+    ...(encrypted ? { token, role, studentSession } : {}),
+  });
   writeFileSync(
     join(dataPath(), 'connection'),
     encrypted ? safeStorage.encryptString(json) : Buffer.from(json),
@@ -161,7 +200,7 @@ async function host() {
       writeFileSync(certPath, JSON.stringify(pems));
     }
     const fingerprint = new X509Certificate(pems.cert).fingerprint256;
-    pairCode = randomBytes(4).toString('hex').toUpperCase();
+    pairCode = newPairingCode();
     server = await createApp({
       directory: dataPath(),
       secretProtection: {
@@ -174,9 +213,8 @@ async function host() {
       },
       https: { key: pems.private, cert: pems.cert },
       pairingCode: pairCode,
-      workerDirectory: app.isPackaged
-        ? join(process.resourcesPath, 'worker')
-        : join(app.getAppPath(), 'worker'),
+      pairingFingerprint: fingerprint,
+      workerDirectory: app.isPackaged ? join(root, 'worker') : join(app.getAppPath(), 'worker'),
     });
     try {
       await server.app.listen({ port, host: '0.0.0.0' });
@@ -193,6 +231,8 @@ async function host() {
           host: rinfo.address === '127.0.0.1' ? '127.0.0.1' : undefined,
           school: server!.store.getSetting('config').school,
           port,
+          pairingVersion: 1,
+          deviceId: fingerprint,
         });
         udp!.send(response, rinfo.port, rinfo.address);
       }
@@ -227,8 +267,13 @@ function discover(): Promise<any[]> {
     socket.on('message', (message, rinfo) => {
       try {
         const value = JSON.parse(message.toString());
-        if (value.port === port && typeof value.school === 'string')
-          results.set(rinfo.address, { ...value, host: rinfo.address });
+        if (value.port === port && typeof value.school === 'string') {
+          // Discovery metadata only deduplicates interfaces; pairing authenticates the certificate.
+          const key = typeof value.deviceId === 'string' ? value.deviceId : rinfo.address;
+          const existing = results.get(key);
+          if (!existing || existing.host === '127.0.0.1')
+            results.set(key, { ...value, host: rinfo.address });
+        }
       } catch {}
     });
     socket.bind(0, () => {
@@ -249,7 +294,8 @@ const onlyTeacher = () => {
   if (!server || role !== 'teacher' || target?.host !== '127.0.0.1')
     throw Error('هذه العملية متاحة للمعلم على الجهاز الرئيسي فقط');
 };
-app.whenReady().then(() => {
+async function start() {
+  let restoreLocal = false;
   try {
     const file = join(dataPath(), 'connection');
     if (existsSync(file)) {
@@ -262,21 +308,21 @@ app.whenReady().then(() => {
       target = { host: saved.host, fingerprint: saved.fingerprint };
       token = saved.token || '';
       role = saved.role || '';
+      studentSession = saved.studentSession;
+      restoreLocal = !!saved.localHost && saved.host === '127.0.0.1';
     }
   } catch {}
-  session.defaultSession.setPermissionRequestHandler((contents, permission, callback) =>
-    callback(contents === win?.webContents && permission === 'media'),
-  );
-  session.defaultSession.setPermissionCheckHandler(
-    (contents, permission) => contents === win?.webContents && permission === 'media',
-  );
-  const handle = (name: string, fn: (...args: any[]) => any) =>
-    ipcMain.handle(name, (event, ...args) => {
-      if (event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame)
-        throw Error('مصدر غير مسموح');
-      return fn(...args);
-    });
+  if (restoreLocal && role === 'student') {
+    const previous = { token, role, studentSession };
+    await host();
+    token = previous.token;
+    role = previous.role;
+    studentSession = previous.studentSession;
+  }
   handle('host', host);
+  handle('student-session', () =>
+    role === 'student' && studentSession ? { ...studentSession, token, role: 'student' } : null,
+  );
   handle('ollama-download-page', async () => {
     onlyTeacher();
     await shell.openExternal('https://ollama.com/download/windows');
@@ -300,27 +346,93 @@ app.whenReady().then(() => {
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
     });
     if (choice.canceled || !choice.filePath) return false;
-    const printWindow = new BrowserWindow({
-      show: false,
-      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
-    });
-    printWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-    try {
-      await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-      await printWindow.webContents.executeJavaScript(
-        'document.fonts.ready.then(() => Promise.all(Array.from(document.images).map(i=>i.decode().catch(()=>{}))))',
-      );
-      const bytes = await printWindow.webContents.printToPDF({
-        printBackground: true,
-        preferCSSPageSize: true,
-      });
-      writeFileSync(choice.filePath, bytes);
-      return true;
-    } finally {
-      printWindow.destroy();
-    }
+    return nativeCall('print-pdf', html, choice.filePath);
   });
   handle('discover', discover);
+  handle('connection-state', async () => {
+    if (!target) return { connected: false, local: false };
+    try {
+      const status = await secureRequest(
+        target.host,
+        target.fingerprint,
+        '/api/status',
+        'GET',
+        undefined,
+        '',
+        3000,
+      );
+      return {
+        connected: true,
+        school: status.school,
+        host: target.host,
+        fingerprint: target.fingerprint,
+        local: Boolean(server && target.host === '127.0.0.1'),
+      };
+    } catch {
+      return { connected: false, host: target.host, local: false };
+    }
+  });
+  handle('connect-teacher', async (hostName: string, code: string) => {
+    if (
+      typeof hostName !== 'string' ||
+      isIP(hostName) !== 4 ||
+      typeof code !== 'string' ||
+      !/^[A-HJ-NP-Z2-9]{12}$/.test(normalizePairingCode(code))
+    )
+      throw Error('أدخل رمز الاتصال كما يظهر على جهاز المعلم');
+    // Observe the leaf certificate without sending HTTP data or credentials. It is
+    // not trusted until the shared-code proof authenticates this exact certificate.
+    const fingerprint = await new Promise<string>((resolve, reject) => {
+      const socket = tlsConnect({ host: hostName, port, rejectUnauthorized: false }, () => {
+        try {
+          resolve(new X509Certificate(socket.getPeerCertificate().raw).fingerprint256);
+        } catch {
+          reject(Error('تعذر التحقق من هوية جهاز المعلم'));
+        } finally {
+          socket.destroy();
+        }
+      });
+      socket.on('error', () =>
+        reject(Error('تعذر الوصول إلى جهاز المعلم. تحقق من الشبكة والعنوان')),
+      );
+      socket.setTimeout(5000, () => socket.destroy(Error('انتهت مهلة الاتصال')));
+    });
+    const nonce = randomBytes(32).toString('hex');
+    const response = await secureRequest(
+      hostName,
+      fingerprint,
+      '/api/pair/proof',
+      'POST',
+      { nonce },
+      '',
+      6000,
+    );
+    const expected = Buffer.from(
+      pairingProof(pairingKey(code, fingerprint), nonce, fingerprint),
+      'hex',
+    );
+    if (
+      typeof response.proof !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(response.proof) ||
+      !timingSafeEqual(expected, Buffer.from(response.proof, 'hex'))
+    )
+      throw Error('رمز الاتصال غير صحيح. اطلب الرمز الظاهر على جهاز المعلم');
+    const result = await secureRequest(
+      hostName,
+      fingerprint,
+      '/api/pair',
+      'POST',
+      { code },
+      '',
+      6000,
+    );
+    stopEvents();
+    token = '';
+    role = '';
+    target = { host: hostName, fingerprint };
+    persistTarget();
+    return { connected: true, local: false, host: hostName, fingerprint, school: result.school };
+  });
   handle('pair', async (hostName: string, encoded: string) => {
     const { code, fingerprint } = JSON.parse(encoded);
     if (
@@ -328,6 +440,7 @@ app.whenReady().then(() => {
       !/^([A-Fa-f0-9]{2}:?){32}$/.test(fingerprint)
     )
       throw Error('أدخل عنوان IPv4 وبصمة SHA-256 الصحيحة');
+    stopEvents();
     token = '';
     role = '';
     const result = await secureRequest(hostName, fingerprint, '/api/pair', 'POST', { code });
@@ -339,25 +452,80 @@ app.whenReady().then(() => {
     if (!target) throw Error('اختر وضع المعلم أو اربط جهاز الطالب أولًا');
     if (
       !/^\/api\/[a-zA-Z0-9/._-]+$/.test(path) ||
-      !['GET', 'POST', 'PUT', 'DELETE'].includes(method)
+      !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
     )
       throw Error('طلب غير مسموح');
     if (path === '/api/setup' && (!server || target.host !== '127.0.0.1'))
       throw Error('الإعداد الأول متاح على جهاز المعلم فقط');
+    const input = body as any;
+    if (
+      role === 'student' &&
+      path === '/api/login' &&
+      (input?.role !== 'student' ||
+        (studentSession?.student?.code && input.code !== studentSession.student.code))
+    )
+      throw Error('سجّل خروج الطالب بكلمة مرور المعلم قبل تغيير الحساب');
+    if (role === 'student' && path === '/api/logout' && studentSession?.student?.code) {
+      // Refresh only this student's identity after a school-server restart.
+      const fresh = await secureRequest(
+        target.host,
+        target.fingerprint,
+        '/api/login',
+        'POST',
+        { role: 'student', code: studentSession.student.code },
+        '',
+        6000,
+      );
+      token = fresh.token;
+    }
     const result = await secureRequest(target.host, target.fingerprint, path, method, body);
     if (path === '/api/login') {
       token = result.token;
       role = result.role;
+      studentSession =
+        role === 'student' ? { student: result.student, teacherId: result.teacherId } : undefined;
+      await nativeCall('teacher-speech-session', role === 'teacher');
+      await nativeCall('student-mode', role === 'student');
       persistTarget();
       connectEvents();
     }
     if (path === '/api/logout' || path === '/api/restore') {
       token = '';
       role = '';
+      studentSession = undefined;
+      await nativeCall('teacher-speech-session', false);
+      await nativeCall('student-mode', false);
       persistTarget();
       stopEvents();
     }
     return result;
+  });
+  let speechBusy = false;
+  for (const operation of ['speech-status', 'speech-transcribe', 'speech-synthesize'])
+    handle(operation, async (value?: unknown, language?: unknown) => {
+      if (role !== 'teacher' || !token) throw Error('الصوت متاح للمعلم فقط');
+      if (operation === 'speech-status') return nativeCall(operation);
+      if (
+        typeof value !== 'string' ||
+        !['ar', 'en'].includes(String(language)) ||
+        (operation === 'speech-transcribe' &&
+          (value.length > 1280000 || !/^[A-Za-z0-9+/=]+$/.test(value))) ||
+        (operation === 'speech-synthesize' && (!value.trim() || value.length > 700))
+      )
+        throw Error('طلب صوت غير صالح');
+      if (speechBusy) throw Error('انتظر اكتمال المقطع الصوتي الحالي');
+      speechBusy = true;
+      try {
+        return await nativeCall(operation, value, language);
+      } finally {
+        speechBusy = false;
+      }
+    });
+  handle('teacher-resource', async (value: unknown) => {
+    if (role !== 'teacher' || !token) throw Error('هذه الأداة متاحة للمعلم فقط');
+    const url = trustedTeacherResource(value);
+    await shell.openExternal(url);
+    return true;
   });
   handle('backup-save', async () => {
     onlyTeacher();
@@ -389,6 +557,8 @@ app.whenReady().then(() => {
     await secureRequest(target!.host, target!.fingerprint, '/api/restore', 'POST', backup);
     token = '';
     role = '';
+    persistTarget();
+    stopEvents();
     return true;
   });
   handle('export-csv', async (csv: string) => {
@@ -407,32 +577,49 @@ app.whenReady().then(() => {
     if (typeof model !== 'string' || !modelPattern.test(model)) throw Error('اسم النموذج غير صالح');
     return ollamaRequest('pull', { model, stream: false }, AbortSignal.timeout(3600000));
   });
-  win = new BrowserWindow({
-    icon: join(app.getAppPath(), 'build', 'icon.png'),
-    show: !process.env.SCHOOL_HEADLESS_TEST,
-    width: 1440,
-    height: 940,
-    minWidth: 1000,
-    minHeight: 720,
-    title: 'مدرسة محمد الشريقي — الامتحانات الإلكترونية',
-    backgroundColor: '#f4f8ff',
-    webPreferences: {
-      preload: join(__dirname, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
+
+  handle('shutdown', async () => {
+    stopEvents();
+    udp?.close();
+    await server?.app.close();
+    setTimeout(() => process.exit(0), 20);
+    return true;
   });
-  win.removeMenu();
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  win.webContents.on('will-navigate', (event, url) => {
-    if (url !== win.webContents.getURL()) event.preventDefault();
-  });
-  win.loadFile(join(app.getAppPath(), 'dist', 'index.html'));
-});
-app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => {
-  stopEvents();
-  udp?.close();
-  void server?.app.close();
+  createInterface({ input: process.stdin })
+    .on('line', (line) => {
+      void (async () => {
+        let message: any;
+        try {
+          message = JSON.parse(line);
+          if (message.nativeId) {
+            const call = nativePending.get(message.nativeId);
+            nativePending.delete(message.nativeId);
+            if (message.error) call?.reject(Error(message.error));
+            else call?.resolve(message.result);
+            return;
+          }
+          if (!Number.isSafeInteger(message.id) || !Array.isArray(message.args))
+            throw Error('Invalid request');
+          if (
+            role === 'student' &&
+            !['request', 'connection-state', 'student-session', 'shutdown'].includes(message.method)
+          )
+            throw Error('جلسة الطالب مقفلة. يلزم تسجيل الخروج بكلمة مرور المعلم');
+          const handler = handlers.get(message.method);
+          if (!handler) throw Error('Unsupported desktop command');
+          const result = await handler(...message.args);
+          send({ id: message.id, result: result ?? null });
+        } catch (error) {
+          send({ id: message?.id, error: (error as Error).message });
+        }
+      })();
+    })
+    .on('close', () => process.exit(0));
+  if (role === 'student') await nativeCall('student-mode', true);
+  send({ event: 'ready' });
+}
+console.log = (...args: unknown[]) => console.error(...args);
+start().catch((error) => {
+  console.error(error);
+  process.exit(1);
 });

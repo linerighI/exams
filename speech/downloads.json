@@ -1,0 +1,20 @@
+[
+  {
+    "name": "sherpa-onnx-whisper-base.tar.bz2",
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.tar.bz2",
+    "digest": "sha256:911b2083efd7c0dca2ac3b358b75222660dc09fb716d64fbfc417ba6c99ff3de",
+    "size": 207557382
+  },
+  {
+    "name": "vits-piper-ar_JO-kareem-medium-int8.tar.bz2",
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-ar_JO-kareem-medium-int8.tar.bz2",
+    "digest": "sha256:215910431bbe8236b77242b19d869a4eda6073e9cd424bec45b6d4a59a790d82",
+    "size": 20968771
+  },
+  {
+    "name": "vits-piper-en_US-amy-low-int8.tar.bz2",
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-amy-low-int8.tar.bz2",
+    "digest": "sha256:93070ac9fadf512e56c46bdd0c5d2ce96b424fdc4e683d560167410bd2c4df7d",
+    "size": 21099246
+  }
+]

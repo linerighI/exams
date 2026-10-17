@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   Clock3,
   CheckCircle2,
@@ -7,10 +7,14 @@ import {
   ArrowLeft,
   ArrowRight,
   Camera,
-  Send,
+  Flag,
 } from 'lucide-react';
 import { api, setToken } from './api';
 import { saveSnapshot, type Snapshot } from './offline';
+import StudentTools from './StudentTools';
+import BlueOrb from './BlueOrb';
+const ExamStatusOrb = memo(BlueOrb);
+import './studentExam.css';
 export async function cameraProbe() {
   if (!navigator.mediaDevices?.getUserMedia) return false;
   try {
@@ -19,25 +23,6 @@ export async function cameraProbe() {
     return true;
   } catch {
     return false;
-  }
-}
-async function capture() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: 640, height: 480 },
-    audio: false,
-  });
-  try {
-    const video = document.createElement('video');
-    video.srcObject = stream;
-    await video.play();
-    await new Promise((r) => setTimeout(r, 400));
-    const canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 480;
-    canvas.getContext('2d')!.drawImage(video, 0, 0, 640, 480);
-    return canvas.toDataURL('image/jpeg', 0.75);
-  } finally {
-    stream.getTracks().forEach((t) => t.stop());
   }
 }
 export default function StudentExam({
@@ -52,14 +37,13 @@ export default function StudentExam({
   const current = useRef(snapshot);
   const diskQueue = useRef(Promise.resolve());
   const [view, setView] = useState(snapshot);
+  const [localSaveState, setLocalSaveState] = useState<'saving' | 'saved' | 'error'>('saved');
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [online, setOnline] = useState(true);
   const [confirm, setConfirm] = useState(false);
-  const [cameraRequest, setCameraRequest] = useState<any>();
-  const [cameraBusy, setCameraBusy] = useState(false);
+  const [finishRequested, setFinishRequested] = useState(false);
   const syncBusy = useRef(false);
-  const cameraSeen = useRef(new Set<string>());
   const [finished, setFinished] = useState(
     !!snapshot.attempt.submittedAt && !Object.keys(snapshot.pending).length,
   );
@@ -68,13 +52,38 @@ export default function StudentExam({
   const remaining = Math.max(0, Math.ceil((view.attempt.deadline - (now + view.offset)) / 1000));
   const frozen = remaining === 0 || view.submitPending || !!view.attempt.submittedAt;
   const q = view.questions[index];
-  const answered = Object.keys(view.answers).length;
+  const answered = view.questions.filter((item) => Object.hasOwn(view.answers, item.id)).length;
+  const missing = view.questions.filter((item) => !Object.hasOwn(view.answers, item.id));
+  const reviewFlags = (view.reviewFlags || []).filter((id) =>
+    view.questions.some((item) => item.id === id),
+  );
+  const requestSubmit = () => {
+    if (frozen) return;
+    if (missing.length) {
+      setFinishRequested(true);
+      notify(`بقي ${missing.length} سؤالًا دون إجابة. راجع الأسئلة المميزة قبل التسليم.`);
+      return;
+    }
+    setConfirm(true);
+  };
+  useEffect(() => {
+    if (finishRequested && answered === view.questions.length && localSaveState !== 'error')
+      notify('');
+  }, [finishRequested, answered, view.questions.length, localSaveState]);
   const persist = async (next: Snapshot) => {
     current.current = next;
     setView({ ...next });
     const durable = structuredClone(next);
     diskQueue.current = diskQueue.current.catch(() => {}).then(() => saveSnapshot(durable));
-    await diskQueue.current;
+    const write = diskQueue.current;
+    setLocalSaveState('saving');
+    try {
+      await write;
+      if (diskQueue.current === write) setLocalSaveState('saved');
+    } catch (error) {
+      if (diskQueue.current === write) setLocalSaveState('error');
+      throw error;
+    }
   };
   const sync = async () => {
     if (
@@ -110,14 +119,6 @@ export default function StudentExam({
       }
       setOnline(true);
       setAuthNeeded(false);
-      const requests = await api(`/api/attempts/${data.attempt.id}/camera`);
-      const request = requests.find(
-        (r: any) => r.state === 'pending' && !cameraSeen.current.has(r.id),
-      );
-      if (request) {
-        cameraSeen.current.add(request.id);
-        setCameraRequest(request);
-      }
     } catch (e) {
       setOnline(false);
       if ((e as Error).message.includes('صلاحية')) setAuthNeeded(true);
@@ -137,7 +138,9 @@ export default function StudentExam({
   }, []);
   useEffect(() => {
     if (remaining === 0 && !current.current.submitPending && !current.current.attempt.submittedAt) {
-      void persist({ ...current.current, submitPending: true }).then(() => sync());
+      void persist({ ...current.current, submitPending: true })
+        .then(() => sync())
+        .catch(() => notify('تعذر حفظ طلب التسليم. أبقِ التطبيق مفتوحًا وأبلغ المعلم.'));
     }
   }, [remaining]);
   const choose = async (choice: number) => {
@@ -158,32 +161,46 @@ export default function StudentExam({
   };
   const submit = async () => {
     setConfirm(false);
-    await persist({ ...current.current, submitPending: true });
-    void sync();
-  };
-  const respondCamera = async (accept: boolean) => {
-    if (!cameraRequest) return;
-    setCameraBusy(true);
     try {
-      let body: any = { error: 'رفض الطالب إذن التصوير' };
-      if (accept) {
-        try {
-          body = { image: await capture() };
-        } catch {
-          body = { error: 'الكاميرا غير متاحة أو لم يُمنح الإذن' };
-        }
-      }
-      await api(`/api/attempts/${view.attempt.id}/camera/${cameraRequest.id}`, 'POST', body);
-      setCameraRequest(undefined);
-      notify(body.image ? 'تم إرسال الصورة إلى المعلم' : 'تم إبلاغ المعلم بحالة الكاميرا');
-    } catch (e) {
-      notify((e as Error).message);
-      cameraSeen.current.delete(cameraRequest.id);
-      setCameraRequest(undefined);
-    } finally {
-      setCameraBusy(false);
+      await persist({ ...current.current, submitPending: true });
+      void sync();
+    } catch {
+      current.current = { ...current.current, submitPending: false };
+      setView({ ...current.current });
+      notify('تعذر حفظ طلب التسليم. أبقِ التطبيق مفتوحًا وأبلغ المعلم قبل المحاولة مجددًا.');
     }
   };
+  const toggleReview = async () => {
+    if (frozen) return;
+    try {
+      await persist({
+        ...current.current,
+        reviewFlags: reviewFlags.includes(q.id)
+          ? reviewFlags.filter((id) => id !== q.id)
+          : [...reviewFlags, q.id],
+      });
+    } catch {
+      notify('تعذر حفظ علامة المراجعة على هذا الجهاز');
+    }
+  };
+  const indicatorTone =
+    !online || localSaveState === 'error'
+      ? 'red'
+      : answered === view.questions.length
+        ? 'green'
+        : missing.length && (finishRequested || index === view.questions.length - 1)
+          ? 'red'
+          : 'blue';
+  const indicatorText =
+    localSaveState === 'error'
+      ? 'أبلغ المعلم: تعذّر الحفظ'
+      : !online
+        ? 'الاتصال منقطع'
+        : indicatorTone === 'green'
+          ? 'كل الأسئلة مجابة'
+          : indicatorTone === 'red'
+            ? `${missing.length} أسئلة غير مجابة`
+            : 'الامتحان جارٍ';
   if (finished)
     return (
       <div className="submitted card">
@@ -200,21 +217,11 @@ export default function StudentExam({
     );
   return (
     <>
-      <div className="exam-top">
+      <div className="exam-top student-exam-heading">
         <div>
-          <span className="eyebrow">بالتوفيق، أنت مستعد ✦</span>
+          <span className="eyebrow">مساحتك للتركيز · خطوة واحدة في كل مرة</span>
           <h1>{view.exam.title}</h1>
-          <p>اقرأ السؤال جيدًا واختر إجابة واحدة.</p>
-        </div>
-        <div className={`timer ${remaining < 300 ? 'urgent' : ''}`}>
-          <Clock3 size={24} />
-          <div>
-            <small>الوقت المتبقي</small>
-            <strong dir="ltr">
-              {String(Math.floor(remaining / 60)).padStart(2, '0')}:
-              {String(remaining % 60).padStart(2, '0')}
-            </strong>
-          </div>
+          <p>اقرأ بهدوء. تُحفظ إجابتك عند كل اختيار، ويمكنك مراجعتها قبل التسليم.</p>
         </div>
       </div>
       {authNeeded && (
@@ -248,15 +255,35 @@ export default function StudentExam({
           <button className="primary">إعادة الاتصال</button>
         </form>
       )}
-      <div className="exam-layout">
+      <div className="exam-layout student-exam-workspace">
         <section className="card exam-question">
+          {!frozen && (
+            <StudentTools
+              calculatorAllowed={view.exam.calculatorAllowed}
+              geogebraAllowed={view.exam.geogebraAllowed}
+            />
+          )}
           <div className="question-heading">
             <span className="pill blue">
               السؤال {index + 1} من {view.questions.length}
             </span>
-            <span className="muted">اختر الإجابة الصحيحة</span>
+            <button
+              className="student-review-toggle"
+              aria-label="تعليم السؤال الحالي للمراجعة"
+              aria-pressed={reviewFlags.includes(q.id)}
+              disabled={frozen}
+              onClick={() => void toggleReview()}
+            >
+              <Flag size={14} />
+              {reviewFlags.includes(q.id) ? 'معلّم للمراجعة' : 'أراجعه لاحقًا'}
+            </button>
+            <span className="muted">
+              {q.id in view.answers ? 'إجابتك محفوظة · يمكنك تعديلها' : 'فكّر، ثم اختر إجابتك'}
+            </span>
           </div>
-          <h2><MathText text={q.text}/></h2>
+          <h2>
+            <MathText text={q.text} />
+          </h2>
           {q.image && <img className="exam-image" src={q.image} alt="صورة السؤال" />}
           <div className="student-options">
             {q.options.map((option: string, i: number) => (
@@ -268,7 +295,9 @@ export default function StudentExam({
               >
                 <span className="radio-circle">{view.answers[q.id] === i && <span />}</span>
                 <span className="option-letter">{['أ', 'ب', 'ج', 'د'][i]}</span>
-                <span><MathText text={option}/></span>
+                <span>
+                  <MathText text={option} />
+                </span>
                 {view.answers[q.id] === i && <CheckCircle2 className="option-check" size={21} />}
               </button>
             ))}
@@ -301,6 +330,40 @@ export default function StudentExam({
           )}
         </section>
         <aside className="card exam-navigation">
+          <div className="exam-fixed-status">
+            <div className={`timer ${remaining < 300 ? 'urgent' : ''}`}>
+              <Clock3 size={24} />
+              <div>
+                <small>الوقت المتبقي</small>
+                <strong dir="ltr">
+                  {String(Math.floor(remaining / 60)).padStart(2, '0')}:
+                  {String(remaining % 60).padStart(2, '0')}
+                </strong>
+              </div>
+            </div>
+            <div
+              className={`exam-status-indicator is-${indicatorTone}`}
+              role="img"
+              aria-label={`حالة الامتحان: ${indicatorText}`}
+            >
+              <div className="exam-indicator-orb" aria-hidden="true">
+                <ExamStatusOrb size={1.45} tone={indicatorTone} animationSpeedBase={0.2} />
+              </div>
+              <strong>{indicatorText}</strong>
+              <span>
+                {answered} / {view.questions.length} إجابات
+              </span>
+            </div>
+            <button
+              className="primary exam-submit-button"
+              aria-label="تسليم الامتحان"
+              disabled={frozen}
+              onClick={requestSubmit}
+            >
+              مراجعة وتسليم
+            </button>
+          </div>
+
           <h3>خريطة الأسئلة</h3>
           <p>
             {answered} من {view.questions.length} تمت الإجابة عنها
@@ -312,33 +375,50 @@ export default function StudentExam({
             {view.questions.map((item: any, i: number) => (
               <button
                 key={item.id}
-                className={`${item.id in view.answers ? 'answered' : ''} ${i === index ? 'current' : ''}`}
+                aria-label={`السؤال ${i + 1}${item.id in view.answers ? ' مجاب' : ' غير مجاب'}${reviewFlags.includes(item.id) ? ' معلّم للمراجعة' : ''}`}
+                className={`${reviewFlags.includes(item.id) ? 'flagged' : ''} ${item.id in view.answers ? 'answered' : finishRequested || index === view.questions.length - 1 ? 'missing' : ''} ${i === index ? 'current' : ''}`}
                 onClick={() => setIndex(i)}
               >
                 {i + 1}
+                {reviewFlags.includes(item.id) && (
+                  <Flag className="student-review-flag" size={9} aria-hidden="true" />
+                )}
               </button>
             ))}
           </div>
-          <div className={`save-status ${online ? '' : 'offline'}`}>
+          <div className={`save-status ${online && localSaveState !== 'error' ? '' : 'offline'}`}>
             {online ? <Cloud size={20} /> : <WifiOff size={20} />}
             <div>
               <strong>
-                {Object.keys(view.pending).length
-                  ? 'محفوظة على الجهاز'
-                  : online
-                    ? 'تم الحفظ على جهاز المعلم'
-                    : 'الاتصال منقطع'}
+                {localSaveState === 'error'
+                  ? 'تعذر الحفظ على هذا الجهاز'
+                  : localSaveState === 'saving'
+                    ? 'جارٍ الحفظ على الجهاز'
+                    : Object.keys(view.pending).length
+                      ? 'محفوظة على الجهاز'
+                      : online
+                        ? 'تم الحفظ على جهاز المعلم'
+                        : 'الاتصال منقطع'}
               </strong>
               <small>
-                {Object.keys(view.pending).length
-                  ? `${Object.keys(view.pending).length} إجابة بانتظار الإرسال`
-                  : 'نحفظ تقدمك أثناء الإجابة'}
+                {localSaveState === 'error'
+                  ? 'أبقِ التطبيق مفتوحًا وأبلغ المعلم'
+                  : Object.keys(view.pending).length
+                    ? `${Object.keys(view.pending).length} إجابة بانتظار الإرسال`
+                    : 'نحفظ تقدمك أثناء الإجابة'}
               </small>
             </div>
           </div>
-          <button className="primary wide" disabled={frozen} onClick={() => setConfirm(true)}>
-            <Send size={17} /> تسليم الامتحان
-          </button>
+          {missing.length > 0 && (finishRequested || index === view.questions.length - 1) && (
+            <button
+              className="text-button review-missing"
+              onClick={() =>
+                setIndex(view.questions.findIndex((item) => !Object.hasOwn(view.answers, item.id)))
+              }
+            >
+              انتقل لأول سؤال غير مجاب <ArrowLeft size={15} />
+            </button>
+          )}
         </aside>
       </div>
       {confirm && (
@@ -354,33 +434,6 @@ export default function StudentExam({
               </button>
               <button className="secondary" onClick={() => setConfirm(false)}>
                 متابعة الإجابة
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {cameraRequest && (
-        <div className="modal-backdrop">
-          <div className="modal card">
-            <div className="summary-icon">
-              <Camera size={30} />
-            </div>
-            <h2>المعلم يطلب صورة الآن</h2>
-            <p>ستُلتقط صورة واحدة بالكاميرا وتُرسل إلى جهاز المعلم مع هذه المحاولة.</p>
-            <div className="button-row">
-              <button
-                disabled={cameraBusy || frozen}
-                className="primary"
-                onClick={() => void respondCamera(true)}
-              >
-                التقاط وإرسال الصورة
-              </button>
-              <button
-                disabled={cameraBusy}
-                className="secondary"
-                onClick={() => void respondCamera(false)}
-              >
-                رفض التصوير
               </button>
             </div>
           </div>

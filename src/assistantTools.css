@@ -621,3 +621,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.assistant-result-card .result-open[hidden] {display:none;}
+.assistant-proposal .error-note {font-size:12px;line-height:1.7;}
+.orb-result.proposal {flex-wrap:wrap;}
+.orb-result.proposal .assistant-proposal {width:100%;}

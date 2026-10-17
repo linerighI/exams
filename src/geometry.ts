@@ -5,6 +5,11 @@ export const constructionSchema = z.object({
     .array(
       z.discriminatedUnion('type', [
         z.object({
+          type: z.literal('function'),
+          name,
+          coefficients: z.array(z.number().min(-1000).max(1000).multipleOf(0.000001)).min(1).max(7),
+        }),
+        z.object({
           type: z.literal('point'),
           name,
           x: z.number().min(-1000).max(1000),
@@ -37,6 +42,11 @@ export function geometryCommands(input: unknown) {
   return construction.objects.map((o) => {
     if (names.has(o.name)) throw Error('اسم هندسي متكرر');
     names.add(o.name);
+    if (o.type === 'function')
+      return `${o.name}(x)=${o.coefficients
+        .map((n, i) => `${n}${i ? `*x^${i}` : ''}`)
+        .join('+')
+        .replace(/\+-/g, '-')}`;
     if (o.type === 'point') {
       points.add(o.name);
       return `${o.name}=(${o.x},${o.y})`;
