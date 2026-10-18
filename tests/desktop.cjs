@@ -84,11 +84,11 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'سؤال', exact: true }).click();
     await page.getByRole('button', { name: 'إنشاء رسم هندسي · GeoGebra' }).click();
     for (let i = 0; i < 100; i++) {
-      if (await page.getByRole('button', { name: 'إرفاق صورة الرسم' }).isEnabled()) break;
+      if (await page.getByRole('button', { name: 'إرفاق الرسم بالسؤال' }).isEnabled()) break;
       await page.waitForTimeout(300);
     }
     assert.equal(
-      await page.getByRole('button', { name: 'إرفاق صورة الرسم' }).isEnabled(),
+      await page.getByRole('button', { name: 'إرفاق الرسم بالسؤال' }).isEnabled(),
       true,
       'GeoGebra initializes in WebView2 offline',
     );
@@ -101,9 +101,9 @@ const assert = require('node:assert/strict');
         ),
     );
     await page.waitForTimeout(400);
-    await page.getByRole('button', { name: 'إرفاق صورة الرسم' }).click();
+    await page.getByRole('button', { name: 'إرفاق الرسم بالسؤال' }).click();
     await page
-      .getByRole('heading', { name: 'محرر الرسومات الهندسية' })
+      .getByRole('heading', { name: 'مساحة الرسم · GeoGebra' })
       .waitFor({ state: 'hidden' });
     assert.equal(await page.locator('.attached-image img').count(), 1);
     await page.getByRole('button', { name: 'العودة للامتحانات' }).click();
