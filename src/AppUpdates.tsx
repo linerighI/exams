@@ -87,6 +87,7 @@ export default function AppUpdates({
   const content = (
     <div className="app-update-panel">
       <p>الإصدار الحالي: {state.current || '—'}</p>
+      <p className="info-note">يمكنك متابعة عملك أثناء التنزيل؛ يغلق التطبيق فقط عند بدء التثبيت.</p>
       <p>المصدر: linerighI/exams · GitHub Releases</p>
       <label className="check-label">
         <input
