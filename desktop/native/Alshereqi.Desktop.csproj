@@ -12,7 +12,7 @@
     <ApplicationIcon Condition="Exists('../../build/icon.ico')">../../build/icon.ico</ApplicationIcon>
     <Version>1.5.0</Version>
   </PropertyGroup>
-  <PropertyGroup Condition="'DesktopAutomation' == 'true'">
+  <PropertyGroup Condition="'$(DesktopAutomation)' == 'true'">
     <DefineConstants>$(DefineConstants);DESKTOP_AUTOMATION</DefineConstants>
   </PropertyGroup>
   <ItemGroup>

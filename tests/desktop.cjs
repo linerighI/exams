@@ -27,6 +27,8 @@ const assert = require('node:assert/strict');
     await page.getByLabel('إنشاء كلمة مرور للمعلم').fill('Desktop-test123');
     await page.getByRole('button', { name: 'إعداد حساب المدرسة' }).click();
     await page.getByRole('heading', { name: 'مرحبًا أستاذي، ماذا ننجز اليوم؟' }).waitFor();
+    await page.getByRole('button', { name: 'لاحقًا، أعرف طريقي', exact: true }).click();
+    await page.getByRole('button', { name: 'الوضع الكامل', exact: true }).click();
     const info = await page.evaluate(() => window.desktop.host());
     assert.ok(info.fingerprint);
     assert.equal(info.port, port);
