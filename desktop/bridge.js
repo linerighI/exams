@@ -22,9 +22,11 @@
     request: 'request', host: 'host', discover: 'discover', pair: 'pair',
     connectionState: 'connection-state', connectTeacher: 'connect-teacher',
     studentSession: 'student-session',
-    saveBackup: 'backup-save', readBackup: 'backup-read', exportCSV: 'export-csv',
+    updateState: 'update-state', checkUpdates: 'update-check', downloadUpdate: 'update-download',
+    cancelUpdate: 'update-cancel', installUpdate: 'update-install',
+    saveBackup: 'backup-save', readBackup: 'backup-read', exportCSV: 'export-csv', exportSpreadsheet: 'spreadsheet-save',
     downloadModel: 'model-download', openOllama: 'ollama-download-page',
-    openProvider: 'ai-provider-page', exportBankPDF: 'bank-pdf',
+    openProvider: 'ai-provider-page', exportBankPDF: 'bank-pdf', exportReportPDF: 'report-pdf',
     openTeacherResource: 'teacher-resource', speechStatus: 'speech-status', transcribeSpeech: 'speech-transcribe', synthesizeSpeech: 'speech-synthesize',
   };
   const api = Object.fromEntries(Object.entries(methods).map(([name, method]) => [name, (...args) => invoke(method, ...args)]));

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { api } from './api';
 import FocusWindow from './FocusWindow';
+import DeleteRecord from './DeleteRecord';
 import './bookLibrary.css';
 
 export type LibraryFolder = { id: string; name: string; color: string; createdAt: number };
@@ -41,6 +42,7 @@ export default function BookLibrary({
   importBank,
   uploadBook,
   notify,
+  onDeleted,
 }: {
   books: any[];
   hidden: boolean;
@@ -48,6 +50,7 @@ export default function BookLibrary({
   importBank: (folderId: string | null) => void;
   uploadBook: (folderId: string | null) => void;
   notify: (message: string) => void;
+  onDeleted?:()=>Promise<void>;
 }) {
   const [organization, setOrganization] = useState<Organization>({ folders: [], bookFolders: {} });
   const [loaded, setLoaded] = useState(false),
@@ -130,7 +133,7 @@ export default function BookLibrary({
         <button className="library-action-create" onClick={() => importBank(target)}>
           <Plus size={22} />
           <strong>إضافة بنك أسئلة</strong>
-          <span>استيراد أو إعداد طلب</span>
+          <span>بنك فارغ يدويًا أو استيراد أو إعداد طلب</span>
         </button>
         <button onClick={() => uploadBook(target)}>
           <UploadCloud size={22} />
@@ -353,6 +356,7 @@ export default function BookLibrary({
                 >
                   <MoveRight size={17} />
                 </button>
+                {onDeleted && <div className="library-book-delete"><DeleteRecord kind="books" id={book.id} title={book.title} onDeleted={onDeleted}/></div>}
               </article>
             );
           })}

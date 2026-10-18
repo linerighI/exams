@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import katex from 'katex';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { id, type Store } from './store';
 import { normalizeCropBox } from './cropBox';
 import { mathSegments } from '../src/mathNotation';
 import { safeSvg } from '../src/svgDiagram';
+import { printDocument, printMath, printImage, escapeHTML } from './printDocument';
+import type { BankPDFOptions } from '../src/pdfOptions';
 const str = z
   .string()
   .trim()
@@ -325,39 +324,54 @@ export function registerBankTransfer(
     store.put('books', b);
     return { ok: true };
   });
-  app.get('/api/books/:id/document', async (req: any) => {
+  app.get('/api/books/:id/document', async (req: any, reply: any) => {
     teacher(req);
+    reply.header('Cache-Control', 'no-store');
     const b = store.get('books', req.params.id);
     if (!b) throw badInput('البنك غير موجود');
+    const options = z
+      .object({
+        audience: z.enum(['teacher', 'student']).default('teacher'),
+        approvedOnly: z
+          .enum(['true', 'false'])
+          .default('false')
+          .transform((v) => v === 'true'),
+        chapter: z.string().max(300).default(''),
+        title: z.string().trim().max(200).default(''),
+      })
+      .parse(req.query);
     return {
       html: bankDocument(
         b,
         store.all('bank_questions').filter((q) => q.bookId === b.id),
+        options,
+        store.getSetting('config').school,
       ),
     };
   });
 }
-export function bankDocument(book: any, questions: any[]) {
-  const req = createRequire(import.meta.url);
-  const katexPath = dirname(req.resolve('katex/package.json'));
-  const css = readFileSync(join(katexPath, 'dist/katex.min.css'), 'utf8').replace(
-    /url\((?:['"])?fonts\/([^)'"\s]+)(?:['"])?\)/g,
-    (_all, name) =>
-      `url(data:font/${name.endsWith('woff2') ? 'woff2' : name.endsWith('woff') ? 'woff' : 'ttf'};base64,${readFileSync(join(katexPath, 'dist/fonts', name)).toString('base64')})`,
+export function bankDocument(
+  book: any,
+  questions: any[],
+  options?: Partial<BankPDFOptions>,
+  school = 'مدرسة محمد الشريقي',
+) {
+  const student = options?.audience === 'student';
+  const selected = questions.filter(
+    (q) =>
+      ((!options?.approvedOnly && !student) || q.status === 'approved') &&
+      (!options?.chapter || q.chapter === options.chapter),
   );
-  const font = readFileSync(
-    req.resolve('@fontsource/tajawal/files/tajawal-arabic-400-normal.woff2'),
-  ).toString('base64');
-  const text = (value: string) =>
-    mathSegments(value)
-      .map((p) => {
-        if (!p.math) return escape(p.text);
-        try {
-          return `<span dir="ltr" class="formula">${katex.renderToString(p.text, { throwOnError: true, trust: false, displayMode: !!p.display, maxExpand: 200 })}</span>`;
-        } catch {
-          return `<span class="invalid">${escape(p.text)}</span>`;
-        }
-      })
-      .join('');
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:"><style>${css}@font-face{font-family:Tajawal;src:url(data:font/woff2;base64,${font})}body{font-family:Tajawal,Arial;color:#203650;font-size:16px;line-height:1.8}h1{color:#3775c7}header{border-bottom:2px solid #dce7f2;margin-bottom:24px}article{break-inside:avoid;border:1px solid #dce7f2;border-radius:14px;padding:18px;margin:16px 0}small{color:#63758a}.options{display:grid;grid-template-columns:1fr 1fr;gap:8px}.options div{border:1px solid #e5ecf4;padding:6px 12px;border-radius:8px}img{display:block;max-width:95%;max-height:240px;margin:12px auto}.formula{display:inline-block;direction:ltr;unicode-bidi:isolate}.invalid,.warning{color:#9d481e}.key{break-before:page}h2{font-size:20px}@page{size:A4;margin:18mm}</style></head><body><header><small>مدرسة محمد الشريقي · بنك أسئلة للمراجعة</small><h1>${escape(book.title)}</h1><p>${escape(book.subject)} · ${escape(book.grade)} · الفصل ${escape(book.term)} · ${questions.length} سؤال</p><small>تحتاج المسودات إلى مراجعة المعلم قبل النشر.</small></header>${questions.map((q, i) => `<article><small>${i + 1} · ${escape(q.chapter)} · صفحة المصدر ${q.page} · ${escape(q.status === 'approved' ? 'معتمد' : 'مسودة')}</small><h2>${text(q.text)}</h2>${q.image && /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(q.image) ? `<img src="${q.image}" alt="رسم السؤال">` : q.requiresImage ? '<p class="warning">رسم مطلوب قبل اعتماد السؤال</p>' : ''}<div class="options">${q.options.map((o: string, j: number) => `<div>${['أ', 'ب', 'ج', 'د'][j]} · ${text(o)}</div>`).join('')}</div></article>`).join('')}<section class="key"><h1>مفتاح الإجابة · للمعلم</h1>${questions.map((q, i) => `<article><strong>${i + 1} · ${['أ', 'ب', 'ج', 'د'][q.correct]}</strong><p>${text(q.explanation)}</p></article>`).join('')}</section></body></html>`;
+  const letters = ['أ', 'ب', 'ج', 'د'];
+  const content = `${student ? '<div class="signature"><span>اسم الطالب: ................................</span><span>الشعبة: .............</span><span>التاريخ: .............</span></div>' : '<p class="notice">المسودات للمراجعة فقط. نسخة الطالب تحتوي الأسئلة المعتمدة وحدها دون الإجابات.</p>'}
+    <div class="stats"><div class="stat"><b>${selected.length}</b>سؤال</div><div class="stat"><b>${escapeHTML(book.grade)}</b>الصف</div><div class="stat"><b>${escapeHTML(book.term)}</b>الفصل</div></div>
+    ${selected.length ? selected.map((q, i) => `<article class="question"><div class="question-meta"><span class="number">السؤال ${i + 1}</span><span>${escapeHTML(q.chapter || '')} · ${escapeHTML(q.difficulty || '')}${student ? '' : ` · صفحة ${escapeHTML(q.page)} · ${q.status === 'approved' ? 'معتمد' : 'مسودة'}`}</span></div><h2>${printMath(q.text)}</h2>${printImage(q.image) || (q.requiresImage ? '<p class="warning">رسم مطلوب قبل اعتماد السؤال</p>' : '')}<div class="options">${q.options.map((o: string, j: number) => `<div>${letters[j]} · ${printMath(o)}</div>`).join('')}</div></article>`).join('') : '<p class="notice">لا توجد أسئلة تطابق خيارات التصدير.</p>'}
+    ${!student && selected.length ? `<section class="key"><h2 class="section-title">مفتاح الإجابة · للمعلم</h2>${selected.map((q, i) => `<div class="answer"><strong>${i + 1} · ${letters[q.correct]}</strong><p>${printMath(q.explanation)}</p></div>`).join('')}</section>` : ''}`;
+  return printDocument(
+    options?.title || book.title,
+    school,
+    `${book.subject} · ${options?.chapter || 'جميع الموضوعات'} · ${student ? 'ورقة أسئلة' : 'بنك الأسئلة ومفتاح الإجابة'}`,
+    content,
+    !student,
+  );
 }

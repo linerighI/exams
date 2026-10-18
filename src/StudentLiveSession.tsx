@@ -3,6 +3,7 @@ import { Camera, VideoOff } from 'lucide-react';
 import { api } from './api';
 import FocusWindow from './FocusWindow';
 import './liveLab.css';
+import { openCamera, cameraError } from './cameraAccess';
 
 export default function StudentLiveSession({
   token,
@@ -95,10 +96,7 @@ export default function StudentLiveSession({
     setError('');
     const generation = ++version.current;
     try {
-      const media = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { width: { ideal: 480 }, height: { ideal: 270 }, frameRate: { ideal: 2, max: 5 } },
-      });
+      const media = await openCamera();
       if (generation !== version.current) {
         media.getTracks().forEach((track) => track.stop());
         return;
@@ -139,11 +137,7 @@ export default function StudentLiveSession({
       void send();
     } catch (error) {
       stop('denied');
-      setError(
-        (error as Error).name === 'NotAllowedError'
-          ? 'لم يُسمح بالوصول إلى الكاميرا. تحقق من أذونات Windows.'
-          : 'تعذر تشغيل الكاميرا. أبلغ المعلم.',
-      );
+      setError(cameraError(error));
     } finally {
       setStarting(false);
       startingRef.current = false;
@@ -187,6 +181,7 @@ export default function StudentLiveSession({
       {error && !requested && !live && (
         <div className="student-camera-error" role="status">
           {error}
+          <button onClick={() => {setRequested(true);}}>إعادة تشغيل الكاميرا</button>
           <button onClick={() => setError('')}>إغلاق</button>
         </div>
       )}

@@ -11,7 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { api, fileBase64 } from './api';
-import { bankPrompt, providers, type BankMeta } from './bankExchange';
+import { bankPrompt, pictureInstruction, providers, type BankMeta } from './bankExchange';
 import MathText from './MathText';
 import PromptOrbEditor from './PromptOrbEditor';
 import { svgToPng } from './svgDiagram';
@@ -38,11 +38,13 @@ export default function BankWizard({
     [copied, setCopied] = useState(false),
     [done, setDone] = useState<any>();
   const [customPrompt, setCustomPrompt] = useState<string>();
-  const prompt = customPrompt ?? bankPrompt(meta, count, range, difficulty);
+  const [includePictures, setIncludePictures] = useState(true);
+  const promptBase = customPrompt ?? bankPrompt(meta, count, range, difficulty, includePictures);
+  const prompt = `${promptBase}\n\n[خيار الرسوم للمعلم]\n${pictureInstruction(includePictures)}`;
   useEffect(() => {
     void api('/api/bank/prompt')
       .then((r) => {
-        if (r.prompt) setCustomPrompt(r.prompt);
+        if (r.prompt) setCustomPrompt(r.prompt.split('\n\n[خيار الرسوم للمعلم]')[0]);
       })
       .catch(() => {});
   }, []);
@@ -99,6 +101,8 @@ export default function BankWizard({
         >
           {step === 0 && (
             <div className="exchange-setup">
+              <label className="check-label picture-choice"><input type="checkbox" checked={includePictures} onChange={e => { setIncludePictures(e.target.checked); setCopied(false); }} />تضمين صور ورسوم وأسئلة تعتمد على الشكل (موصى به للرياضيات والفيزياء)</label>
+              <p className="info-note">يمكنك إنشاء بنك فارغ وكتابة أسئلتك بنفسك، أو إعداد طلب للذكاء الاصطناعي أدناه.</p>
               <div className="exchange-fields">
                 {(['title', 'subject', 'grade'] as const).map((key, i) => (
                   <label className="field" key={key}>
@@ -152,6 +156,15 @@ export default function BankWizard({
                   />
                   <small>المواضع في الملف، وليست أرقام الصفحات المطبوعة.</small>
                 </label>
+                <button
+                  className="secondary"
+                  disabled={busy || !meta.title.trim() || !meta.subject.trim() || !meta.grade.trim()}
+                  onClick={() => void run(async () => {
+                    const bank = await api('/api/books/manual', 'POST', meta);
+                    await onImported(bank.id);
+                    notify('أُنشئ البنك الفارغ. أضف أسئلتك يدويًا.');
+                  })}
+                >إنشاء بنك فارغ يدويًا — دون ذكاء اصطناعي</button>
                 <button
                   className="primary"
                   disabled={
@@ -228,7 +241,7 @@ export default function BankWizard({
               <PromptOrbEditor
                 prompt={prompt}
                 onApply={(text) => {
-                  setCustomPrompt(text);
+                  setCustomPrompt(text.split('\n\n[خيار الرسوم للمعلم]')[0]);
                   setCopied(false);
                 }}
               />
@@ -238,12 +251,13 @@ export default function BankWizard({
                   طلبك — قابل للتعديل
                   <textarea
                     aria-label="معاينة الطلب"
-                    value={prompt}
+                    value={promptBase}
                     onChange={(e) => {
                       setCustomPrompt(e.target.value);
                       setCopied(false);
                     }}
                   />
+                  <small>يُضاف خيار الرسوم الذي اخترته تلقائيًا عند نسخ الطلب أو حفظه.</small>
                 </label>
                 <div className="button-row">
                   <button

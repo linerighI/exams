@@ -1,3 +1,4 @@
+import AudioPlayer from './AudioPlayer';
 import { memo, useEffect, useRef, useState } from 'react';
 import {
   Clock3,
@@ -15,16 +16,8 @@ import StudentTools from './StudentTools';
 import BlueOrb from './BlueOrb';
 const ExamStatusOrb = memo(BlueOrb);
 import './studentExam.css';
-export async function cameraProbe() {
-  if (!navigator.mediaDevices?.getUserMedia) return false;
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    stream.getTracks().forEach((t) => t.stop());
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { defaultAppearance } from './examAppearance';
+import './personalization.css';
 export default function StudentExam({
   snapshot,
   onExit,
@@ -52,6 +45,7 @@ export default function StudentExam({
   const remaining = Math.max(0, Math.ceil((view.attempt.deadline - (now + view.offset)) / 1000));
   const frozen = remaining === 0 || view.submitPending || !!view.attempt.submittedAt;
   const q = view.questions[index];
+  const appearance={...defaultAppearance,...view.exam.appearance};
   const answered = view.questions.filter((item) => Object.hasOwn(view.answers, item.id)).length;
   const missing = view.questions.filter((item) => !Object.hasOwn(view.answers, item.id));
   const reviewFlags = (view.reviewFlags || []).filter((id) =>
@@ -217,11 +211,13 @@ export default function StudentExam({
     );
   return (
     <>
+      <div className={`student-exam-theme ${appearance.cardStyle} ${appearance.fontSize}`} style={{'--exam-bg':appearance.background,'--exam-accent':appearance.accent} as React.CSSProperties}>
       <div className="exam-top student-exam-heading">
         <div>
           <span className="eyebrow">مساحتك للتركيز · خطوة واحدة في كل مرة</span>
           <h1>{view.exam.title}</h1>
-          <p>اقرأ بهدوء. تُحفظ إجابتك عند كل اختيار، ويمكنك مراجعتها قبل التسليم.</p>
+          <p>{appearance.welcome}</p>
+          {view.exam.audio && <div className="student-audio"><strong>تعليمات المعلم الصوتية</strong><AudioPlayer audio={view.exam.audio} label="تعليمات المعلم الصوتية"/></div>}
         </div>
       </div>
       {authNeeded && (
@@ -285,6 +281,7 @@ export default function StudentExam({
             <MathText text={q.text} />
           </h2>
           {q.image && <img className="exam-image" src={q.image} alt="صورة السؤال" />}
+          {q.audio && <div className="student-audio" key={q.id}><strong>استمع إلى السؤال</strong><AudioPlayer audio={q.audio}/></div>}
           <div className="student-options">
             {q.options.map((option: string, i: number) => (
               <button
@@ -420,6 +417,7 @@ export default function StudentExam({
             </button>
           )}
         </aside>
+      </div>
       </div>
       {confirm && (
         <div className="modal-backdrop">

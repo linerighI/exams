@@ -28,10 +28,10 @@ export function registerLiveLab(
   validToken: (token: string) => boolean,
   allowedGrade: (grade: string, section: string) => boolean = () => true,
 ) {
-  const rooms = new Map<string, { devices: Map<string, Device>; watching: number }>();
+  const rooms = new Map<string, { devices: Map<string, Device>; watching: number; prunedAt: number }>();
   const room = () => {
     const key = store.tenantId();
-    if (!rooms.has(key)) rooms.set(key, { devices: new Map(), watching: 0 });
+    if (!rooms.has(key)) rooms.set(key, { devices: new Map(), watching: 0, prunedAt: 0 });
     return rooms.get(key)!;
   };
   const active = (device: Device) => {
@@ -56,8 +56,12 @@ export function registerLiveLab(
     Date.now() - device.lastSeen < 15000 && validToken(device.token);
   const streaming = (device: Device) =>
     device.requested && room().watching > Date.now() && online(device) && permitted(device);
-  const prune = () => {
+  const prune = (throttle = false) => {
     const value = room();
+    // A simultaneous classroom heartbeat must not scan all devices N times.
+    // Frame access and teacher controls still check live permissions immediately.
+    if (throttle && Date.now() - value.prunedAt < 1000) return;
+    value.prunedAt = Date.now();
     for (const [key, device] of value.devices) {
       if (
         Date.now() - device.lastSeen > 5 * 60000 ||
@@ -82,7 +86,7 @@ export function registerLiveLab(
     const session = auth(req, 'student');
     if (!allowedGrade(session.student!.grade, session.student!.section))
       throw fail('هذا الصف غير مسند إلى المعلم', 403);
-    prune();
+    prune(true);
     const input = z
       .object({
         clientId,

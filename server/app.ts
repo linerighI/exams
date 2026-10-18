@@ -1,3 +1,5 @@
+import { studentCode } from './studentCodes';
+import { normalizeStudentCode } from '../src/studentCode';
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
@@ -24,6 +26,11 @@ import { providerModel } from './provider';
 import { registerStudentRoster, nationalStudent } from './studentRoster';
 import { registerWorkflow } from './workflow';
 import { registerExamFolders } from './examFolders';
+import { registerReports } from './reports';
+import { registerSpreadsheets } from './spreadsheets';
+import { appearanceSchema,audioSchema,saveExamMedia,hydrateAudio } from './examMedia';
+import { databaseWorkbook,backupProtectionFile } from './databaseWorkbook';
+import {registerDeletion} from './deletion';
 const text = z.string().trim().min(1).max(300);
 const image = z
   .string()
@@ -41,6 +48,7 @@ const question = z.object({
   bankId: z.string().max(100).optional(),
   geometryId: z.string().max(100).optional(),
   chapter: z.string().max(300).optional(),
+  audio: audioSchema.optional(),
 });
 const examInput = z.object({
   title: text,
@@ -74,6 +82,8 @@ const examInput = z.object({
     .optional(),
   calculatorAllowed: z.boolean().default(false),
   geogebraAllowed: z.boolean().default(false),
+  appearance: appearanceSchema.optional(),
+  audio: audioSchema.optional(),
   sourceId: text.optional(),
   sourcePages: z.array(z.number().int().positive()).max(10000).optional(),
   sourceExcludeFiller: z.boolean().optional(),
@@ -98,6 +108,7 @@ export async function createApp(options: {
   pairingFingerprint?: string;
   secretProtection?: SecretProtection;
 }) {
+  let updateMaintenance = false;
   const tenancy = openTenantStores(options.directory);
   const store = tenancy.store;
   const protection = options.secretProtection || localSecretProtection(options.directory);
@@ -141,6 +152,11 @@ export async function createApp(options: {
     return session;
   };
   const teacher = (req: any) => auth(req, 'teacher');
+  registerDeletion(app,store,teacher,studentId=>[...sessions.values()].some(s=>s.role==='student' && s.teacherId===store.tenantId() && s.student?.id===studentId),(grade,section)=>tenancy.checkGrade(store.tenantId(),grade,section),()=>new Set(tenancy.accounts().flatMap(a=>tenancy.forTeacher(a.id).all('students').map(s=>s.code))));
+  registerReports(app, store, teacher, () => tenancy.accounts().map(accountView));
+  registerSpreadsheets(app,store,teacher);
+  app.get('/api/preferences/onboarding',async req=>{teacher(req);return {seen:store.getSetting('teacher-onboarding-v1')===true};});
+  app.put('/api/preferences/onboarding',async req=>{teacher(req);const {seen}=z.object({seen:z.literal(true)}).parse(req.body);store.setSetting('teacher-onboarding-v1',seen);return {seen};});
   registerExamFolders(app, store, teacher);
   registerWorkflow(app, store, teacher, !!options.https);
   registerStudentRoster(
@@ -175,6 +191,15 @@ export async function createApp(options: {
     if (!session.teacher?.isAdmin) throw fail('هذه العملية لمدير الحسابات', 403);
     return session;
   };
+  app.get('/api/exports/database',async(req,reply)=>{
+    admin(req);
+    if(tenancy.accounts().some(a=>tenancy.forTeacher(a.id).all('attempts').some(t=>!t.submittedAt && t.deadline>Date.now())))throw fail('أكمل محاولات الطلاب قبل إنشاء نسخة كاملة لكل الحسابات',409);
+    const files=[...tenancy.databaseSnapshot(),...backupProtectionFile(options.directory)];
+    const summary=tenancy.accounts().map(a=>{const own=tenancy.forTeacher(a.id);return {name:a.name,students:own.all('students').length,exams:own.all('exams').length,books:own.all('books').length,attempts:own.all('attempts').length};});
+    const readable=[{name:'كل الطلاب',headers:['الحساب','رقم الطالب','الاسم','الصف','الشعبة','رمز الدخول'],rows:[] as unknown[][]},{name:'كل النتائج',headers:['الحساب','الطالب','الامتحان','العلامة','الكلية','الحالة'],rows:[] as unknown[][]},{name:'كل البنوك',headers:['الحساب','البنك','المادة','الصف','الفصل'],rows:[] as unknown[][]},{name:'كل أسئلة البنوك',headers:['الحساب','رقم السؤال','البنك','نص السؤال','أ','ب','ج','د','الصحيح 0-3','التفسير','الصفحة','الموضوع','الصعوبة','الحالة'],rows:[] as unknown[][]},{name:'كل الامتحانات',headers:['الحساب','الامتحان','المادة','الصف','الشعبة','المدة','الدرجة','الحالة','رمز الامتحان'],rows:[] as unknown[][]}];
+    for(const account of tenancy.accounts()){const own=tenancy.forTeacher(account.id),students=new Map(own.all('students').map(s=>[s.id,s])),exams=new Map(own.all('exams').map(e=>[e.id,e])),books=new Map(own.all('books').map(b=>[b.id,b]));for(const s of students.values())readable[0].rows.push([account.name,s.id,s.name,s.grade,s.section,s.code]);for(const a of own.all('attempts'))readable[1].rows.push([account.name,students.get(a.studentId)?.name||a.studentId,exams.get(a.examId)?.title||a.examId,a.score,exams.get(a.examId)?.total,a.status]);for(const b of books.values())readable[2].rows.push([account.name,b.title,b.subject,b.grade,b.term]);for(const q of own.all('bank_questions'))readable[3].rows.push([account.name,q.id,books.get(q.bookId)?.title||q.bookId,q.text,...[0,1,2,3].map(i=>q.options?.[i]||''),q.correct,q.explanation,q.page,q.chapter,q.difficulty,q.status]);for(const e of exams.values())readable[4].rows.push([account.name,e.title,e.subject,e.grade,e.section,e.duration,e.total,e.status,e.code]);}
+    reply.header('Cache-Control','no-store');return {filename:`school-database-${new Date().toISOString().slice(0,10)}.xlsx`,data:(await databaseWorkbook(files,summary,readable)).toString('base64')};
+  });
   const usernameSchema = z
     .string()
     .trim()
@@ -423,7 +448,7 @@ export async function createApp(options: {
       for (const a of tenancy.accounts().filter((a) => !a.disabled)) {
         const own = tenancy.forTeacher(a.id);
         const found =
-          own.all('students').find((s) => s.code === data.code?.trim().toUpperCase()) ||
+          own.all('students').find((s) => s.code === normalizeStudentCode(data.code || '')) ||
           (await nationalStudent(own, data.code || ''));
         if (found && tenancy.allowed(a.id, found.grade, found.section)) {
           matches.push({ student: found, owner: a.id });
@@ -611,6 +636,7 @@ export async function createApp(options: {
       throw fail((error as Error).message, 503);
     }
   });
+  const freshStudentCode = () => studentCode(tenancy.accounts().flatMap(a => tenancy.forTeacher(a.id).all('students').map(s=>s.code)));
   app.get('/api/students', async (req) => {
     teacher(req);
     return store.all('students');
@@ -619,8 +645,19 @@ export async function createApp(options: {
     teacher(req);
     const input = z.object({ id: text, name: text, grade: text, section: text }).parse(req.body);
     if (store.get('students', input.id)) throw fail('رقم الطالب موجود مسبقًا', 409);
-    const student = { ...input, code: code() };
+    const student = { ...input, code: freshStudentCode() };
     store.put('students', student);
+    return student;
+  });
+  app.post('/api/students/:id/code', async (req:any) => {
+    teacher(req);
+    const student=store.get('students',req.params.id);
+    if(!student)throw fail('الطالب غير موجود',404);
+    if([...sessions.values()].some(s=>s.role==='student' && s.teacherId===store.tenantId() && s.student?.id===student.id) || store.attemptsFor(student.id).some(a=>!a.submittedAt))
+      throw fail('سجّل خروج الطالب وأنهِ محاولته قبل تغيير رمز الدخول',409);
+    student.code=freshStudentCode();
+    store.put('students',student);
+    store.audit(`تغيير رمز دخول الطالب ${student.id}`);
     return student;
   });
   app.post('/api/students/import', async (req) => {
@@ -649,7 +686,7 @@ export async function createApp(options: {
         store.put('students', {
           ...store.get('students', s.id),
           ...s,
-          code: store.get('students', s.id)?.code || code(),
+          code: store.get('students', s.id)?.code || freshStudentCode(),
         });
     })();
     store.audit(`استيراد ${inputs.length} طالب`);
@@ -668,6 +705,7 @@ export async function createApp(options: {
           : {
               ...e,
               questions: [],
+              audio: undefined,
               delivery: e.delivery ? { mode: 'random', count: e.delivery.count } : undefined,
               code: undefined,
             },
@@ -688,7 +726,7 @@ export async function createApp(options: {
       version: 1,
       createdAt: now,
     };
-    store.put('exams', exam);
+    store.db.transaction(()=>{Object.assign(exam,saveExamMedia(exam,store));store.put('exams',exam);})();
     return exam;
   });
   app.put('/api/exams/:id', async (req) => {
@@ -706,7 +744,7 @@ export async function createApp(options: {
       version: old.version + 1,
       code: hasAttempts ? code().slice(0, 6) : old.code,
     };
-    store.put('exams', exam);
+    store.db.transaction(()=>{Object.assign(exam,saveExamMedia(exam,store));store.put('exams',exam);})();
     return exam;
   });
   app.post('/api/exams/:id/publish', async (req) => {
@@ -780,11 +818,21 @@ export async function createApp(options: {
   app.get('/api/attempts', async (req) => {
     const session = auth(req);
     return store
-      .all('attempts')
+      .attemptsFor(session.role === 'student' ? session.student!.id : undefined)
       .filter((a: Attempt) => session.role === 'teacher' || a.studentId === session.student!.id)
       .map((a: Attempt) => cleanAttempt(a, session));
   });
+  app.get('/api/exam-audio/:id',async(req:any,reply)=>{
+    const session=auth(req),asset=store.get('assets',req.params.id);
+    if(asset?.mediaKind!=='exam-audio')throw fail('الصوت غير موجود',404);
+    if(session.role==='student') {
+      const owns=store.attemptsFor(session.student!.id).some(a=>{const e=store.get('exams',a.examId);return e && (e.audio?.id===asset.id || attemptQuestions(a,e).some(q=>q.audio?.id===asset.id));});
+      if(!owns)throw fail('الصوت ليس ضمن محاولتك',403);
+    }
+    reply.header('Cache-Control','no-store');return {name:asset.name,data:asset.data};
+  });
   app.post('/api/attempts/start', async (req) => {
+    if (updateMaintenance) throw fail('الجهاز الرئيسي يستعد لتثبيت تحديث؛ حاول بعد إعادة فتحه.', 503);
     const session = auth(req, 'student');
     const input = z
       .object({
@@ -803,19 +851,19 @@ export async function createApp(options: {
         `الامتحان للصف ${exam.grade}${exam.section ? ` والشعبة ${exam.section}` : ''}، وحسابك للصف ${session.student!.grade} والشعبة ${session.student!.section}. اطلب من المعلم مطابقة الصف والشعبة.`,
         403,
       );
-    const old: Attempt = store
-      .all('attempts')
-      .find((a) => a.examId === exam.id && a.studentId === session.student!.id);
+    const old: Attempt = store.attemptsFor(session.student!.id,exam.id)[0];
     if (old) {
       if (old.submittedAt) throw fail('تم تسليم هذه المحاولة. اطلب إعادة فتحها من المعلم', 409);
       return {
         attempt: cleanAttempt(old, session),
-        questions: attemptQuestions(old, exam).map(({ correct, explanation, ...q }) => q),
+        questions: attemptQuestions(old, exam).map(({ correct, explanation, ...q }) => ({...q,audio:hydrateAudio(q.audio,store)})),
         exam: {
           title: exam.title,
           total: exam.total,
           calculatorAllowed: !!exam.calculatorAllowed,
           geogebraAllowed: !!exam.geogebraAllowed,
+          appearance: exam.appearance,
+          audio: hydrateAudio(exam.audio,store),
         },
         serverNow: Date.now(),
       };
@@ -847,18 +895,20 @@ export async function createApp(options: {
       status: 'active',
       cameraExempt: !!exemption,
       cameraAvailable: input.cameraAvailable,
-      ...assignQuestions(exam, store.all('attempts')),
+      ...assignQuestions(exam, store.attemptsFor(undefined,exam.id)),
     };
     store.put('attempts', attempt);
     broadcast({ type: 'attempts' });
     return {
       attempt: cleanAttempt(attempt, session),
-      questions: attemptQuestions(attempt, exam).map(({ correct, explanation, ...q }) => q),
+      questions: attemptQuestions(attempt, exam).map(({ correct, explanation, ...q }) => ({...q,audio:hydrateAudio(q.audio,store)})),
       exam: {
         title: exam.title,
         total: exam.total,
         calculatorAllowed: !!exam.calculatorAllowed,
         geogebraAllowed: !!exam.geogebraAllowed,
+          appearance: exam.appearance,
+          audio: hydrateAudio(exam.audio,store),
       },
       serverNow: now,
     };
@@ -868,13 +918,15 @@ export async function createApp(options: {
     return {
       attempt: cleanAttempt(attempt, session),
       questions: attemptQuestions(attempt, exam).map(({ correct, explanation, ...q }) =>
-        session.role === 'teacher' ? { ...q, correct, explanation } : q,
+        session.role === 'teacher' ? { ...q, correct, explanation } : {...q,audio:hydrateAudio(q.audio,store)},
       ),
       exam: {
         title: exam.title,
         total: exam.total,
         calculatorAllowed: !!exam.calculatorAllowed,
         geogebraAllowed: !!exam.geogebraAllowed,
+          appearance: exam.appearance,
+          audio: hydrateAudio(exam.audio,store),
       },
       serverNow: Date.now(),
     };
@@ -1210,6 +1262,7 @@ export async function createApp(options: {
       'book_jobs',
       'assets',
       'conversations',
+      'trash',
     ];
     if (store.db.prepare("SELECT name FROM sqlite_master WHERE name='archived_attempts'").get())
       tables.push('archived_attempts');
@@ -1264,6 +1317,7 @@ export async function createApp(options: {
         book_jobs: ['id', 'data'],
         assets: ['id', 'data'],
         conversations: ['id', 'data'],
+        trash: ['id','data'],
       };
       if (
         Object.keys(columns)
@@ -1276,6 +1330,7 @@ export async function createApp(options: {
                 'book_jobs',
                 'assets',
                 'conversations',
+                'trash',
               ].includes(t),
           )
           .some((t) => !data.tables[t])
@@ -1365,5 +1420,12 @@ export async function createApp(options: {
     for (const ws of sockets) ws.close();
     tenancy.close();
   });
-  return { app, store, sessions };
+  const hasActiveAttempts = () => tenancy.accounts().some(account =>
+    tenancy.forTeacher(account.id).all('attempts').some(a => !a.submittedAt && a.deadline > Date.now()));
+  const beginUpdateMaintenance = () => {
+    if (hasActiveAttempts()) return false;
+    updateMaintenance = true;
+    return true;
+  };
+  return { app, store, sessions, hasActiveAttempts, beginUpdateMaintenance, cancelUpdateMaintenance: () => { updateMaintenance = false; } };
 }

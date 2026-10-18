@@ -4,7 +4,7 @@ export type Snapshot = {
   studentId: string;
   attempt: any;
   questions: any[];
-  exam: { title: string; total: number; calculatorAllowed?: boolean; geogebraAllowed?: boolean };
+  exam: { title: string; total: number; calculatorAllowed?: boolean; geogebraAllowed?: boolean; appearance?:import('./examAppearance').ExamAppearance;audio?:import('./AudioAttachment').ExamAudio };
   serverNow: number;
   offset: number;
   answers: Record<string, number>;

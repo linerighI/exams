@@ -10,6 +10,7 @@ export type Question = {
   bankId?: string;
   geometryId?: string;
   chapter?: string;
+  audio?: import('./AudioAttachment').ExamAudio;
 };
 export type Exam = {
   id: string;
@@ -41,6 +42,8 @@ export type Exam = {
   };
   calculatorAllowed?: boolean;
   geogebraAllowed?: boolean;
+  appearance?: import('./examAppearance').ExamAppearance;
+  audio?: import('./AudioAttachment').ExamAudio;
 };
 export type Student = { id: string; name: string; grade: string; section: string; code: string; loginMethod?: 'national' };
 export type Attempt = {
@@ -100,6 +103,11 @@ export type Session = {
   teacher?: TeacherAccount;
 };
 export interface DesktopAPI {
+  updateState: () => Promise<import('../desktop/appUpdater').UpdateState>;
+  checkUpdates: (previews?: boolean) => Promise<import('../desktop/appUpdater').UpdateState>;
+  downloadUpdate: () => Promise<import('../desktop/appUpdater').UpdateState>;
+  cancelUpdate: () => Promise<import('../desktop/appUpdater').UpdateState>;
+  installUpdate: () => Promise<import('../desktop/appUpdater').UpdateState>;
   studentSession: () => Promise<Session | null>;
   connectionState: () => Promise<TeacherConnection>;
   connectTeacher: (host: string, code: string) => Promise<TeacherConnection>;
@@ -110,6 +118,7 @@ export interface DesktopAPI {
   readBackup: () => Promise<boolean>;
   saveBackup: () => Promise<boolean>;
   exportCSV: (csv: string) => Promise<boolean>;
+  exportSpreadsheet: (kind:'students'|'results'|'template'|'database') => Promise<boolean>;
   downloadModel: (model: string) => Promise<any>;
   openOllama: () => Promise<void>;
   openProvider: (provider: string) => Promise<void>;
@@ -117,7 +126,8 @@ export interface DesktopAPI {
   transcribeSpeech: (pcm:string, language:'ar'|'en') => Promise<{text:string}>;
   synthesizeSpeech: (text:string, language:'ar'|'en') => Promise<{audio:string;sampleRate:number}>;
   openTeacherResource: (url: string) => Promise<void>;
-  exportBankPDF: (bookId: string) => Promise<boolean>;
+  exportBankPDF: (bookId: string, options?: import('./pdfOptions').BankPDFOptions) => Promise<boolean>;
+  exportReportPDF: (options: import('./pdfOptions').ReportOptions) => Promise<boolean>;
   onEvent: (callback: (event: any) => void) => () => void;
 }
 export type TeacherConnection = {

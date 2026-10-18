@@ -25,6 +25,9 @@ import BankQuestionCollection, { ChapterRename, chapterLabel } from './BankQuest
 import FocusWindow from './FocusWindow';
 import './exchange.css';
 import './bankDashboard.css';
+import QuestionComposer from './QuestionComposer';
+import PDFExport from './PDFExport';
+import DeleteRecord from './DeleteRecord';
 type Props = {
   notify: (s: string) => void;
   openExam: (e: Exam) => void;
@@ -33,6 +36,7 @@ type Props = {
 export { default as AssistantView } from './Assistant';
 export function BooksView({ notify, openExam }: Props) {
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [bankPanel, setBankPanel] = useState<'files' | 'exam' | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [destinationFolder, setDestinationFolder] = useState<string | null>(null);
@@ -150,6 +154,7 @@ export function BooksView({ notify, openExam }: Props) {
         />
       </details>
       <BookLibrary
+        onDeleted={refresh}
         books={books}
         hidden={!!book}
         openBook={(value) => void run(() => open(value))}
@@ -279,6 +284,7 @@ export function BooksView({ notify, openExam }: Props) {
                   <h2>{book.title}</h2>
                 </div>
                 <div className="bank-header-actions">
+                  <button className="secondary" onClick={() => setManualOpen(true)}><Plus size={17} /> إضافة سؤال يدويًا</button>
                   <button className="secondary" onClick={() => setBankPanel('files')}>
                     <Settings2 size={17} />
                     ملفات الكتاب وإعداداته
@@ -289,6 +295,7 @@ export function BooksView({ notify, openExam }: Props) {
                   </button>
                 </div>
               </header>
+              {manualOpen && <FocusWindow title="إضافة سؤال يدويًا" onClose={() => setManualOpen(false)}><QuestionComposer bank onSave={async q => { await api(`/api/books/${book.id}/questions`, 'POST', q); await open(book); notify('حُفظ السؤال في البنك'); }} /></FocusWindow>}
               <div className="bank-dashboard-metrics" aria-label="ملخص بنك الأسئلة">
                 {[
                   ['', questions.length, 'جميع الأسئلة', BookOpen],
@@ -337,29 +344,8 @@ export function BooksView({ notify, openExam }: Props) {
                           تنزيل PDF المرافق
                         </button>
                       )}
-                      <button
-                        className="secondary"
-                        onClick={() =>
-                          void run(async () => {
-                            if (window.desktop) {
-                              await window.desktop.exportBankPDF(book.id);
-                            } else {
-                              const { html } = await api(`/api/books/${book.id}/document`);
-                              const frame = document.createElement('iframe');
-                              frame.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0';
-                              frame.onload = async () => {
-                                await frame.contentDocument?.fonts.ready;
-                                frame.contentWindow?.print();
-                                setTimeout(() => frame.remove(), 60000);
-                              };
-                              document.body.appendChild(frame);
-                              frame.srcdoc = html;
-                            }
-                          })
-                        }
-                      >
-                        تصدير بنك PDF محليًا
-                      </button>
+                      <PDFExport bank={{id:book.id,title:book.title,chapters}} notify={notify}/>
+                      <DeleteRecord kind="books" id={book.id} title={book.title} onDeleted={async()=>{setBook(undefined);setQuestions([]);setBankPanel(null);await refresh();}}/>
                       {!book.hasPdf && (
                         <label className="secondary file-button">
                           <UploadCloud size={16} /> إرفاق الكتاب الأصلي للقص

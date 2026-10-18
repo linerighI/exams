@@ -5,7 +5,7 @@ export const normalizedStudentCredential = (value: string) =>
     .toUpperCase()
     .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 1632))
     .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 1776))
-    .replace(/\s/g, '');
+    .replace(/[\s-]/g, '');
 export const credentialSalt = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(16)), (v) =>
     v.toString(16).padStart(2, '0'),

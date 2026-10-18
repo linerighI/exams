@@ -1,10 +1,11 @@
+import { studentCode } from './studentCodes';
 import ExcelJS from 'exceljs';
 import { parse } from 'csv-parse/sync';
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { inflateRawSync } from 'node:zlib';
 import { z } from 'zod';
-import { id, code, type Store } from './store';
+import { id, type Store } from './store';
 const derive = promisify(scrypt);
 const fail = (message: string) => Object.assign(Error(message), { statusCode: 400 });
 export const nationalNumber = (value: string) =>
@@ -390,6 +391,7 @@ export function registerStudentRoster(
       )
     )
       throw fail('تغير تسجيل أحد الطلاب. أعد المعاينة.');
+    const usedCodes=new Set([store,...otherStores()].flatMap(s=>s.all('students').map(row=>row.code)));
     store.db.transaction(() => {
       const credentials = store.getSetting('student-national-credentials') || {};
       for (const { entry, credential } of prepared) {
@@ -400,7 +402,7 @@ export function registerStudentRoster(
           name: entry.name,
           grade: entry.grade,
           section: entry.section,
-          code: old?.code || code(),
+          code: old?.code || studentCode(usedCodes),
           loginMethod: 'national',
         });
         credentials[entry.id] = credential;

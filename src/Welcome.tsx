@@ -11,6 +11,7 @@ import type { Session } from './types';
 import ConnectionDialog from './ConnectionDialog';
 import { useTeacherConnection } from './useTeacherConnection';
 import { cachedStudentHash, credentialSalt } from './studentCredential';
+import { normalizeStudentCode } from './studentCode';
 export const scope = () =>
   `${localStorage.getItem('school-scope') || 'development'}:${localStorage.getItem('school-account-scope') || 'master'}`;
 export default function Welcome({
@@ -35,6 +36,7 @@ export default function Welcome({
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [hostConflict, setHostConflict] = useState(false);
   const studentInput = useRef<HTMLInputElement>(null);
   const { connection, tone, accept, refresh: refreshConnection } = useTeacherConnection();
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function Welcome({
     if (!window.desktop) return;
     if (value === 'teacher' && !launch) {
       setSetup(false);
-      if (!connection.local) {
+      if (!connection.connected) {
         setReady(false);
         return;
       }
@@ -96,6 +98,8 @@ export default function Welcome({
       await refreshConnection();
     } catch (e) {
       setError((e as Error).message);
+      setHostConflict(true);
+      setTimeout(() => setHostConflict(false), 2500);
     } finally {
       setBusy(false);
     }
@@ -120,7 +124,7 @@ export default function Welcome({
         role: mode,
         username: mode === 'teacher' ? username : undefined,
         password: mode === 'teacher' ? password : undefined,
-        code: mode === 'student' ? studentCode : undefined,
+        code: mode === 'student' ? normalizeStudentCode(studentCode) : undefined,
       });
       setToken(value.token);
       localStorage.setItem('school-account-scope', value.teacherId || 'master');
@@ -193,7 +197,7 @@ export default function Welcome({
             </div>
             <button
               type="button"
-              className={`prism-orb connection-orb-button is-${tone}`}
+              className={`prism-orb connection-orb-button is-${tone} ${hostConflict ? 'host-conflict-glow' : ''}`}
               aria-label={
                 connection.connected ? 'عرض حالة الاتصال بجهاز المعلم' : 'الاتصال بجهاز المعلم'
               }
@@ -282,7 +286,7 @@ export default function Welcome({
               <>
                 <button
                   className="primary wide"
-                  disabled={busy}
+                  disabled={busy || (connection.connected && !connection.local)}
                   onClick={() => void activate('teacher', true)}
                 >
                   <Monitor size={18} /> تشغيل الجهاز الرئيسي
@@ -362,7 +366,8 @@ export default function Welcome({
                       required
                       value={studentCode}
                       onChange={(e) => setStudentCode(e.target.value)}
-                      placeholder="رقمك الوطني المسجل لدى المدرسة"
+                      placeholder="رمز من 6 أرقام أو رقمك الوطني"
+                      inputMode="numeric"
                     />
                   </label>
                 )}

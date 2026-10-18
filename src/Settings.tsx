@@ -10,9 +10,17 @@ import {
   Sparkles,
   Upload,
   Wifi,
+  RefreshCw,
+  Trash2,
 } from 'lucide-react';
+import AppUpdates from './AppUpdates';
+import RecycleBin from './RecycleBin';
+import {motion,LayoutGroup} from 'motion/react';
+import './personalization.css';
 import { api, download } from './api';
 import TeacherAccounts from './TeacherAccounts';
+import PDFExport from './PDFExport';
+import {exportSpreadsheet} from './spreadsheetExport';
 import { providers } from './ProviderSwitch';
 import type { Settings as Config } from './types';
 type Props = {
@@ -29,9 +37,11 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState('');
   const [benchmark, setBenchmark] = useState<any>();
+  const [adminBackup,setAdminBackup]=useState(false);
   useEffect(() => {
-    void Promise.all([api('/api/settings'), api('/api/model').catch(() => undefined)])
-      .then(([data, status]) => {
+    void Promise.all([api('/api/settings'), api('/api/model').catch(() => undefined),api('/api/account').catch(()=>undefined)])
+      .then(([data, status,account]) => {
+        setAdminBackup(!!account?.isAdmin);
         setConfig({ ...data, model: status?.model || data.model });
         setRam(data.ramGB);
         setModel(status);
@@ -74,6 +84,8 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
     ['connection', 'اتصال الطلاب', Wifi],
     ['accounts', 'حسابات المعلمين', ShieldCheck],
     ['backup', 'النسخ الاحتياطي', Download],
+    ['updates','تحديث التطبيق',RefreshCw],
+    ['trash','المحذوفات',Trash2],
   ] as const;
   return (
     <div className="school-settings">
@@ -87,7 +99,7 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
           {ram} GB
         </span>
       </div>
-      <nav className="settings-tabs" aria-label="أقسام الإعدادات">
+      <LayoutGroup id="school-settings-tabs"><nav className="settings-tabs" aria-label="أقسام الإعدادات">
         {tabs.map(([id, label, Icon]) => (
           <button
             key={id}
@@ -96,10 +108,11 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
             onClick={() => setTab(id)}
           >
             <Icon size={18} />
+            {tab===id && <motion.span className="settings-tab-morph" layoutId="settings-selected-tab" transition={{type:'spring',stiffness:420,damping:34}}/>}
             {label}
           </button>
         ))}
-      </nav>
+      </nav></LayoutGroup>
       <div className="settings-content" key={tab}>
         {tab === 'school' && (
           <section className="card settings-card">
@@ -397,22 +410,26 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
           </section>
         )}
         {tab === 'accounts' && <TeacherAccounts notify={notify} />}
+        {tab === 'updates' && <AppUpdates embedded/>}
+        {tab === 'trash' && <RecycleBin notify={notify}/>}
         {tab === 'backup' && (
           <section className="card settings-card">
+            <div className="database-backup-card"><h2>كل قواعد بيانات المدرسة في ملف Excel واحد</h2><p>يشمل جميع حسابات المعلمين وطلابهم وبنوكهم وامتحاناتهم وإجاباتهم وإعداداتهم والتسجيلات والرسوم. تُحفظ ملفات SQLite الأصلية كاملة داخل المصنف مع تحقق من سلامتها.</p><p className="muted">خاص بمدير الحسابات. يحتوي بيانات دخول خاصة، ولا يشمل ملفات تثبيت التطبيق أو نماذج الذكاء الاصطناعي. أكمل امتحانات الطلاب قبل إنشاء النسخة.</p><button className="primary" disabled={busy||!adminBackup} onClick={()=>void run(async()=>{if(await exportSpreadsheet('database'))notify('حُفظت نسخة كل قواعد البيانات في Excel');})}><Download size={17}/>نسخ كل قواعد البيانات إلى Excel</button>{!adminBackup && <small>اطلب من مدير حسابات المدرسة إنشاء النسخة الشاملة. نسخة بيانات حسابك متاحة أدناه.</small>}</div>
             <div className="section-heading">
               <ShieldCheck />
               <div>
-                <h2>احفظ عمل المدرسة</h2>
+                <h2>نسخة JSON لبيانات حسابك</h2>
                 <p>
                   الطلاب وبنوك الأسئلة والامتحانات والمحاولات، بما فيها النماذج المسندة لكل طالب.
                 </p>
               </div>
             </div>
             <div className="info-note">
-              لا تتضمن النسخة مفاتيح API. احفظها في مكان خاص؛ تتضمن بيانات الطلاب وتجزئة كلمة مرور
+              لا تتضمن نسخة JSON مفاتيح API. احفظها في مكان خاص؛ تتضمن بيانات الطلاب وتجزئة كلمة مرور
               المعلم.
             </div>
             <div className="settings-save-row">
+              <PDFExport notify={notify}/>
               <button
                 className="primary"
                 disabled={busy}

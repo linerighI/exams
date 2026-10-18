@@ -1,3 +1,6 @@
+import PDFExport from './PDFExport';
+import DeleteRecord from './DeleteRecord';
+import { exportSpreadsheet } from './spreadsheetExport';
 import { useEffect, useState } from 'react';
 import {
   Plus,
@@ -13,8 +16,8 @@ import {
   Activity,
   Loader2,
 } from 'lucide-react';
-import { api, download } from './api';
-import { csvCell } from './csv';
+import { api } from './api';
+
 import TeacherAccounts from './TeacherAccounts';
 import StudentRosterImport from './StudentRosterImport';
 import type { Student, Exam, Settings as Config } from './types';
@@ -59,21 +62,6 @@ export function StudentsView({
       (!classFilter || JSON.stringify([s.grade, s.section]) === classFilter) &&
       `${s.name} ${s.id} ${s.grade} ${s.section}`.includes(query),
   );
-  const escape = csvCell;
-  const csv =
-    '\ufeff' +
-    [
-      ['رقم الطالب', 'الاسم', 'الصف', 'الشعبة', 'رمز الدخول'],
-      ...students.map((s) => [
-        s.id,
-        s.name,
-        s.grade,
-        s.section,
-        s.loginMethod === 'national' ? 'الرقم الوطني المسجل' : s.code,
-      ]),
-    ]
-      .map((r) => r.map(escape).join(','))
-      .join('\r\n');
   return (
     <>
       {importOpen && (
@@ -93,7 +81,7 @@ export function StudentsView({
         </div>
         <div className="button-row">
           <button className="secondary" onClick={() => setImportOpen(true)}>
-            <Upload size={17} /> استيراد Excel أو CSV
+            <Upload size={17} /> استيراد قائمة Excel
           </button>
           <button className="primary" onClick={() => setShow(!show)}>
             <Plus size={17} /> إضافة طالب
@@ -191,6 +179,7 @@ export function StudentsView({
         ))}
       </nav>
       <div className="toolbar card">
+        <PDFExport notify={notify}/>
         <label className="search-box">
           <Search size={18} />
           <input
@@ -203,21 +192,16 @@ export function StudentsView({
         <button
           className="secondary"
           onClick={() =>
-            window.desktop ? void window.desktop.exportCSV(csv) : download('students.csv', csv)
+            void act(async () => {if(await exportSpreadsheet('students'))notify('حُفظ ملف Excel للطلاب');})
           }
         >
-          <Download size={17} /> تصدير الرموز
+          <Download size={17} /> تصدير الطلاب Excel
         </button>
         <button
           className="text-button"
-          onClick={() =>
-            download(
-              'students-template.csv',
-              '\ufeffرقم الطالب,اسم الطالب,الرقم الوطني,الصف,الشعبة\r\n1001,طالب تجريبي,1234567890,السابع,أ',
-            )
-          }
+          onClick={() => void act(() => exportSpreadsheet('template'))}
         >
-          نموذج الاستيراد
+          تنزيل نموذج Excel
         </button>
       </div>
 
@@ -249,9 +233,9 @@ export function StudentsView({
                   <td>{s.section}</td>
                   <td>
                     <span className="student-code" dir="ltr">
-                      {s.loginMethod === 'national' ? 'الرقم الوطني المسجل' : s.code}
+                      {s.code}
                     </span>
-                    {s.loginMethod !== 'national' && (
+                    {(
                       <button
                         className="copy-button"
                         title="نسخ رمز الطالب"
@@ -263,6 +247,9 @@ export function StudentsView({
                         <Copy size={15} />
                       </button>
                     )}
+                    {s.loginMethod === 'national' && <small className="muted">أو الرقم الوطني المسجّل</small>}
+                    <button className="text-button small" onClick={() => {if(confirm('إنشاء رمز دخول جديد من 6 أرقام؟ لن يعمل الرمز القديم.'))void act(()=>api('/api/students/'+encodeURIComponent(s.id)+'/code','POST',{}),'حُدّث رمز الطالب');}}>رمز جديد سهل</button>
+                    <DeleteRecord kind="students" id={s.id} title={s.name} onDeleted={()=>act(async()=>{})}/>
                   </td>
                   <td>
                     <button
@@ -319,7 +306,7 @@ export function StudentsView({
       ) : (
         <div className="empty card">
           <h3>طلابك ينتظرون دعوتك</h3>
-          <p>ابدأ بإضافة طالب أو استيراد قائمة الصف من CSV.</p>
+          <p>ابدأ بإضافة طالب أو استيراد قائمة الصف من Excel.</p>
         </div>
       )}
     </>

@@ -19,7 +19,7 @@ export function openStore(directory: string) {
   const db = new Database(join(directory, 'school.sqlite'));
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  for (const table of ['books', 'bank_questions', 'book_jobs', 'assets', 'conversations']) {
+  for (const table of ['books', 'bank_questions', 'book_jobs', 'assets', 'conversations', 'trash']) {
     db.exec(`CREATE TABLE IF NOT EXISTS ${table}(id TEXT PRIMARY KEY,data TEXT NOT NULL)`);
   }
   db.exec(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY,value TEXT NOT NULL);
@@ -33,6 +33,7 @@ export function openStore(directory: string) {
   db.exec(
     "CREATE INDEX IF NOT EXISTS attempt_deadline ON attempts(json_extract(data,'$.deadline')) WHERE json_extract(data,'$.submittedAt') IS NULL",
   );
+  db.exec('CREATE INDEX IF NOT EXISTS attempt_student ON attempts(studentId)');
   const defaults: Settings = {
     school: 'مدرسة محمد الشريقي',
     retentionDays: 30,
@@ -52,6 +53,20 @@ export function openStore(directory: string) {
   setSetting('config', { ...defaults, ...(getSetting('config') || {}) });
   const all = (table: string) =>
     (db.prepare(`SELECT data FROM ${table}`).all() as any[]).map((r) => JSON.parse(r.data));
+  // Filter in SQLite before reading potentially large embedded question images.
+  const attemptsFor = (studentId?: string, examId?: string) => {
+    const clauses = [
+      studentId !== undefined ? 'studentId=?' : '',
+      examId !== undefined ? 'examId=?' : '',
+    ].filter(Boolean);
+    return (
+      db
+        .prepare(
+          `SELECT data FROM attempts${clauses.length ? ' WHERE ' + clauses.join(' AND ') : ''}`,
+        )
+        .all(...[studentId, examId].filter((v) => v !== undefined)) as any[]
+    ).map((row) => JSON.parse(row.data));
+  };
   const get = (table: string, key: string) => {
     const row = db.prepare(`SELECT data FROM ${table} WHERE id=?`).get(key) as any;
     return row ? JSON.parse(row.data) : null;
@@ -72,6 +87,17 @@ export function openStore(directory: string) {
   };
   const audit = (event: string) =>
     db.prepare('INSERT INTO audit VALUES (?,?,?)').run(id(), Date.now(), event);
-  return { db, directory, getSetting, setSetting, all, get, put, audit, tenantId: () => 'master' };
+  return {
+    db,
+    directory,
+    getSetting,
+    setSetting,
+    all,
+    get,
+    put,
+    audit,
+    attemptsFor,
+    tenantId: () => 'master',
+  };
 }
 export type Store = ReturnType<typeof openStore>;

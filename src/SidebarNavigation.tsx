@@ -43,6 +43,7 @@ export default function SidebarNavigation({
           <button
             type="button"
             key={key}
+            data-nav={key}
             disabled={disabled}
             aria-label={label}
             aria-current={page === key ? 'page' : undefined}
@@ -58,6 +59,7 @@ export default function SidebarNavigation({
             }}
           >
             <Icon size={20} />
+            <span className="sidebar-nav-label">{label}</span>
           </button>
         ))}
       </nav>

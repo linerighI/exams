@@ -32,12 +32,17 @@ import {
   FolderInput,
 } from 'lucide-react';
 import { api, setToken, download } from './api';
+import { exportSpreadsheet } from './spreadsheetExport';
 import type { Exam, Student, Attempt, Session } from './types';
 import { LearningArt } from './Art';
 import Welcome, { scope } from './Welcome';
 import { StudentsView, SettingsView } from './Management';
 import ExamEditor from './ExamEditor';
-import StudentExam, { cameraProbe } from './StudentExam';
+import StudentExam from './StudentExam';
+import CameraCheck from './CameraCheck';
+import ExamIntegrityIntro from './ExamIntegrityIntro';
+import TeacherTour from './TeacherTour';
+import './comfort.css';
 import { AssistantView, BooksView } from './Workspace';
 import SidebarNavigation from './SidebarNavigation';
 import ExamIllustration from './ExamIllustration';
@@ -47,6 +52,9 @@ import './schoolUpgrade.css';
 import SchoolBrand from './SchoolBrand';
 import MinistryBrand from './MinistryBrand';
 import FloatingAssistant from './FloatingAssistant';
+import SimpleExamCreator from './SimpleExamCreator';
+import AppUpdates from './AppUpdates';
+import DeleteRecord from './DeleteRecord';
 import StudentSpace from './StudentSpace';
 import TeacherTools from './TeacherTools';
 import TeacherMonitoring from './TeacherMonitoring';
@@ -114,6 +122,18 @@ export default function App() {
   const [session, setSession] = useState<Session>();
   const sessionGuard = useRef('');
   const [page, setPage] = useState('dashboard');
+  const [simpleMode, setSimpleMode] = useState(false);
+  useEffect(() => {
+    if (session?.role !== 'teacher') { setSimpleMode(false); return; }
+    const enabled = localStorage.getItem(`simple-mode:${session.teacherId || 'master'}`) !== '0';
+    setSimpleMode(enabled);
+    if (enabled) setPage('simple');
+  }, [session?.teacherId, session?.role]);
+  const changeSimpleMode = (enabled: boolean) => {
+    setSimpleMode(enabled);
+    localStorage.setItem(`simple-mode:${session?.teacherId || 'master'}`, enabled ? '1' : '0');
+    setPage(enabled ? 'simple' : 'exams');
+  };
   const [school, setSchool] = useState('مدرسة محمد الشريقي');
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
@@ -123,6 +143,8 @@ export default function App() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [editing, setEditing] = useState<Exam>();
   const [snapshot, setSnapshot] = useState<Snapshot>();
+  const [cameraCheck,setCameraCheck]=useState<{resolve:(value:boolean|undefined)=>void}>();
+  const [integrityIntro,setIntegrityIntro]=useState<{done:()=>void}>();
   const [connection, setConnection] = useState(true);
   const [search, setSearch] = useState('');
   const [examCode, setExamCode] = useState('');
@@ -196,7 +218,8 @@ export default function App() {
     if (!session) return;
     void refresh();
     let eventTimer: ReturnType<typeof setTimeout>;
-    const unsubscribe = window.desktop?.onEvent(() => {
+    const unsubscribe = window.desktop?.onEvent((event) => {
+      if (event.type === 'app-update') return;
       clearTimeout(eventTimer);
       eventTimer = setTimeout(() => void refresh(), 200);
     });
@@ -262,7 +285,9 @@ export default function App() {
         setSnapshot(old);
         return;
       }
-      const cameraAvailable = await cameraProbe();
+      const cameraAvailable = await new Promise<boolean|undefined>(resolve=>setCameraCheck({resolve}));
+      if(cameraAvailable===undefined)return;
+      await new Promise<void>(resolve=>setIntegrityIntro({done:()=>{setIntegrityIntro(undefined);resolve();}}));
       const result = await api('/api/attempts/start', 'POST', {
         examId: exam?.id,
         code: exam ? undefined : (enteredCode ?? examCode),
@@ -344,8 +369,11 @@ export default function App() {
       ];
   const create = () => {
     setEditing(undefined);
-    setPage('editor');
+    setPage(simpleMode ? 'simple' : 'editor');
   };
+  const visibleNav: [string, string, any][] = teacher && simpleMode
+    ? [['simple', 'إعداد امتحان مبسط', FileText], ...nav.filter(item => ['exams', 'students', 'monitor', 'settings'].includes(item[0]))]
+    : nav;
   const filtered = exams.filter(
     (e) =>
       `${e.title} ${e.subject} ${e.grade}`.includes(search) &&
@@ -414,6 +442,7 @@ export default function App() {
                         <Copy size={14} />
                       </button>
                     </span>
+                    <DeleteRecord kind="exams" id={e.id} title={e.title} onDeleted={refresh}/>
                     <button
                       className="text-button"
                       onClick={() => {
@@ -698,7 +727,7 @@ export default function App() {
                 </div>
                 <div className="workspace-label">{teacher ? 'مساحة المعلم' : 'مساحة الطالب'}</div>
                 <SidebarNavigation
-                  items={nav}
+                  items={visibleNav}
                   page={teacher && ['live', 'results'].includes(page) ? 'monitor' : page}
                   disabled={!!snapshot}
                   select={(key) => {
@@ -742,7 +771,7 @@ export default function App() {
                         ? 'الامتحان'
                         : page === 'editor'
                           ? 'إنشاء امتحان'
-                          : nav.find(
+                          : visibleNav.find(
                               (n) =>
                                 n[0] ===
                                 (teacher && ['live', 'results'].includes(page) ? 'monitor' : page),
@@ -750,6 +779,9 @@ export default function App() {
                     </strong>
                   </div>
                   <div className="topbar-actions">
+                    {teacher && <TeacherTour key={session.teacherId || 'master'} teacherId={session.teacherId || 'master'}/>}
+                    {teacher && <AppUpdates background notify={notify}/>}
+                    {teacher && <button className="secondary small" onClick={() => changeSimpleMode(!simpleMode)}>{simpleMode ? 'الوضع الكامل' : 'الوضع المبسط'}</button>}
                     <span className="date-text">
                       {new Date().toLocaleDateString('ar-JO', {
                         weekday: 'long',
@@ -862,6 +894,8 @@ export default function App() {
                             void refresh();
                           }}
                         />
+                      ) : page === 'simple' && teacher ? (
+                        <SimpleExamCreator onSaved={() => void refresh()} onAdvanced={() => changeSimpleMode(false)} onBooks={() => setPage('books')} />
                       ) : page === 'editor' && teacher ? (
                         <ExamEditor
                           key={editing?.id || 'new'}
@@ -1174,9 +1208,7 @@ export default function App() {
                           }
                           exportResults={() =>
                             void act(async () => {
-                              const { csv } = await api('/api/results.csv');
-                              if (window.desktop) await window.desktop.exportCSV(csv);
-                              else download('results.csv', csv);
+                              await exportSpreadsheet('results');
                             })
                           }
                         />
@@ -1202,12 +1234,16 @@ export default function App() {
             </div>
             {teacher && <LiveLab key={session.token} attempts={attempts} />}
             {!teacher && (
+              <>
+              {cameraCheck && <CameraCheck onClose={()=>{cameraCheck.resolve(undefined);setCameraCheck(undefined);}} onContinue={value=>{cameraCheck.resolve(value);setCameraCheck(undefined);}}/>}
+              {integrityIntro && <ExamIntegrityIntro onDone={integrityIntro.done}/>}
               <StudentLiveSession
                 key={session.token}
                 token={session.token}
                 attemptId={snapshot?.attempt.id}
                 page={snapshot ? 'exam' : page}
               />
+              </>
             )}
             {teacher && (
               <FloatingAssistant

@@ -104,7 +104,7 @@ export default function StudentRosterImport({
           >
             <UploadCloud size={28} />
             <strong>{file?.name || 'اسحب ملف Excel هنا أو اختره'}</strong>
-            <span>XLSX · CSV · حتى 3000 طالب</span>
+            <span>ملف Excel (.xlsx) · حتى 3000 طالب</span>
             <input
               aria-label="ملف قائمة الطلاب"
               type="file"

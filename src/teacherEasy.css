@@ -1,0 +1,117 @@
+.simple-exam {
+  display: grid;
+  gap: 20px;
+  max-width: 1100px;
+  margin-inline: auto;
+}
+.simple-exam > .card {
+  padding: 24px;
+}
+.simple-exam h2 {
+  margin-bottom: 20px;
+}
+.simple-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-block: 15px;
+}
+.manual-question-form {
+  display: grid;
+  gap: 14px;
+}
+.manual-option {
+  display: grid;
+  grid-template-columns: 75px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.manual-image {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  display: block;
+  margin: 12px auto;
+}
+.simple-bank-list {
+  max-height: 420px;
+  overflow: auto;
+}
+.simple-bank-question {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid #e1eafa;
+  flex-wrap: wrap;
+}
+.simple-question-review {
+  padding: 14px;
+  border: 1px solid #dce7f8;
+  border-radius: 12px;
+  margin-block: 10px;
+}
+.simple-question-review summary {
+  cursor: pointer;
+}
+.simple-question-review .correct {
+  color: #247555;
+  background: #eaf8f0;
+  padding: 10px;
+  border-radius: 9px;
+}
+.manual-start {
+  background: #eff5ff;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.picture-choice {
+  padding: 16px;
+  border: 1px solid #cbdffb;
+  border-radius: 12px;
+  background: #f4f8ff;
+}
+.app-update-panel {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+.update-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 240px;
+  overflow: auto;
+  font: inherit;
+  font-size: 13px;
+  background: #eff5ff;
+  padding: 16px;
+  border-radius: 12px;
+}
+.app-update-panel progress {
+  width: 100%;
+  accent-color: #548ce0;
+}
+.host-conflict-glow {
+  animation: host-conflict-pulse 0.65s ease-in-out 4;
+}
+@keyframes host-conflict-pulse {
+  50% {
+    filter: drop-shadow(0 0 22px #3a94ff);
+    transform: scale(1.04);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .host-conflict-glow {
+    animation: none;
+    outline: 3px solid #3a94ff;
+  }
+}
+@media (max-width: 760px) {
+  .simple-exam > .card {
+    padding: 16px;
+  }
+  .manual-option {
+    grid-template-columns: 50px minmax(0, 1fr);
+  }
+}

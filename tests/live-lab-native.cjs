@@ -98,6 +98,13 @@ const { launch, freePort } = require('./webview2-driver.cjs');
     await page.getByRole('button', { name: 'دخول إلى مساحتي', exact: true }).click();
     await page.getByRole('button', { name: 'امتحاناتي', exact: true }).click();
     await page.getByRole('button', { name: 'ابدأ الامتحان', exact: true }).click();
+    await page.getByRole('button', {name:'السماح وفحص الكاميرا',exact:true}).click();
+    await page.getByText('الكاميرا جاهزة',{exact:true}).waitFor();
+    assert.match(app.diagnostics(),/Camera permission requested: Allow/);
+    await page.getByRole('button',{name:'متابعة إلى الامتحان',exact:true}).click();
+    await page.getByRole('dialog',{name:'Zunis · تذكير بالنزاهة',exact:true}).waitFor();
+    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.exam-integrity-intro')).opacity)>.99);
+    await page.screenshot({path:'test-results/exam-integrity-native.png'});
     await page.locator('.exam-question').waitFor();
     const teacher = (
       await call('/api/login', 'POST', { role: 'teacher', password: 'Native-camera123' })

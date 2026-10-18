@@ -20,7 +20,7 @@ internal sealed class MainWindow : Form
     private readonly SemaphoreSlim writer = new(1, 1);
     private readonly SemaphoreSlim dialogs = new(1, 1);
     private readonly HashSet<string> commands = new(StringComparer.Ordinal)
-    { "host", "discover", "pair", "connection-state", "connect-teacher", "student-session", "request", "backup-save", "backup-read", "export-csv", "model-download", "ollama-download-page", "ai-provider-page", "bank-pdf", "teacher-resource", "speech-status", "speech-transcribe", "speech-synthesize" };
+    { "host", "discover", "pair", "connection-state", "connect-teacher", "student-session", "request", "backup-save", "backup-read", "export-csv", "spreadsheet-save", "model-download", "ollama-download-page", "ai-provider-page", "bank-pdf", "report-pdf", "teacher-resource", "speech-status", "speech-transcribe", "speech-synthesize", "update-state", "update-check", "update-download", "update-cancel", "update-install" };
     private Process? backend;
     private ProcessJob? job;
     private CoreWebView2Environment? environment;
@@ -28,6 +28,7 @@ internal sealed class MainWindow : Form
     private bool closing, stopped;
     private bool studentMode;
     private bool teacherSpeechSession;
+    private bool cameraConsent;
     private StudentLockdown? lockdown;
 
     public MainWindow(string[] args)
@@ -72,7 +73,7 @@ internal sealed class MainWindow : Form
             if (testMode)
             {
                 if (arguments.Contains("--fake-camera"))
-                    browserArguments += " --use-fake-device-for-media-stream --use-fake-ui-for-media-stream";
+                    browserArguments += " --use-fake-device-for-media-stream";
                 int index = Array.IndexOf(arguments, "--debug-port");
                 if (index >= 0 && index + 1 < arguments.Length && int.TryParse(arguments[index + 1], out int port) && port is > 1024 and < 65536)
                     browserArguments += $" --remote-debugging-port={port} --remote-debugging-address=127.0.0.1";
@@ -82,6 +83,8 @@ internal sealed class MainWindow : Form
             environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(data, "WebView2"), new CoreWebView2EnvironmentOptions(browserArguments));
             await view.EnsureCoreWebView2Async(environment);
             var core = view.CoreWebView2;
+            // Clear grants/denials saved by older builds that bypassed the consent UI.
+            await core.Profile.SetPermissionStateAsync(CoreWebView2PermissionKind.Camera, Origin, CoreWebView2PermissionState.Default);
             core.SetVirtualHostNameToFolderMapping("app.alshereqi.invalid", Path.Combine(root, "dist"), CoreWebView2HostResourceAccessKind.DenyCors);
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = false;
@@ -97,8 +100,19 @@ internal sealed class MainWindow : Form
             core.NavigationStarting += (_, e) => { if (!Trusted(e.Uri)) e.Cancel = true; };
             core.PermissionRequested += (_, e) =>
             {
-                e.State = Trusted(e.Uri) && (e.PermissionKind == CoreWebView2PermissionKind.Camera ||
-                    (e.PermissionKind == CoreWebView2PermissionKind.Microphone && teacherSpeechSession && !studentMode))
+                e.SavesInProfile = false;
+                if (Trusted(e.Uri) && e.PermissionKind == CoreWebView2PermissionKind.Camera)
+                {
+                    if (!cameraConsent)
+                    {
+                        cameraConsent = testMode
+                            ? arguments.Contains("--fake-camera") && !arguments.Contains("--deny-camera")
+                            : MessageBox.Show(this, "هل تسمح للتطبيق باستخدام الكاميرا؟\n\nيبدأ البث فقط بعد موافقتك على طلب المعلم. لا يُرسل صوت مع بث الكاميرا.", "السماح باستخدام الكاميرا", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2, MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign) == DialogResult.Yes;
+                    }
+                    e.State = cameraConsent ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
+                    if (testMode) Console.Error.WriteLine("Camera permission requested: " + e.State);
+                }
+                else e.State = Trusted(e.Uri) && e.PermissionKind == CoreWebView2PermissionKind.Microphone && teacherSpeechSession && !studentMode
                     ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
             };
             core.WebMessageReceived += OnWebMessage;
@@ -189,7 +203,7 @@ internal sealed class MainWindow : Form
         try
         {
             await Send(new { id, method, args });
-            return await completion.Task.WaitAsync(TimeSpan.FromMinutes(method == "model-download" ? 61 : 10));
+            return await completion.Task.WaitAsync(TimeSpan.FromMinutes(method is "model-download" or "update-download" ? 61 : 10));
         }
         finally { pending.TryRemove(id, out _); }
     }
@@ -228,6 +242,11 @@ internal sealed class MainWindow : Form
         bool cancelTest = testMode && Environment.GetEnvironmentVariable("SCHOOL_TEST_CANCEL_DIALOGS") == "1";
         switch (method)
         {
+            case "install-update":
+                if (!teacherSpeechSession || studentMode) throw new Exception("التحديث متاح للمعلم خارج جلسة الطالب فقط");
+                await UpdateInstaller.Prepare(data, root, args[0].GetString()!, args[1].GetString()!, testMode);
+                if (!testMode) _ = Task.Run(async () => { await Task.Delay(700); if (!IsDisposed) BeginInvoke(() => Close()); });
+                return true;
             case "teacher-speech-session":
                 teacherSpeechSession = args[0].GetBoolean();
                 return true;
@@ -242,6 +261,7 @@ internal sealed class MainWindow : Form
                 return await Task.Run(() => OfflineSpeech.Speak(root,args[0].GetString()!,args[1].GetString()!));
             case "student-mode":
                 bool enabled=args[0].GetBoolean();
+                if (enabled != studentMode) cameraConsent = false;
                 if(enabled && !testMode) {lockdown ??= new StudentLockdown(this);lockdown.Enable();}
                 if(!enabled) {lockdown?.Dispose();lockdown=null;}
                 studentMode=enabled;
@@ -309,7 +329,12 @@ internal sealed class MainWindow : Form
                 }
                 var settings = environment!.CreatePrintSettings();
                 settings.ShouldPrintBackgrounds = true;
-                return await core.PrintToPdfAsync(Path.GetFullPath(filename), settings);
+                settings.PageWidth = 210.0 / 25.4;
+                settings.PageHeight = 297.0 / 25.4;
+                settings.ShouldPrintHeaderAndFooter = false;
+                if (!await core.PrintToPdfAsync(Path.GetFullPath(filename), settings))
+                    throw new Exception("تعذر حفظ PDF. أغلق الملف إذا كان مفتوحًا وحاول مجددًا.");
+                return true;
             }
             finally { try { File.Delete(document); } catch { } }
         }

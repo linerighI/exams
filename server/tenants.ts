@@ -20,13 +20,18 @@ export function openTenantStores(directory: string) {
   registry.exec(
     'CREATE TABLE IF NOT EXISTS teachers(id TEXT PRIMARY KEY,username TEXT NOT NULL UNIQUE,data TEXT NOT NULL)',
   );
-  const scope = new AsyncLocalStorage<string>();
+  // Share reads during synchronous request work, never between teachers/requests.
+  // Clear before async continuations so background jobs cannot retain stale records.
+  const scope = new AsyncLocalStorage<{ key: string; reads: Map<string, any> }>();
   const stores = new Map<string, Store>([['master', primary]]);
   const accounts = () =>
     (registry.prepare('SELECT data FROM teachers').all() as any[]).map(
       (row) => JSON.parse(row.data) as TeacherAccount,
     );
-  const account = (key: string) => accounts().find((a) => a.id === key);
+  const account = (key: string) => {
+    const row = registry.prepare('SELECT data FROM teachers WHERE id=?').get(key) as any;
+    return row ? (JSON.parse(row.data) as TeacherAccount) : undefined;
+  };
   const save = (a: TeacherAccount) =>
     registry
       .prepare(
@@ -42,7 +47,7 @@ export function openTenantStores(directory: string) {
       isAdmin: true,
       disabled: false,
     });
-  const current = () => scope.getStore() || 'master';
+  const current = () => scope.getStore()?.key || 'master';
   const allowed = (key: string, grade: string, section?: string) => {
     const a = account(key);
     return (
@@ -86,13 +91,22 @@ export function openTenantStores(directory: string) {
     get(_target, key) {
       if (key === 'tenantId') return current;
       const own = forTeacher(current());
+      const read = (table: string, id: string) => {
+        const cache = scope.getStore()?.reads,
+          key = `${table}:${id}`;
+        if (cache?.has(key)) return cache.get(key);
+        const row = own.get(table, id);
+        if (cache && !cache.size) queueMicrotask(() => cache.clear());
+        cache?.set(key, row);
+        return row;
+      };
       const visible = (table: string, row: any): boolean => {
         if (!row) return true;
         if (table === 'students' || table === 'exams')
           return allowed(current(), row.grade, row.section);
         if (table === 'attempts' || table === 'archived_attempts') {
-          const exam = own.get('exams', row.examId),
-            student = own.get('students', row.studentId);
+          const exam = read('exams', row.examId),
+            student = read('students', row.studentId);
           return (
             !!exam &&
             !!student &&
@@ -104,9 +118,12 @@ export function openTenantStores(directory: string) {
       };
       if (key === 'all')
         return (table: string) => own.all(table).filter((row) => visible(table, row));
+      if (key === 'attemptsFor')
+        return (studentId?: string, examId?: string) =>
+          own.attemptsFor(studentId, examId).filter((row) => visible('attempts', row));
       if (key === 'get')
         return (table: string, id: string) => {
-          const row = own.get(table, id);
+          const row = read(table, id);
           if (!visible(table, row))
             throw Object.assign(new Error('هذا الصف غير مسند إلى حسابك'), { statusCode: 403 });
           return row;
@@ -114,11 +131,13 @@ export function openTenantStores(directory: string) {
       if (key === 'put')
         return (table: string, row: any) => {
           // Check both original and destination grade, so guessing an ID cannot overwrite hidden records.
-          if (!visible(table, own.get(table, row.id)) || !visible(table, row))
+          if (!visible(table, read(table, row.id)) || !visible(table, row))
             throw Object.assign(new Error('هذا الصف غير مسند إلى حسابك. راجع مدير الحسابات.'), {
               statusCode: 403,
             });
-          return own.put(table, row);
+          const result = own.put(table, row);
+          scope.getStore()?.reads.set(`${table}:${row.id}`, row);
+          return result;
         };
       return Reflect.get(own, key);
     },
@@ -183,6 +202,11 @@ export function openTenantStores(directory: string) {
   };
   return {
     store,
+    databaseSnapshot: () => {
+      const files=[{path:'teachers.sqlite',bytes:registry.serialize()}];
+      for(const a of accounts())files.push({path:a.id==='master'?'school.sqlite':`teachers/${a.id}/school.sqlite`,bytes:forTeacher(a.id).db.serialize()});
+      return files;
+    },
     accounts,
     account,
     save,
@@ -192,7 +216,7 @@ export function openTenantStores(directory: string) {
     create,
     current,
     forTeacher,
-    run: <T>(key: string, fn: () => T) => scope.run(key, fn),
+    run: <T>(key: string, fn: () => T) => scope.run({ key, reads: new Map() }, fn),
     verify: (username: string, password: string) => {
       const a = accounts().find(
         (a) => a.username === username.normalize('NFKC').trim().toLowerCase(),

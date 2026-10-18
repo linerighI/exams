@@ -1,3 +1,4 @@
+import { allowedRequestPath } from './requestPolicy';
 import { safeStorage } from './backend-platform';
 import { createInterface } from 'node:readline';
 import { resolve } from 'node:path';
@@ -16,6 +17,8 @@ import { providers } from '../src/bankExchange';
 import { trustedTeacherResource } from '../src/teacherResources';
 import { isIP } from 'node:net';
 import { timingSafeEqual } from 'node:crypto';
+import { assertCanHost, assertHostElection } from './hostPolicy';
+import { createAppUpdater } from './appUpdater';
 import { newPairingCode, normalizePairingCode, pairingKey, pairingProof } from '../server/pairing';
 const root = resolve(process.env.SCHOOL_APP_ROOT || process.cwd());
 const app = {
@@ -50,6 +53,7 @@ let token = '';
 let role = '';
 let studentSession: any;
 let pairCode = '';
+let hostAnnouncing = false;
 let eventSocket: WebSocket | undefined;
 let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 const port =
@@ -185,7 +189,18 @@ function persistTarget() {
   );
   writeFileSync(join(dataPath(), 'connection-mode'), encrypted ? 'encrypted' : 'plain');
 }
-async function host() {
+let hostStarting: Promise<any> | undefined;
+function host(): Promise<any> {
+  if (hostStarting) return hostStarting;
+  hostStarting = startHost().finally(() => { hostStarting = undefined; });
+  return hostStarting;
+}
+async function startHost() {
+  if (!server) {
+    assertCanHost({ hosting: false, role, target, discovered: [], localAddresses: [] });
+    const localAddresses = Object.values(networkInterfaces()).flat().filter(n => n?.family === 'IPv4').map(n => n!.address);
+    assertCanHost({ hosting: false, role, target, discovered: await discover(), localAddresses });
+  }
   if (!server) {
     mkdirSync(dataPath(), { recursive: true });
     const certPath = join(dataPath(), 'tls.json');
@@ -224,6 +239,7 @@ async function host() {
       throw Error(`المنفذ ${port} مستخدم. أغلق نسخة التطبيق أو خادم التطوير الآخر ثم أعد المحاولة`);
     }
     udp = dgram.createSocket('udp4');
+    hostAnnouncing = true;
     udp.on('error', () => {});
     udp.on('message', (message, rinfo) => {
       if (message.toString() === 'ALSHEREQI_DISCOVER_V1') {
@@ -233,11 +249,22 @@ async function host() {
           port,
           pairingVersion: 1,
           deviceId: fingerprint,
+          hostState: hostAnnouncing ? 'starting' : 'active',
         });
         udp!.send(response, rinfo.port, rinfo.address);
       }
     });
-    udp.bind(discoveryPort);
+    try {
+      await new Promise<void>((resolve, reject) => { udp!.once('error', reject); udp!.bind(discoveryPort, () => { udp!.removeListener('error', reject); resolve(); }); });
+      const localAddresses = Object.values(networkInterfaces()).flat().filter(n => n?.family === 'IPv4').map(n => n!.address);
+      assertHostElection(fingerprint, localAddresses, await discover());
+      hostAnnouncing = false;
+    } catch (error) {
+      try { udp.close(); } catch { }
+      udp = undefined;
+      await server.app.close(); server = undefined;
+      throw error;
+    }
     target = { host: '127.0.0.1', fingerprint };
     token = '';
     role = '';
@@ -295,6 +322,29 @@ const onlyTeacher = () => {
     throw Error('هذه العملية متاحة للمعلم على الجهاز الرئيسي فقط');
 };
 async function start() {
+  const requireUpdateTeacher = () => { if (role !== 'teacher') throw Error('تحديث التطبيق متاح بعد تسجيل الدخول بحساب المعلم'); };
+  const updater = createAppUpdater({
+    directory: join(app.getPath('userData'), 'updates'),
+    current: JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version,
+    emit: state => win.webContents.send('server-event', { type: 'app-update', state }),
+    install: async (file, hash) => {
+      requireUpdateTeacher();
+      if (!app.isPackaged) throw Error('تثبيت التحديث متاح في النسخة المثبتة فقط، وليس داخل مجلد تطوير المشروع.');
+      if (server && !server.beginUpdateMaintenance()) throw Error('يوجد طلاب في امتحانات جارية على هذا الجهاز الرئيسي؛ انتظر انتهاء جميع المعلمين قبل التحديث.');
+      try {
+        if (target && token) {
+          const attempts = await secureRequest(target.host, target.fingerprint, '/api/attempts', 'GET', undefined, token, 6000);
+          if (attempts.some((a: any) => !a.submittedAt && a.deadline > Date.now())) throw Error('لا يمكن إغلاق التطبيق للتحديث أثناء وجود امتحانات جارية. ثبّت التحديث بعد انتهاء الطلاب.');
+        }
+        await nativeCall('install-update', file, hash);
+      } catch (error) { server?.cancelUpdateMaintenance(); throw error; }
+    },
+  });
+  handle('update-state', () => { requireUpdateTeacher(); return updater.state(); });
+  handle('update-check', (previews = false) => { requireUpdateTeacher(); return updater.check(previews === true); });
+  handle('update-download', () => { requireUpdateTeacher(); return updater.download(); });
+  handle('update-cancel', () => { requireUpdateTeacher(); return updater.cancel(); });
+  handle('update-install', () => { requireUpdateTeacher(); return updater.install(); });
   let restoreLocal = false;
   try {
     const file = join(dataPath(), 'connection');
@@ -314,7 +364,8 @@ async function start() {
   } catch {}
   if (restoreLocal && role === 'student') {
     const previous = { token, role, studentSession };
-    await host();
+    role = ''; // Restore this machine's own saved host, never a remotely paired student.
+    try { await host(); } catch (error) { console.error('Local host restore:', (error as Error).message); }
     token = previous.token;
     role = previous.role;
     studentSession = previous.studentSession;
@@ -332,13 +383,17 @@ async function start() {
     if (!Object.hasOwn(providers, provider)) throw Error('مزود غير مسموح');
     await shell.openExternal(providers[provider as keyof typeof providers].url);
   });
-  handle('bank-pdf', async (bookId: string) => {
-    onlyTeacher();
+  handle('bank-pdf', async (bookId: string, options?: any) => {
+    if (role !== 'teacher' || !token || !target) throw Error('التصدير متاح للمعلم فقط');
     if (typeof bookId !== 'string' || !/^[a-f0-9]{32}$/.test(bookId)) throw Error('بنك غير صالح');
+    const query = new URLSearchParams();
+    for (const key of ['audience','approvedOnly','chapter','title'])
+      if (options?.[key] !== undefined) query.set(key, String(options[key]));
+    if (query.toString().length > 5000) throw Error('خيارات غير صالحة');
     const { html } = await secureRequest(
       target!.host,
       target!.fingerprint,
-      `/api/books/${bookId}/document`,
+      `/api/books/${bookId}/document?${query}`,
       'GET',
     );
     const choice = await dialog.showSaveDialog(win, {
@@ -347,6 +402,13 @@ async function start() {
     });
     if (choice.canceled || !choice.filePath) return false;
     return nativeCall('print-pdf', html, choice.filePath);
+  });
+  handle('report-pdf', async (options: unknown) => {
+    if (role !== 'teacher' || !token || !target) throw Error('التصدير متاح للمعلم فقط');
+    const {html} = await secureRequest(target.host,target.fingerprint,'/api/reports/document','POST',options);
+    const choice=await dialog.showSaveDialog(win, {defaultPath:`school-report-${new Date().toISOString().slice(0,10)}.pdf`,filters:[{name:'PDF',extensions:['pdf']}]});
+    if(choice.canceled || !choice.filePath)return false;
+    return nativeCall('print-pdf',html,choice.filePath);
   });
   handle('discover', discover);
   handle('connection-state', async () => {
@@ -451,7 +513,7 @@ async function start() {
   handle('request', async (path: string, method = 'GET', body?: unknown) => {
     if (!target) throw Error('اختر وضع المعلم أو اربط جهاز الطالب أولًا');
     if (
-      !/^\/api\/[a-zA-Z0-9/._-]+$/.test(path) ||
+      !allowedRequestPath(path, method) ||
       !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
     )
       throw Error('طلب غير مسموح');
@@ -571,6 +633,13 @@ async function start() {
     if (choice.canceled || !choice.filePath) return false;
     writeFileSync(choice.filePath, csv);
     return true;
+  });
+  handle('spreadsheet-save', async (kind:string) => {
+    if(role!=='teacher' || !token || !target || !['students','results','template','database'].includes(kind))throw Error('التصدير متاح للمعلم فقط');
+    const result=await secureRequest(target.host,target.fingerprint,`/api/exports/${kind}`);
+    const choice=await dialog.showSaveDialog(win,{defaultPath:`${kind}.xlsx`,filters:[{name:'Excel',extensions:['xlsx']}]});
+    if(choice.canceled || !choice.filePath)return false;
+    writeFileSync(choice.filePath,Buffer.from(result.data,'base64'));return true;
   });
   handle('model-download', async (model: string) => {
     onlyTeacher();

@@ -16,6 +16,9 @@ import MathText, { FormulaEditor } from './MathText';
 import GeometryEditor from './GeometryEditor';
 import ExamBankPicker from './ExamBankPicker';
 import type { Exam, Question } from './types';
+import AudioAttachment from './AudioAttachment';
+import AudioPlayer from './AudioPlayer';
+import ExamAppearanceEditor from './ExamAppearanceEditor';
 import ExamDeliverySettings from './ExamDeliverySettings';
 import { defaultDelivery, groupKey, poolGroups } from './examDelivery';
 const uid = () => crypto.randomUUID();
@@ -38,6 +41,8 @@ export default function ExamEditor({
         delivery: undefined as Exam['delivery'],
         calculatorAllowed: false,
         geogebraAllowed: false,
+        appearance: undefined as Exam['appearance'],
+        audio: undefined as Exam['audio'],
         title: '',
         subject: '',
         grade: '',
@@ -140,6 +145,7 @@ export default function ExamEditor({
       <div className="editor-layout">
         <div className="editor-main">
           <section className="card editor-section" hidden={editorStep !== 0}>
+            <div className="manual-start"><h3>ابدأ بطريقتك</h3><p>اكتب أسئلتك بنفسك أو اختر أسئلة معتمدة من البنك.</p><button className="secondary" onClick={() => { update('delivery', undefined); setEditorStep(1); }}>إنشاء امتحان فارغ يدويًا — دون ذكاء اصطناعي</button></div>
             <ExamBankPicker
               existing={form.questions}
               notify={notify}
@@ -311,6 +317,7 @@ export default function ExamEditor({
               <small className="muted">تُحفظ الصلاحيات مع الامتحان وتعمل الأدوات محليًا.</small>
             </div>
             <ExamDeliverySettings
+
               questions={form.questions}
               delivery={form.delivery}
               onChange={(value) => {
@@ -318,6 +325,8 @@ export default function ExamEditor({
                 setReviewPool(false);
               }}
             />
+            <ExamAppearanceEditor value={form.appearance} onChange={value=>update('appearance',value)}/>
+            <AudioAttachment value={form.audio} onChange={value=>update('audio',value)} label="تعليمات صوتية للامتحان"/>
           </section>
           <section className="card editor-section questions-section" hidden={editorStep !== 2}>
             {randomDelivery && (
@@ -461,6 +470,7 @@ export default function ExamEditor({
                       رسم لهذا السؤال · GeoGebra
                     </button>
                     {q.image && <img src={q.image} alt="رسم السؤال" />}
+                    {q.audio && <AudioPlayer audio={q.audio}/>}
                     <div className="preview-answers">
                       {q.options.map((option, i) => (
                         <button
@@ -484,6 +494,7 @@ export default function ExamEditor({
                   </div>
                 )}
                 <div className="question-edit-fields" hidden={!editQuestion}>
+                  <AudioAttachment value={q.audio} onChange={audio=>patchQuestion({audio})} label="صوت لهذا السؤال"/>
                   <FormulaEditor value={q.text} onChange={(text) => patchQuestion({ text })} />
                   <button className="secondary" onClick={() => setGeometry(true)}>
                     إنشاء رسم هندسي · GeoGebra
