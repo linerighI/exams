@@ -10,7 +10,7 @@
     <SelfContained>true</SelfContained>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('../../build/icon.ico')">../../build/icon.ico</ApplicationIcon>
-    <Version>1.5.1</Version>
+    <Version>1.5.2</Version>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DesktopAutomation)' == 'true'">
     <DefineConstants>$(DefineConstants);DESKTOP_AUTOMATION</DefineConstants>

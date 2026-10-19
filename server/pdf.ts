@@ -31,6 +31,8 @@ export function extractPDF(
     let output = '',
       error = '';
     const timeout = setTimeout(() => child.kill(), 600000);
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
     child.stdout.on('data', (b) => {
       output += b;
       if (output.length > 45 * 1024 * 1024) child.kill();

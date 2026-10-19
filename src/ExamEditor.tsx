@@ -1,3 +1,4 @@
+import { refreshBankQuestions } from './refreshBankQuestions';
 import { useState, useEffect } from 'react';
 import {
   FileText,
@@ -79,6 +80,12 @@ export default function ExamEditor({
       'questions',
       form.questions.map((q, i) => (i === editIndex ? { ...q, ...patch } : q)),
     );
+  const refreshQuestions = async () => {
+    setBusy(true);
+    try { update('questions', await refreshBankQuestions(form.questions)); notify('حُدّثت الأسئلة من البنك. راجعها وأكد اعتمادها قبل النشر.'); }
+    catch (e) { notify((e as Error).message); }
+    finally { setBusy(false); }
+  };
   const save = async (publish = false) => {
     setBusy(true);
     try {
@@ -329,6 +336,7 @@ export default function ExamEditor({
             <AudioAttachment value={form.audio} onChange={value=>update('audio',value)} label="تعليمات صوتية للامتحان"/>
           </section>
           <section className="card editor-section questions-section" hidden={editorStep !== 2}>
+            {form.questions.some(q=>q.bankId) && <button className="secondary small" disabled={busy} onClick={()=>void refreshQuestions()}>تحديث الأسئلة من البنك</button>}
             {randomDelivery && (
               <div className="random-delivery-review">
                 <div className="section-heading">

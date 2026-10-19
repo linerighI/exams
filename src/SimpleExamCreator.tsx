@@ -1,3 +1,4 @@
+import { refreshBankQuestions } from './refreshBankQuestions';
 import AudioPlayer from './AudioPlayer';
 import { useEffect, useState } from 'react';
 import AudioAttachment from './AudioAttachment';
@@ -79,6 +80,12 @@ export default function SimpleExamCreator({
   const patch = (key: string, value: any) => {
     setForm((old) => ({ ...old, [key]: value }));
     setApproved(false);
+  };
+  const refreshQuestions = async () => {
+    setBusy(true); setError('');
+    try { setQuestions(await refreshBankQuestions(questions)); setApproved(false); }
+    catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
   };
   const save = async (publish: boolean) => {
     setBusy(true);
@@ -313,6 +320,7 @@ export default function SimpleExamCreator({
       </section>
       <section className="card">
         <h2>٣. راجع ثم انشر — {questions.length} سؤالًا</h2>
+        {questions.some(q=>q.bankId) && <button className="secondary small" disabled={busy} onClick={()=>void refreshQuestions()}>تحديث الأسئلة من البنك</button>}
         <label className="check-label">
           <input
             type="checkbox"

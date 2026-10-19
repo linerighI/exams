@@ -1,3 +1,4 @@
+import { readJsonResponse } from './readJsonResponse';
 import { allowedRequestPath } from './requestPolicy';
 import { safeStorage } from './backend-platform';
 import { createInterface } from 'node:readline';
@@ -138,21 +139,7 @@ function secureRequest(
         },
       },
       (res) => {
-        let text = '';
-        res.on('data', (b) => {
-          text += b;
-          if (text.length > 100 * 1024 * 1024) req.destroy(new Error('الاستجابة كبيرة جدًا'));
-        });
-        res.on('end', () => {
-          try {
-            const result = JSON.parse(text);
-            if ((res.statusCode || 500) >= 400)
-              reject(new Error(result.error || 'تعذر الاتصال بالخادم'));
-            else resolve(result);
-          } catch {
-            reject(new Error('استجابة الخادم غير صالحة'));
-          }
-        });
+        void readJsonResponse(res).then(resolve, reject);
       },
     );
     req.on('socket', (socket: any) =>

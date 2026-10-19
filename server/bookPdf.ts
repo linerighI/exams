@@ -33,6 +33,8 @@ export async function renderBook(
       });
       let out = '',
         error = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
       child.stdout.on('data', (b) => {
         out += b;
         if (out.length > 60_000_000) child.kill();
