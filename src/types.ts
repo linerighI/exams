@@ -1,4 +1,17 @@
 export type Question = {
+  kind?: import('./questionFormats').QuestionKind;
+  points?: number;
+  correctChoices?: number[];
+  acceptedAnswers?: string[];
+  blankAnswers?: string[];
+  pairs?: { left: string; right: string }[];
+  orderCorrect?: number[];
+  rubric?: string;
+  keywordGrading?: import('./keywordGrading').KeywordGrading;
+  keywordTarget?: number;
+  blankCount?: number;
+  matchLeft?: string[];
+  matchRight?: string[];
   id: string;
   text: string;
   options: string[];
@@ -55,8 +68,10 @@ export type Attempt = {
   startedAt: number;
   deadline: number;
   submittedAt: number | null;
-  answers: Record<string, number>;
-  lateAnswers: Record<string, number>;
+  answers: Record<string, import('./questionFormats').Answer>;
+  lateAnswers: Record<string, import('./questionFormats').Answer>;
+  manualGrades?: Record<string, number>;
+  gradingPending?: boolean;
   revisions: Record<string, number>;
   score: number | null;
   status: string;

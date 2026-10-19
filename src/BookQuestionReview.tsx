@@ -1,3 +1,9 @@
+import { AnswerKeyEditor } from './ExamQuestionStudio';
+import QuestionKindSelector from './QuestionKindSelector';
+import QuestionResponse from './QuestionResponse';
+import { kindOf, kindLabel, answerKeyText, studentQuestion, type Answer } from './questionFormats';
+import AudioAttachment from './AudioAttachment';
+import AudioPlayer from './AudioPlayer';
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
@@ -34,6 +40,7 @@ export default function BookQuestionReview({
   onSaved,
   notify,
 }: Props) {
+  const [tryAnswer, setTryAnswer] = useState<Answer>();
   const [question, setQuestion] = useState({ ...initial }),
     [editing, setEditing] = useState(false),
     [source, setSource] = useState(''),
@@ -184,6 +191,7 @@ export default function BookQuestionReview({
             </button>
           </div>
           <div className="review-tags">
+            <span>{kindLabel(question)}</span>
             <span>صفحة {question.page}</span>
             <span>{question.difficulty}</span>
             <span className={question.status === 'approved' ? 'approved' : ''}>
@@ -210,6 +218,7 @@ export default function BookQuestionReview({
                 <h3 className="review-question-text">
                   <MathText text={question.text} />
                 </h3>
+                {question.audio && <AudioPlayer audio={question.audio} />}
                 {question.image && (
                   <div className="review-question-image">
                     <img src={question.image} alt="الرسم المرتبط بالسؤال" />
@@ -219,30 +228,51 @@ export default function BookQuestionReview({
                     </button>
                   </div>
                 )}
-                <div className="review-option-list" role="radiogroup" aria-label="الإجابة الصحيحة">
-                  {question.options.map((option: string, i: number) => (
-                    <button
-                      role="radio"
-                      aria-checked={question.correct === i}
-                      key={i}
-                      className={question.correct === i ? 'correct' : ''}
-                      onClick={() => setQuestion({ ...question, correct: i })}
+                {['single', 'boolean'].includes(kindOf(question)) ? (
+                  <>
+                    {' '}
+                    <div
+                      className="review-option-list"
+                      role="radiogroup"
+                      aria-label="الإجابة الصحيحة"
                     >
-                      <span className="review-option-circle">
-                        {question.correct === i && <Check size={12} />}
-                      </span>
-                      <span className="review-option-letter">{['أ', 'ب', 'ج', 'د'][i]}</span>
-                      <MathText text={option} />
-                      {question.correct === i && (
-                        <small>
-                          <CheckCircle2 size={13} />
-                          الإجابة الصحيحة
-                        </small>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <p className="review-selection-hint">اضغط خيارًا لتغيير الإجابة الصحيحة.</p>
+                      {question.options.map((option: string, i: number) => (
+                        <button
+                          role="radio"
+                          aria-checked={question.correct === i}
+                          key={i}
+                          className={question.correct === i ? 'correct' : ''}
+                          onClick={() => setQuestion({ ...question, correct: i })}
+                        >
+                          <span className="review-option-circle">
+                            {question.correct === i && <Check size={12} />}
+                          </span>
+                          <span className="review-option-letter">{['أ', 'ب', 'ج', 'د'][i]}</span>
+                          <MathText text={option} />
+                          {question.correct === i && (
+                            <small>
+                              <CheckCircle2 size={13} />
+                              الإجابة الصحيحة
+                            </small>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="review-selection-hint">اضغط خيارًا لتغيير الإجابة الصحيحة.</p>
+                  </>
+                ) : (
+                  <>
+                    <QuestionResponse
+                      question={studentQuestion(question)}
+                      value={tryAnswer}
+                      onChange={setTryAnswer}
+                    />
+                    <div className="answer-explanation">
+                      <strong>مفتاح الإجابة / معيار التصحيح · للمعلم</strong>
+                      <MathText text={answerKeyText(question)} />
+                    </div>
+                  </>
+                )}
                 <details className="review-explanation" open>
                   <summary>تفسير الإجابة · للمعلم فقط</summary>
                   <MathText text={question.explanation} />
@@ -254,6 +284,13 @@ export default function BookQuestionReview({
               </>
             ) : (
               <div className="review-edit-form">
+                <details className="qs-audio-editor">
+                  <summary>صوت السؤال</summary>
+                  <AudioAttachment
+                    value={question.audio}
+                    onChange={(audio) => setQuestion({ ...question, audio })}
+                  />
+                </details>
                 <label className="review-image-required">
                   <input
                     type="checkbox"
@@ -277,36 +314,11 @@ export default function BookQuestionReview({
                     onChange={(text) => setQuestion({ ...question, text })}
                   />
                 </div>
-                <div className="review-edit-options">
-                  {question.options.map((option: string, i: number) => (
-                    <div className="review-formula-field" key={i}>
-                      <span>
-                        <input
-                          type="radio"
-                          name="correct-bank-option"
-                          aria-label={`اعتماد الخيار ${i + 1}`}
-                          checked={question.correct === i}
-                          onChange={() => setQuestion({ ...question, correct: i })}
-                        />
-                        الخيار {['أ', 'ب', 'ج', 'د'][i]}
-                      </span>
-                      <FormulaEditor
-                        ariaLabel={`الخيار ${i + 1}`}
-                        tools={false}
-                        showPreview={false}
-                        value={option}
-                        onChange={(value) =>
-                          setQuestion({
-                            ...question,
-                            options: question.options.map((v: string, j: number) =>
-                              j === i ? value : v,
-                            ),
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
+                <QuestionKindSelector question={question} onChange={setQuestion} />
+                <AnswerKeyEditor
+                  q={question}
+                  patch={(patch) => setQuestion({ ...question, ...patch })}
+                />
                 <div className="review-formula-field">
                   تفسير الإجابة
                   <FormulaEditor

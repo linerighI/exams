@@ -7,6 +7,15 @@ import { mathSegments } from '../src/mathNotation';
 import { safeSvg } from '../src/svgDiagram';
 import { printDocument, printMath, printImage, escapeHTML } from './printDocument';
 import type { BankPDFOptions } from '../src/pdfOptions';
+import { questionSchema, questionFields, refineQuestion } from './questionSchema';
+import {
+  questionOptionsDistinct,
+  kindLabel,
+  kindOf,
+  answerKeyText,
+  matchingColumns,
+  orderingOptions,
+} from '../src/questionFormats';
 const str = z
   .string()
   .trim()
@@ -21,11 +30,11 @@ const metadata = z.object({
   term: z.enum(['الأول', 'الثاني']),
   pageCount: z.number().int().min(1).max(500),
 });
-const item = z.object({
-  id: z.string().max(100).optional(),
+const item = questionFields.extend({
+  id: z.string().max(100).default('candidate'),
   text: str,
-  options: z.array(str.max(800)).length(4),
-  correct: z.number().int().min(0).max(3),
+  options: questionSchema.shape.options.default([]),
+  correct: questionSchema.shape.correct.default(0),
   explanation: str,
   page: z.number().int().positive(),
   difficulty: z.enum(['سهل', 'متوسط', 'صعب']),
@@ -41,6 +50,7 @@ const item = z.object({
     .regex(/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/)
     .optional(),
 });
+const checkedItem = item.superRefine(refineQuestion);
 const envelope = z.object({
   version: z.literal(1),
   batchId: str.optional().default('bank'),
@@ -135,7 +145,7 @@ export function registerBankTransfer(
       rejected: any[] = [],
       duplicates: any[] = [];
     input.data.questions.forEach((value, index) => {
-      const parsed = item.safeParse(value);
+      const parsed = checkedItem.safeParse(value);
       if (!parsed.success) {
         rejected.push({
           index: index + 1,
@@ -150,7 +160,7 @@ export function registerBankTransfer(
         rejected.push({ index: index + 1, message: 'صفحة المصدر خارج الكتاب' });
         return;
       }
-      if (new Set(q.options.map(norm)).size !== 4) {
+      if (!questionOptionsDistinct(q, norm)) {
         rejected.push({ index: index + 1, message: 'الخيارات مكررة' });
         return;
       }
@@ -365,13 +375,41 @@ export function bankDocument(
   const letters = ['أ', 'ب', 'ج', 'د'];
   const content = `${student ? '<div class="signature"><span>اسم الطالب: ................................</span><span>الشعبة: .............</span><span>التاريخ: .............</span></div>' : '<p class="notice">المسودات للمراجعة فقط. نسخة الطالب تحتوي الأسئلة المعتمدة وحدها دون الإجابات.</p>'}
     <div class="stats"><div class="stat"><b>${selected.length}</b>سؤال</div><div class="stat"><b>${escapeHTML(book.grade)}</b>الصف</div><div class="stat"><b>${escapeHTML(book.term)}</b>الفصل</div></div>
-    ${selected.length ? selected.map((q, i) => `<article class="question"><div class="question-meta"><span class="number">السؤال ${i + 1}</span><span>${escapeHTML(q.chapter || '')} · ${escapeHTML(q.difficulty || '')}${student ? '' : ` · صفحة ${escapeHTML(q.page)} · ${q.status === 'approved' ? 'معتمد' : 'مسودة'}`}</span></div><h2>${printMath(q.text)}</h2>${printImage(q.image) || (q.requiresImage ? '<p class="warning">رسم مطلوب قبل اعتماد السؤال</p>' : '')}<div class="options">${q.options.map((o: string, j: number) => `<div>${letters[j]} · ${printMath(o)}</div>`).join('')}</div></article>`).join('') : '<p class="notice">لا توجد أسئلة تطابق خيارات التصدير.</p>'}
-    ${!student && selected.length ? `<section class="key"><h2 class="section-title">مفتاح الإجابة · للمعلم</h2>${selected.map((q, i) => `<div class="answer"><strong>${i + 1} · ${letters[q.correct]}</strong><p>${printMath(q.explanation)}</p></div>`).join('')}</section>` : ''}`;
+    ${selected.length ? selected.map((q, i) => `<article class="question"><div class="question-meta"><span class="number">السؤال ${i + 1}</span><span>${escapeHTML(kindLabel(q))} · ${escapeHTML(q.chapter || '')} · ${escapeHTML(q.difficulty || '')}${student ? '' : ` · صفحة ${escapeHTML(q.page)} · ${q.status === 'approved' ? 'معتمد' : 'مسودة'}`}</span></div><h2>${printMath(q.text)}</h2>${printImage(q.image) || (q.requiresImage ? '<p class="warning">رسم مطلوب قبل اعتماد السؤال</p>' : '')}${bankAnswerArea(q)}</article>`).join('') : '<p class="notice">لا توجد أسئلة تطابق خيارات التصدير.</p>'}
+    ${!student && selected.length ? `<section class="key"><h2 class="section-title">مفتاح الإجابة · للمعلم</h2>${selected.map((q, i) => `<div class="answer"><strong>${i + 1} · ${['single', 'boolean'].includes(kindOf(q)) ? letters[q.correct] + ' · ' : ''}${printMath(answerKeyText(q))}</strong><p>${printMath(q.explanation)}</p></div>`).join('')}</section>` : ''}`;
   return printDocument(
     options?.title || book.title,
     school,
     `${book.subject} · ${options?.chapter || 'جميع الموضوعات'} · ${student ? 'ورقة أسئلة' : 'بنك الأسئلة ومفتاح الإجابة'}`,
     content,
     !student,
+  );
+}
+function bankAnswerArea(q: any) {
+  const k = kindOf(q),
+    hint = q.keywordGrading
+      ? `<p class="notice">للدرجة الكاملة: ${q.keywordGrading.required} أفكار صحيحة ومختلفة، بعد مراجعة المعلم.</p>`
+      : '';
+  if (['single', 'multiple', 'boolean'].includes(k))
+    return `${k === 'multiple' ? '<p>اختر جميع الإجابات الصحيحة.</p>' : ''}<div class="options">${q.options.map((o: string, j: number) => `<div>${['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح', 'ط', 'ي'][j]} · ${printMath(o)}</div>`).join('')}</div>`;
+  if (k === 'order')
+    return `<p>رتّب العناصر بكتابة أرقام الترتيب الصحيح.</p><div class="options">${orderingOptions(
+      q,
+    )
+      .map((o) => `<div>□ ${printMath(o)}</div>`)
+      .join('')}</div>`;
+  if (k === 'match') {
+    const cols = matchingColumns(q);
+    return `<p>صل العناصر بما يناسبها.</p><table><tbody>${cols.left.map((v, i) => `<tr><td>${printMath(v)}</td><td style="width:30%">................</td><td>${printMath(cols.right[i])}</td></tr>`).join('')}</tbody></table>`;
+  }
+  if (k === 'draw')
+    return '<div style="height:180px;border:1px solid #b8c9dc;border-radius:10px;margin-top:16px">مساحة الرسم والكتابة بالقلم</div>';
+  return (
+    hint +
+    Array.from(
+      { length: k === 'essay' ? 5 : k === 'blank' ? q.blankAnswers?.length || 1 : 2 },
+      (_, i) =>
+        `<p style="line-height:2.6">${k === 'blank' ? `${i + 1}. ` : ''}........................................................................</p>`,
+    ).join('')
   );
 }

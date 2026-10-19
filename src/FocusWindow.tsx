@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useSceneMotion, usePanelMotion } from './appMotion';
+import { useLayoutEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 // Native dialog supplies keyboard containment, Escape and focus restoration.
@@ -17,7 +18,7 @@ export default function FocusWindow({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = ref.current!;
     const origin = document.activeElement as HTMLElement | null;
     dialog.showModal();
@@ -26,6 +27,8 @@ export default function FocusWindow({
       origin?.focus();
     };
   }, []);
+  usePanelMotion(ref);
+  useSceneMotion(ref, '.focus-window-heading, .focus-window-body > :first-child');
   return (
     <dialog
       ref={ref}

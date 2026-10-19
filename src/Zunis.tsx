@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { BrandTrace, useBrandMotion } from './BrandMotion';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, LockKeyhole, KeyRound } from 'lucide-react';
 import FocusWindow from './FocusWindow';
 import { api } from './api';
 import './workflow.css';
 export function ZunisSplash() {
+  const root = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(() => !sessionStorage.getItem('zunis-welcome'));
+  useBrandMotion(root, visible);
   const close = () => {
     sessionStorage.setItem('zunis-welcome', '1');
     setVisible(false);
@@ -17,6 +20,7 @@ export function ZunisSplash() {
   if (!visible) return null;
   return (
     <motion.div
+      ref={root}
       className="zunis-splash"
       role="dialog"
       aria-label="مرحبًا بك في Zunis"
@@ -24,6 +28,7 @@ export function ZunisSplash() {
       animate={{ opacity: 1 }}
     >
       <span className="zunis-emblem">
+        <BrandTrace />
         <ShieldCheck size={48} />
       </span>
       <h1>Zunis</h1>

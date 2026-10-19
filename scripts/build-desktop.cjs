@@ -12,8 +12,11 @@ try {
     format: 'cjs', packages: 'external', outfile: 'desktop/backend.cjs',
     define: { 'import.meta.url': '__backendModuleUrl' },
     banner: { js: 'const __backendModuleUrl = require("node:url").pathToFileURL(__filename).href;' } });
-  run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/close-desktop.ps1']);
-  run(dotnet(), ['build', 'desktop/native/Alshereqi.Desktop.csproj', '-c', 'Debug', '-o', 'desktop/native/bin/dev']);
+  // Packaging publishes its own Release host; leave running development apps alone.
+  if (!process.argv.includes('--package-only')) {
+    run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/close-desktop.ps1']);
+    run(dotnet(), ['build', 'desktop/native/Alshereqi.Desktop.csproj', '-c', 'Debug', '-o', 'desktop/native/bin/dev']);
+  }
 } catch (error) {
   console.error(error.message);
   if (/NODE_MODULE_VERSION|bindings|compiled/.test(error.message)) console.error('Run npm rebuild better-sqlite3 to replace the old Electron SQLite binary.');

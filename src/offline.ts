@@ -4,12 +4,22 @@ export type Snapshot = {
   studentId: string;
   attempt: any;
   questions: any[];
-  exam: { title: string; total: number; calculatorAllowed?: boolean; geogebraAllowed?: boolean; appearance?:import('./examAppearance').ExamAppearance;audio?:import('./AudioAttachment').ExamAudio };
+  exam: {
+    title: string;
+    total: number;
+    calculatorAllowed?: boolean;
+    geogebraAllowed?: boolean;
+    appearance?: import('./examAppearance').ExamAppearance;
+    audio?: import('./AudioAttachment').ExamAudio;
+  };
   serverNow: number;
   offset: number;
-  answers: Record<string, number>;
+  answers: Record<string, import('./questionFormats').Answer>;
   revisions: Record<string, number>;
-  pending: Record<string, { questionId: string; choice: number; revision: number }>;
+  pending: Record<
+    string,
+    { questionId: string; choice: import('./questionFormats').Answer; revision: number }
+  >;
   submitPending: boolean;
 };
 function open(): Promise<IDBDatabase> {
@@ -31,7 +41,29 @@ export async function saveSnapshot(snapshot: Snapshot) {
   });
   db.close();
 }
-export async function findSnapshot(studentId: string, scope: string) {
+export function selectSnapshot(
+  all: Snapshot[],
+  studentId: string,
+  scope: string,
+  filter: { examId?: string; attemptId?: string; includeExpired?: boolean } = {},
+) {
+  return all
+    .filter(
+      (s) =>
+        s.scope === scope &&
+        s.studentId === studentId &&
+        !s.attempt.submittedAt &&
+        (!filter.examId || s.attempt.examId === filter.examId) &&
+        (!filter.attemptId || s.attempt.id === filter.attemptId) &&
+        (filter.includeExpired || s.attempt.deadline > Date.now() + s.offset),
+    )
+    .sort((a, b) => b.attempt.startedAt - a.attempt.startedAt)[0];
+}
+export async function findSnapshot(
+  studentId: string,
+  scope: string,
+  filter: { examId?: string; attemptId?: string; includeExpired?: boolean } = {},
+) {
   const db = await open();
   const all = await new Promise<Snapshot[]>((resolve, reject) => {
     const request = db.transaction('attempts').objectStore('attempts').getAll();
@@ -39,7 +71,5 @@ export async function findSnapshot(studentId: string, scope: string) {
     request.onerror = () => reject(request.error);
   });
   db.close();
-  return all
-    .filter((s) => s.scope === scope && s.studentId === studentId && !s.attempt.submittedAt)
-    .sort((a, b) => b.attempt.startedAt - a.attempt.startedAt)[0];
+  return selectSnapshot(all, studentId, scope, filter);
 }

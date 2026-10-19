@@ -1,3 +1,4 @@
+import { BrandTrace, useBrandMotion } from './BrandMotion';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'motion/react';
@@ -6,6 +7,7 @@ import './comfort.css';
 export default function ExamIntegrityIntro({ onDone }: { onDone: () => void }) {
   const reduced = useReducedMotion();
   const root = useRef<HTMLDivElement>(null);
+  useBrandMotion(root);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
     root.current?.focus();
@@ -29,7 +31,11 @@ export default function ExamIntegrityIntro({ onDone }: { onDone: () => void }) {
       transition={{ duration: reduced ? 0 : 0.2 }}
     >
       <div className="integrity-emblem">
+        <BrandTrace />
         <ShieldCheck size={52} />
+      </div>
+      <div className="gsap-exam-readiness">
+        <i /> مساحتك جاهزة للتركيز
       </div>
       <span className="integrity-brand">Zunis</span>
       <h1>ابدأ بثقة. أجب بأمانة.</h1>

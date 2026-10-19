@@ -1,5 +1,7 @@
+import { gsap } from 'gsap';
+import { useQuietMotion } from './appMotion';
 import { motion, LayoutGroup } from 'motion/react';
-import { useId } from 'react';
+import { useId, useRef, useLayoutEffect } from 'react';
 import { Palette } from 'lucide-react';
 import {
   defaultAppearance,
@@ -17,6 +19,42 @@ export default function ExamAppearanceEditor({
 }) {
   const a = { ...defaultAppearance, ...value },
     id = useId();
+  const quiet = useQuietMotion();
+  const preview = useRef<HTMLDivElement>(null),
+    first = useRef(true);
+  useLayoutEffect(() => {
+    const root = preview.current;
+    if (!root) return;
+    const time = first.current || quiet ? 0 : 0.38;
+    first.current = false;
+    const header = root.querySelector('[data-preview-accent]'),
+      question = root.querySelector('.appearance-question'),
+      selected = root.querySelector('[data-preview-selected="true"]');
+    gsap.to(root, {
+      backgroundColor: a.background,
+      duration: time,
+      ease: 'power2.out',
+      overwrite: true,
+    });
+    if (header) gsap.to(header, { backgroundColor: a.accent, duration: time, overwrite: true });
+    if (selected)
+      gsap.to(selected, {
+        borderColor: a.accent,
+        color: a.accent,
+        duration: time,
+        overwrite: true,
+      });
+    if (question)
+      gsap.to(question, {
+        fontSize: a.fontSize === 'large' ? 21 : 16,
+        duration: time,
+        ease: 'power2.out',
+        overwrite: true,
+      });
+    return () => {
+      gsap.killTweensOf([root, header, question, selected].filter(Boolean));
+    };
+  }, [a.accent, a.background, a.fontSize, quiet]);
   const patch = (p: Partial<ExamAppearance>) => onChange({ ...a, ...p });
   return (
     <details className="exam-personalization">
@@ -34,7 +72,7 @@ export default function ExamAppearanceEditor({
                   type="button"
                   key={p.name}
                   aria-pressed={a.accent === p.accent && a.background === p.background}
-                onClick={() => patch({accent:p.accent,background:p.background})}
+                  onClick={() => patch({ accent: p.accent, background: p.background })}
                   style={{ color: p.accent, background: p.background }}
                 >
                   {a.accent === p.accent && a.background === p.background && (
@@ -109,23 +147,26 @@ export default function ExamAppearanceEditor({
           </button>
         </div>
         <motion.div
+          ref={preview}
           layout
           className={`appearance-preview ${a.cardStyle}`}
-          style={{ background: a.background, color: '#203650' }}
+          style={{ color: '#203650' }}
         >
-          <span style={{ background: a.accent, color: 'white' }}>الامتحان · معاينة الطالب</span>
+          <span data-preview-accent style={{ color: 'white' }}>
+            الامتحان · معاينة الطالب
+          </span>
           <h3>مرحبًا، مستعد للبدء؟</h3>
           <p>{a.welcome}</p>
-          <div style={{ fontSize: a.fontSize === 'large' ? 21 : 16 }}>
+          <div className="appearance-question">
             <b>السؤال ١</b>
             <p>ما ناتج جمع ٢ و٣؟</p>
             {['٣', '٥', '٧'].map((n, i) => (
               <div
                 key={n}
                 className="preview-answer"
+                data-preview-selected={i === 1}
                 style={{
-                  borderColor: i === 1 ? a.accent : '#dce5eb',
-                  color: i === 1 ? a.accent : '#203650',
+                  ...(i === 1 ? {} : { borderColor: '#dce5eb', color: '#203650' }),
                 }}
               >
                 {n}

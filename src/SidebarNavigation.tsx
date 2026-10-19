@@ -1,4 +1,5 @@
-import { useId, useState, type ComponentType } from 'react';
+import SelectionIndicator from './SelectionIndicator';
+import { useId, useState, useRef, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 
 type Item = [string, string, ComponentType<{ size: number }>];
@@ -14,6 +15,7 @@ export default function SidebarNavigation({
   select: (key: string) => void;
 }) {
   const id = useId();
+  const track = useRef<HTMLElement>(null);
   const [hint, setHint] = useState<{
     label: string;
     key: string;
@@ -33,12 +35,15 @@ export default function SidebarNavigation({
   return (
     <>
       <nav
+        ref={track}
+        className="selection-track"
         aria-label="التنقل الرئيسي"
         onScroll={() => setHint(null)}
         onKeyDown={(event) => {
           if (event.key === 'Escape') setHint(null);
         }}
       >
+        <SelectionIndicator root={track} selector='button[aria-current="page"]' value={page} />
         {items.map(([key, label, Icon]) => (
           <button
             type="button"

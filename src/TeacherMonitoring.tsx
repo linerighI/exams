@@ -36,7 +36,7 @@ export default function TeacherMonitoring({
   const detail = useRef<HTMLElement>(null);
   const active = attempts.filter((attempt) => !attempt.submittedAt);
   const submitted = attempts.filter((attempt) => !!attempt.submittedAt);
-  const review = attempts.filter((attempt) => attempt.status === 'review');
+  const review = attempts.filter((attempt) => attempt.status === 'review'||attempt.gradingPending);
   const graded = submitted.flatMap((attempt) => {
     const exam = exams.find((exam) => exam.id === attempt.examId);
     return attempt.score != null && exam?.total ? [(attempt.score / exam.total) * 100] : [];
@@ -55,7 +55,7 @@ export default function TeacherMonitoring({
   const visibleAttempts = attempts.filter(
     (attempt) =>
       (!selected || attempt.examId === selected) &&
-      (!attention || attempt.status === 'review') &&
+      (!attention || attempt.status === 'review'||attempt.gradingPending) &&
       (!results || !!attempt.submittedAt) &&
       `${attempt.studentName} ${attempt.studentId} ${attempt.examTitle}`.includes(query),
   );

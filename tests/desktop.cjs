@@ -80,9 +80,10 @@ const assert = require('node:assert/strict');
     assert.equal(invalidProvider, true);
     await page.getByRole('button', { name: 'الرئيسية والمساعد', exact: true }).click();
     await page.getByRole('button', { name: '+ امتحان يدوي', exact: true }).click();
-    await page.getByRole('tab', { name: 'مراجعة الأسئلة', exact: false }).click();
-    await page.getByRole('button', { name: 'سؤال', exact: true }).click();
-    await page.getByRole('button', { name: 'إنشاء رسم هندسي · GeoGebra' }).click();
+    await page.getByRole('tab', { name: 'بناء الامتحان', exact: false }).click();
+    await page.getByRole('button', { name: 'أضف سؤالًا', exact: true }).click();
+    await page.locator('.qs-type-menu button').filter({ hasText: 'ضع دائرة' }).click();
+    await page.getByRole('button', { name: 'رسم هندسي', exact: true }).click();
     for (let i = 0; i < 100; i++) {
       if (await page.getByRole('button', { name: 'إرفاق الرسم بالسؤال' }).isEnabled()) break;
       await page.waitForTimeout(300);
@@ -105,7 +106,7 @@ const assert = require('node:assert/strict');
     await page
       .getByRole('heading', { name: 'مساحة الرسم · GeoGebra' })
       .waitFor({ state: 'hidden' });
-    assert.equal(await page.locator('.attached-image img').count(), 1);
+    assert.equal(await page.locator('.qs-attached img').count(), 1);
     await page.getByRole('button', { name: 'العودة للامتحانات' }).click();
     const hosts = await page.evaluate(() => window.desktop.discover());
     assert.ok(hosts.length > 0);

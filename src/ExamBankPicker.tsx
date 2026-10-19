@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
-import { BookOpen, Check, Search, Layers, Loader2 } from 'lucide-react';
+import MorphMark from './MorphMark';
+import { useSceneMotion } from './appMotion';
+import { useEffect, useState, useRef } from 'react';
+import { BookOpen, Search, Layers } from 'lucide-react';
 import { api } from './api';
 import MathText from './MathText';
 import type { Question } from './types';
 import BookQuestionReview from './BookQuestionReview';
+import { kindLabel, kindOf, questionKinds } from './questionFormats';
 export default function ExamBankPicker({
   onAdd,
   notify,
@@ -23,6 +26,7 @@ export default function ExamBankPicker({
     [count, setCount] = useState(10),
     [busy, setBusy] = useState(false);
   const [review, setReview] = useState<any>();
+  const [questionType, setQuestionType] = useState('');
   useEffect(() => {
     void api('/api/books')
       .then(setBooks)
@@ -33,6 +37,7 @@ export default function ExamBankPicker({
     setQuestions([]);
     setSelected([]);
     setChapter('');
+    setQuestionType('');
     if (!bookId) return;
     setBusy(true);
     void api(`/api/books/${bookId}/questions`)
@@ -47,14 +52,21 @@ export default function ExamBankPicker({
       active = false;
     };
   }, [bookId]);
+  const scene = useRef<HTMLDivElement>(null);
   const bank = books.find((b) => b.id === bookId);
   const used = new Set(existing.map((q) => q.bankId));
   const visible = questions.filter(
     (q) =>
       !used.has(q.id) &&
+      (!questionType || kindOf(q) === questionType) &&
       (!level || q.difficulty === level) &&
       (!chapter || q.chapter === chapter) &&
       `${q.text} ${q.chapter} ${q.lesson || ''}`.includes(query),
+  );
+  useSceneMotion(
+    scene,
+    '.bank-picker-grid > button:nth-child(-n+24)',
+    visible.map((q) => q.id).join(':'),
   );
   const available = visible.filter((q) => q.status === 'approved' && (!q.requiresImage || q.image));
   const add = async () => {
@@ -70,7 +82,7 @@ export default function ExamBankPicker({
     }
   };
   return (
-    <div className="exam-bank-picker">
+    <div ref={scene} className="exam-bank-picker">
       <div className="bank-picker-intro">
         <div className="bank-picker-emblem">
           <BookOpen size={27} />
@@ -120,6 +132,21 @@ export default function ExamBankPicker({
                 }}
               />
             </label>
+            <select
+              aria-label="نوع أسئلة الاختيار"
+              value={questionType}
+              onChange={(e) => {
+                setQuestionType(e.target.value);
+                setSelected([]);
+              }}
+            >
+              <option value="">كل أنواع الأسئلة</option>
+              {questionKinds.map(([kind, label]) => (
+                <option key={kind} value={kind}>
+                  {label}
+                </option>
+              ))}
+            </select>
             <select
               aria-label="صعوبة أسئلة الاختيار"
               value={level}
@@ -188,8 +215,8 @@ export default function ExamBankPicker({
               disabled={busy || !selected.length || selected.length + existing.length > 500}
               onClick={() => void add()}
             >
-              {busy ? <Loader2 className="spin" size={16} /> : <Check size={16} />}إضافة{' '}
-              {selected.length} إلى الامتحان
+              <MorphMark shape={busy ? 'working' : 'check'} size={16} />
+              إضافة {selected.length} إلى الامتحان
             </button>
           </div>
           <div className="bank-picker-grid">
@@ -209,18 +236,16 @@ export default function ExamBankPicker({
                 }}
               >
                 <small>
-                  {q.status === 'approved' ? 'معتمد' : 'للمراجعة'} · {q.chapter} · صفحة {q.page} ·{' '}
-                  {q.difficulty}
+                  {q.status === 'approved' ? 'معتمد' : 'للمراجعة'} · {kindLabel(q)} · {q.chapter} ·
+                  صفحة {q.page} · {q.difficulty}
                 </small>
                 <MathText text={q.text} />
                 {q.image && <img src={q.image} alt="رسم السؤال" />}
                 <span className="bank-pick-check">
                   {q.status !== 'approved' || (q.requiresImage && !q.image) ? (
                     'مراجعة واعتماد'
-                  ) : selected.includes(q.id) ? (
-                    <Check size={14} />
                   ) : (
-                    '+'
+                    <MorphMark shape={selected.includes(q.id) ? 'check' : 'plus'} size={16} />
                   )}
                 </span>
               </button>

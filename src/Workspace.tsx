@@ -28,6 +28,7 @@ import './bankDashboard.css';
 import QuestionComposer from './QuestionComposer';
 import PDFExport from './PDFExport';
 import DeleteRecord from './DeleteRecord';
+import { kindLabel, kindOf, questionKinds } from './questionFormats';
 type Props = {
   notify: (s: string) => void;
   openExam: (e: Exam) => void;
@@ -39,6 +40,7 @@ export function BooksView({ notify, openExam }: Props) {
   const [manualOpen, setManualOpen] = useState(false);
   const [bankPanel, setBankPanel] = useState<'files' | 'exam' | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [questionType, setQuestionType] = useState('');
   const [destinationFolder, setDestinationFolder] = useState<string | null>(null);
   const [books, setBooks] = useState<any[]>([]),
     [book, setBook] = useState<any>(),
@@ -59,6 +61,7 @@ export function BooksView({ notify, openExam }: Props) {
   const filteredQuestions = questions.filter(
     (q) =>
       (!status || q.status === status) &&
+      (!questionType || kindOf(q) === questionType) &&
       (!difficulty || q.difficulty === difficulty) &&
       (!chapter || q.chapter === chapter) &&
       `${q.text} ${q.chapter}`.includes(query),
@@ -94,6 +97,7 @@ export function BooksView({ notify, openExam }: Props) {
       setStatus('');
       setDifficulty('');
       setChapter('');
+      setQuestionType('');
       setFiltersOpen(false);
       setBankPanel(null);
     }
@@ -284,7 +288,9 @@ export function BooksView({ notify, openExam }: Props) {
                   <h2>{book.title}</h2>
                 </div>
                 <div className="bank-header-actions">
-                  <button className="secondary" onClick={() => setManualOpen(true)}><Plus size={17} /> إضافة سؤال يدويًا</button>
+                  <button className="secondary" onClick={() => setManualOpen(true)}>
+                    <Plus size={17} /> إضافة سؤال يدويًا
+                  </button>
                   <button className="secondary" onClick={() => setBankPanel('files')}>
                     <Settings2 size={17} />
                     ملفات الكتاب وإعداداته
@@ -295,7 +301,18 @@ export function BooksView({ notify, openExam }: Props) {
                   </button>
                 </div>
               </header>
-              {manualOpen && <FocusWindow title="إضافة سؤال يدويًا" onClose={() => setManualOpen(false)}><QuestionComposer bank onSave={async q => { await api(`/api/books/${book.id}/questions`, 'POST', q); await open(book); notify('حُفظ السؤال في البنك'); }} /></FocusWindow>}
+              {manualOpen && (
+                <FocusWindow title="إضافة سؤال يدويًا" onClose={() => setManualOpen(false)}>
+                  <QuestionComposer
+                    bank
+                    onSave={async (q) => {
+                      await api(`/api/books/${book.id}/questions`, 'POST', q);
+                      await open(book);
+                      notify('حُفظ السؤال في البنك');
+                    }}
+                  />
+                </FocusWindow>
+              )}
               <div className="bank-dashboard-metrics" aria-label="ملخص بنك الأسئلة">
                 {[
                   ['', questions.length, 'جميع الأسئلة', BookOpen],
@@ -344,8 +361,21 @@ export function BooksView({ notify, openExam }: Props) {
                           تنزيل PDF المرافق
                         </button>
                       )}
-                      <PDFExport bank={{id:book.id,title:book.title,chapters}} notify={notify}/>
-                      <DeleteRecord kind="books" id={book.id} title={book.title} onDeleted={async()=>{setBook(undefined);setQuestions([]);setBankPanel(null);await refresh();}}/>
+                      <PDFExport
+                        bank={{ id: book.id, title: book.title, chapters }}
+                        notify={notify}
+                      />
+                      <DeleteRecord
+                        kind="books"
+                        id={book.id}
+                        title={book.title}
+                        onDeleted={async () => {
+                          setBook(undefined);
+                          setQuestions([]);
+                          setBankPanel(null);
+                          await refresh();
+                        }}
+                      />
                       {!book.hasPdf && (
                         <label className="secondary file-button">
                           <UploadCloud size={16} /> إرفاق الكتاب الأصلي للقص
@@ -479,16 +509,17 @@ export function BooksView({ notify, openExam }: Props) {
                       onClick={() => setFiltersOpen(!filtersOpen)}
                     >
                       <SlidersHorizontal size={16} />
-                      تصفية{status || difficulty || chapter ? ' •' : ''}
+                      تصفية{status || difficulty || chapter || questionType ? ' •' : ''}
                     </button>
                   </div>
-                  {(status || difficulty || chapter || query) && (
+                  {(status || difficulty || chapter || query || questionType) && (
                     <div className="bank-active-filters">
                       <span>
                         {[
                           status === 'approved' ? 'معتمد' : status === 'draft' ? 'للمراجعة' : '',
                           difficulty,
                           chapter,
+                          questionKinds.find((k) => k[0] === questionType)?.[1] || '',
                         ]
                           .filter(Boolean)
                           .join(' · ') || 'نتائج البحث'}
@@ -499,6 +530,7 @@ export function BooksView({ notify, openExam }: Props) {
                           setDifficulty('');
                           setChapter('');
                           setQuery('');
+                          setQuestionType('');
                         }}
                       >
                         مسح التصفية
@@ -506,6 +538,18 @@ export function BooksView({ notify, openExam }: Props) {
                     </div>
                   )}
                   <div className="workspace-toolbar bank-question-filters" hidden={!filtersOpen}>
+                    <select
+                      aria-label="نوع أسئلة البنك"
+                      value={questionType}
+                      onChange={(e) => setQuestionType(e.target.value)}
+                    >
+                      <option value="">كل أنواع الأسئلة</option>
+                      {questionKinds.map(([kind, label]) => (
+                        <option key={kind} value={kind}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
                     <select
                       aria-label="حالة أسئلة البنك"
                       value={status}
@@ -566,7 +610,9 @@ export function BooksView({ notify, openExam }: Props) {
                           >
                             {q.status === 'approved' ? 'معتمد' : 'للمراجعة'}
                           </span>
-                          <small>ص {q.page}</small>
+                          <small>
+                            {kindLabel(q)} · ص {q.page}
+                          </small>
                         </span>
                         <MathText text={q.text} />
                         {q.cropWarning && (

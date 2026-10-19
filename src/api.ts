@@ -3,11 +3,25 @@ export const setToken = (value: string) => {
   token = value;
   sessionStorage.setItem('school-token', value);
 };
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public issues?: {path:(string|number)[];message:string}[],
+  ) {
+    super(message);
+  }
+}
+export const isConnectionError = (error: unknown) =>
+  error instanceof TypeError ||
+  /ECONN|ENOTFOUND|ETIMEDOUT|ERR_NETWORK|ERR_CONNECTION|fetch failed|Failed to fetch|network|الاتصال.*(?:تعذر|فشل|منقطع)|تعذر الاتصال|غير متصل|لم يتم الاتصال/i.test(
+    (error as Error)?.message || '',
+  );
 export async function api(path: string, method = 'GET', body?: unknown): Promise<any> {
   if (window.desktop) {
     try {
       const result = await window.desktop.request(path, method, body);
-      if(method !== 'GET') window.dispatchEvent(new Event('workspace-updated'));
+      if (method !== 'GET') window.dispatchEvent(new Event('workspace-updated'));
       return result;
     } catch (error) {
       throw Error(
@@ -24,8 +38,8 @@ export async function api(path: string, method = 'GET', body?: unknown): Promise
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   const result = await response.json();
-  if (!response.ok) throw Error(result.error || 'تعذر تنفيذ العملية');
-  if(method !== 'GET') window.dispatchEvent(new Event('workspace-updated'));
+  if (!response.ok) throw new ApiError(result.error || 'تعذر تنفيذ العملية', response.status, result.issues);
+  if (method !== 'GET') window.dispatchEvent(new Event('workspace-updated'));
   return result;
 }
 export function download(filename: string, content: string) {

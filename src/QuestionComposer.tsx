@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import MorphMark from './MorphMark';
+import SaveReceipt from './SaveReceipt';
+import { useState, useRef, useEffect } from 'react';
 import { fileBase64 } from './api';
 import { FormulaEditor } from './MathText';
 import type { Question } from './types';
 import AudioAttachment from './AudioAttachment';
+import { createQuestion, kindOf, questionProblem } from './questionFormats';
+import QuestionKindSelector from './QuestionKindSelector';
+import { AnswerKeyEditor } from './ExamQuestionStudio';
 
 export default function QuestionComposer({
   onSave,
@@ -15,13 +20,9 @@ export default function QuestionComposer({
   bank?: boolean;
   initial?: Question & { requiresImage?: boolean };
 }) {
-  const [q, setQ] = useState({
-    id: crypto.randomUUID(),
-    text: '',
-    options: ['', '', '', ''],
-    correct: 0,
-    explanation: '',
-    page: 1,
+  const form = useRef<HTMLFormElement>(null);
+  const [q, setQ] = useState<Question>({
+    ...createQuestion('single'),
     chapter: 'عام',
     difficulty: 'متوسط',
     image: undefined as string | undefined,
@@ -30,20 +31,34 @@ export default function QuestionComposer({
   });
   const [approved, setApproved] = useState(false),
     [requiresImage, setRequiresImage] = useState(Boolean(initial?.requiresImage || initial?.image));
+  const [receipt, setReceipt] = useState(0);
+  useEffect(() => {
+    if (!receipt) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        form.current
+          ?.querySelector<HTMLTextAreaElement>('textarea[aria-label="نص السؤال اليدوي"]')
+          ?.focus();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [receipt]);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   return (
     <form
+      ref={form}
       className="manual-question-form"
       onSubmit={async (event) => {
         event.preventDefault();
         setError('');
-        if (
-          q.text.trim().length < 3 ||
-          q.options.some((o) => !o.trim()) ||
-          new Set(q.options.map((o) => o.trim())).size !== 4
-        ) {
-          setError('اكتب السؤال وأربعة خيارات مختلفة وحدد الإجابة الصحيحة.');
+        const problem = questionProblem(q);
+        if (problem) {
+          setError(problem);
           return;
         }
         if (bank && !q.explanation.trim()) {
@@ -64,12 +79,12 @@ export default function QuestionComposer({
             requiresImage,
             evidence: 'سؤال أعدّه المعلم يدويًا',
           });
+          setReceipt((n) => n + 1);
           setQ({
-            ...q,
-            id: crypto.randomUUID(),
-            text: '',
-            options: ['', '', '', ''],
-            explanation: '',
+            ...createQuestion(kindOf(q)),
+            chapter: q.chapter || 'عام',
+            difficulty: q.difficulty || 'متوسط',
+            page: q.page,
             image: undefined,
             audio: undefined,
           });
@@ -83,7 +98,16 @@ export default function QuestionComposer({
       }}
     >
       <h3>اكتب سؤالك بنفسك</h3>
-      {!bank && <AudioAttachment value={q.audio} onChange={audio=>setQ({...q,audio})} label="صوت لهذا السؤال"/>}
+      <SaveReceipt revision={receipt}>حُفظ السؤال. يمكنك كتابة السؤال التالي.</SaveReceipt>
+      <QuestionKindSelector question={q} onChange={setQ} />
+      <details className="qs-audio-editor">
+        <summary>صوت لهذا السؤال</summary>
+        <AudioAttachment
+          value={q.audio}
+          onChange={(audio) => setQ({ ...q, audio })}
+          label="صوت لهذا السؤال"
+        />
+      </details>
       <label className="field">
         نص السؤال
         <FormulaEditor
@@ -92,28 +116,7 @@ export default function QuestionComposer({
           onChange={(text) => setQ({ ...q, text })}
         />
       </label>
-      {q.options.map((option, i) => (
-        <div className="manual-option" key={i}>
-          <label>
-            <input
-              type="radio"
-              name="manual-correct"
-              checked={q.correct === i}
-              onChange={() => setQ({ ...q, correct: i })}
-              aria-label={`الإجابة الصحيحة: ${i + 1}`}
-            />
-            {['أ', 'ب', 'ج', 'د'][i]}
-          </label>
-          <FormulaEditor
-            ariaLabel={`نص الخيار ${i + 1}`}
-            value={option}
-            tools={false}
-            onChange={(text) =>
-              setQ({ ...q, options: q.options.map((old, j) => (j === i ? text : old)) })
-            }
-          />
-        </div>
-      ))}
+      <AnswerKeyEditor q={q} patch={(patch) => setQ({ ...q, ...patch })} />
       <label className="field">
         تفسير الإجابة
         <FormulaEditor
@@ -192,7 +195,8 @@ export default function QuestionComposer({
           {error}
         </p>
       )}
-      <button className="primary" disabled={busy}>
+      <button className="primary" disabled={busy} aria-busy={busy}>
+        <MorphMark shape={busy ? 'working' : initial ? 'edit' : 'plus'} />
         {busy
           ? 'جارٍ الحفظ…'
           : initial

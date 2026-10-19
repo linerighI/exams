@@ -1,3 +1,4 @@
+import { useSceneMotion } from './appMotion';
 import { useEffect, useRef, useState } from 'react';
 import { GraduationCap, BookOpen, School, Wifi, Monitor, ArrowLeft, Loader2 } from 'lucide-react';
 import { api, setToken } from './api';
@@ -7,13 +8,14 @@ import { motion } from 'motion/react';
 import './exchange.css';
 import './welcome.css';
 import { findSnapshot, type Snapshot } from './offline';
+import { isConnectionError } from './api';
 import type { Session } from './types';
 import ConnectionDialog from './ConnectionDialog';
 import { useTeacherConnection } from './useTeacherConnection';
 import { cachedStudentHash, credentialSalt } from './studentCredential';
 import { normalizeStudentCode } from './studentCode';
 export const scope = () =>
-  `${localStorage.getItem('school-scope') || 'development'}:${localStorage.getItem('school-account-scope') || 'master'}`;
+  `${localStorage.getItem('school-scope') || 'development'}:${sessionStorage.getItem('school-account-scope') || localStorage.getItem('school-account-scope') || 'master'}`;
 export default function Welcome({
   onLogin,
   onHost,
@@ -39,6 +41,12 @@ export default function Welcome({
   const [hostConflict, setHostConflict] = useState(false);
   const studentInput = useRef<HTMLInputElement>(null);
   const { connection, tone, accept, refresh: refreshConnection } = useTeacherConnection();
+  const scene = useRef<HTMLDivElement>(null);
+  useSceneMotion(
+    scene,
+    '.prism-story-brand, .prism-caption, .prism-guide > *, .login-card-icon, .login-card > form',
+    ready,
+  );
   useEffect(() => {
     if (connection.school) setSchool(connection.school);
   }, [connection.school]);
@@ -128,6 +136,7 @@ export default function Welcome({
       });
       setToken(value.token);
       localStorage.setItem('school-account-scope', value.teacherId || 'master');
+      sessionStorage.setItem('school-account-scope', value.teacherId || 'master');
       if (value.student) {
         const salt = credentialSalt();
         localStorage.setItem(
@@ -143,7 +152,7 @@ export default function Welcome({
       }
       onLogin(value);
     } catch (e) {
-      if (mode === 'student') {
+      if (mode === 'student' && isConnectionError(e)) {
         try {
           const hash = await digest(studentCode);
           const prefix = `student:${localStorage.getItem('school-scope') || 'development'}`;
@@ -161,6 +170,7 @@ export default function Welcome({
             const snapshot = await findSnapshot(cached.student.id, cachedScope);
             if (snapshot) {
               localStorage.setItem('school-account-scope', cached.teacherId || 'master');
+              sessionStorage.setItem('school-account-scope', cached.teacherId || 'master');
               onResume(
                 {
                   role: 'student',
@@ -183,6 +193,7 @@ export default function Welcome({
   };
   return (
     <motion.div
+      ref={scene}
       className="login-page welcome-studio prism-login"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

@@ -14,6 +14,7 @@ export default function StudentRosterImport({
   const [file, setFile] = useState<File>(),
     [encoded, setEncoded] = useState(''),
     [preview, setPreview] = useState<any>(),
+    [ai, setAi] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [grade, setGrade] = useState(''),
@@ -36,7 +37,7 @@ export default function StudentRosterImport({
     setEncoded('');
     if (!f) return;
     if (!/\.(xlsx|csv)$/i.test(f.name) || f.size > 8 * 1024 * 1024) {
-      setError('اختر ملف XLSX أو CSV بحجم لا يتجاوز 8 ميغابايت.');
+      setError('اختر ملف Excel بصيغة XLSX أو CSV بحجم لا يتجاوز 8 ميغابايت.');
       return;
     }
     try {
@@ -52,6 +53,7 @@ export default function StudentRosterImport({
     try {
       const result = await api('/api/students/roster/preview', 'POST', {
         filename: file?.name,
+        ai,
         file: encoded,
         grade,
         section,
@@ -87,7 +89,10 @@ export default function StudentRosterImport({
         </span>
         <div>
           <h3>من ملف المدرسة إلى صفوفك</h3>
-          <p>ارفع الملف، راجع الأعمدة، ثم اعتمد القائمة. الدخول للطالب برقمه الوطني.</p>
+          <p>
+            ارفع الملف، راجع الأعمدة، ثم اعتمد القائمة. الدخول بالرقم الوطني إن وُجد، وإلا يُنشأ رمز
+            طالب تلقائيًا.
+          </p>
         </div>
       </div>
       {!done ? (
@@ -104,7 +109,7 @@ export default function StudentRosterImport({
           >
             <UploadCloud size={28} />
             <strong>{file?.name || 'اسحب ملف Excel هنا أو اختره'}</strong>
-            <span>ملف Excel (.xlsx) · حتى 3000 طالب</span>
+            <span>Excel (.xlsx) · حتى 3000 طالب</span>
             <input
               aria-label="ملف قائمة الطلاب"
               type="file"
@@ -112,6 +117,25 @@ export default function StudentRosterImport({
               disabled={busy}
               onChange={(e) => void choose(e.target.files?.[0])}
             />
+          </label>
+          <label className="field">
+            <span>
+              <input
+                type="checkbox"
+                checked={ai}
+                disabled={busy}
+                onChange={(e) => {
+                  setAi(e.target.checked);
+                  setColumns(undefined);
+                  changed();
+                }}
+              />{' '}
+              مساعد ذكي للتعرّف على الأعمدة
+            </span>
+            <small>
+              اختياري: يرسل عناوين الأعمدة وإحصاءات أنواع الخلايا فقط إلى مزوّدك المحدد، دون إرسال
+              سجلات الطلاب. راجع ربط الأعمدة ثم اعتمد القائمة.
+            </small>
           </label>
           <div className="roster-options">
             <label className="field">
@@ -224,10 +248,18 @@ export default function StudentRosterImport({
               {busy ? <Loader2 size={17} className="spin" /> : <FileSpreadsheet size={17} />}معاينة
               القائمة
             </button>
-            <small>الأرقام الوطنية مخفية، ولا تُرسل إلى الذكاء الاصطناعي.</small>
+            <small>
+              تُقرأ بيانات Excel محليًا؛ المساعد الذكي يقترح ربط الأعمدة فقط ولا يكتب أسماء أو
+              أرقامًا من عنده.
+            </small>
           </div>
           {preview && (
             <div className="roster-review">
+              {preview.aiMapped && (
+                <p className="info-note" role="status">
+                  اقترح المساعد ربط الأعمدة. راجع الربط والأسماء أدناه قبل الاعتماد.
+                </p>
+              )}
               {preview.requiresReview && (
                 <p role="status">تغيرت خيارات الاستيراد؛ اضغط «معاينة القائمة» قبل الاعتماد.</p>
               )}
@@ -239,7 +271,7 @@ export default function StudentRosterImport({
               {preview.issues.length > 0 ? (
                 <div role="alert" className="form-error">
                   {preview.issues.slice(0, 15).map((i: any) => (
-                    <p key={i.row}>
+                    <p key={`${i.row}-${i.message}`}>
                       الصف {i.row}: {i.message}
                     </p>
                   ))}
@@ -306,7 +338,7 @@ export default function StudentRosterImport({
           <h3>قائمتك جاهزة</h3>
           <p>
             حُفظ {done.count} طالب · تم تخطي {done.skipped}. تستخدم الحسابات المضافة أو المحدثة
-            الرقم الوطني؛ الحسابات المتخطاة لم تتغير.
+            الرقم الوطني إن وُجد أو رمز الطالب من قائمة الطلاب؛ الحسابات المتخطاة لم تتغير.
           </p>
           <button className="primary" onClick={onClose}>
             عرض الطلاب والصفوف

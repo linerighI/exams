@@ -202,6 +202,7 @@ try {
   for (let r = 1; r <= rounds; r++) {
     await Promise.all([
       ...students.flatMap((s) => [
+        call(`/api/attempts/${s.attempt.id}/status`,'GET',undefined,s.token,true),
         call(
           `/api/attempts/${s.attempt.id}/answers`,
           'PUT',

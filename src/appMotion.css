@@ -1,0 +1,205 @@
+.exam-issues {
+  margin: 18px 0;
+  border: 1px solid #bdd1eb;
+  border-radius: 18px;
+  background: #f7faff;
+  color: #234d7f;
+  overflow: hidden;
+  text-align: right;
+}
+.exam-issues header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e9f4;
+}
+.exam-issues header > span {
+  margin-inline-start: auto;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: #e3edfa;
+  font-weight: 800;
+}
+.exam-issues p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #647e9f;
+}
+.exam-issues ul {
+  list-style: none;
+  margin: 0;
+  padding: 6px 12px;
+}
+.exam-issues li + li {
+  border-top: 1px solid #e5edf7;
+}
+.exam-issues li button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  text-align: start;
+  padding: 12px 8px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.exam-issues li button:hover,
+.exam-issues li button:focus-visible {
+  background: #eaf2fd;
+}
+.guided-field {
+  outline: 2px solid #70a4df;
+  outline-offset: 4px;
+  border-radius: 10px;
+  scroll-margin: 90px;
+}
+.integrity-trace {
+  position: absolute;
+  inset: -18px;
+  width: calc(100% + 36px);
+  height: calc(100% + 36px);
+  pointer-events: none;
+  color: #7db7ff;
+  overflow: visible;
+}
+.integrity-emblem,
+.zunis-emblem {
+  position: relative;
+}
+.integrity-trace circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+.integrity-trace circle:last-child {
+  opacity: 0.3;
+  stroke-width: 0.6;
+}
+.gsap-exam-readiness {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #8bbdfa;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-top: 24px;
+}
+.gsap-exam-readiness i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 12px #84bbff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guided-field {
+    scroll-behavior: auto;
+  }
+}
+.morph-mark {
+  flex-shrink: 0;
+  vertical-align: middle;
+  overflow: visible;
+}
+.selection-track {
+  position: relative;
+  isolation: isolate;
+}
+.selection-indicator {
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: 15px;
+  border: 1px solid #c3d7f1;
+  background: linear-gradient(130deg, #f3f8ff, #e7f0fc);
+  box-shadow: 0 2px 8px #3974b409;
+  z-index: 0;
+  transform-origin: 0 0;
+}
+.selection-track > button {
+  position: relative;
+  z-index: 1;
+}
+.app-shell.studio-mode .sidebar nav.selection-track > button.active,
+.exam-stages.selection-track > button.active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.sidebar nav.selection-track .selection-indicator {
+  border-radius: 13px;
+  border-color: #cbdcf4;
+  background: #eaf2fd;
+}
+.save-receipt {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 11px 14px;
+  border: 1px solid #c4e3d8;
+  background: #f1faf6;
+  color: #367d64;
+  border-radius: 12px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.save-receipt span {
+  line-height: 1.6;
+}
+.notice-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  background: #ffffff16;
+}
+.motion-notice > span:nth-child(2) {
+  line-height: 1.7;
+}
+.motion-notice {
+  gap: 12px;
+}
+.qs-preview-switch {
+  min-width: 140px;
+}
+.qs-paper .qs-prompt-editor {
+  transform-origin: top right;
+}
+.bank-pick-check .morph-mark {
+  display: block;
+}
+.appearance-preview {
+  transition: none;
+}
+.studio-mode .page-surface .exam-stages.selection-track button.active,
+.exchange-studio .exchange-steps.selection-track button.active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.exchange-steps.selection-track .selection-indicator {
+  border-radius: 12px;
+}
+.simple-success-mark {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: #edf8f2;
+  color: #3f886a;
+  margin-bottom: 18px;
+}

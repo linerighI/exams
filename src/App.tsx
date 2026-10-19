@@ -1,3 +1,6 @@
+import NoticeToast from './NoticeToast';
+import { useSceneMotion, useAppInteractions } from './appMotion';
+import { hasAnswer, manualQuestion } from './questionFormats';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import {
@@ -14,7 +17,6 @@ import {
   Search,
   Bell,
   CheckCircle2,
-  Info,
   Clock3,
   FileText,
   Sparkles,
@@ -58,6 +60,7 @@ import DeleteRecord from './DeleteRecord';
 import StudentSpace from './StudentSpace';
 import TeacherTools from './TeacherTools';
 import TeacherMonitoring from './TeacherMonitoring';
+import ManualGrading from './ManualGrading';
 import LiveLab, { openLiveLab } from './LiveLab';
 import StudentLiveSession from './StudentLiveSession';
 import { ZunisBrand, ZunisSplash } from './Zunis';
@@ -119,12 +122,18 @@ function Empty({
   );
 }
 export default function App() {
+  useAppInteractions();
   const [session, setSession] = useState<Session>();
   const sessionGuard = useRef('');
   const [page, setPage] = useState('dashboard');
   const [simpleMode, setSimpleMode] = useState(false);
+  const motionScene=useRef<HTMLElement>(null);
+  useSceneMotion(motionScene, '.page-title > div, .section-heading > div', `${page}:${session?.role || ''}`);
   useEffect(() => {
-    if (session?.role !== 'teacher') { setSimpleMode(false); return; }
+    if (session?.role !== 'teacher') {
+      setSimpleMode(false);
+      return;
+    }
     const enabled = localStorage.getItem(`simple-mode:${session.teacherId || 'master'}`) !== '0';
     setSimpleMode(enabled);
     if (enabled) setPage('simple');
@@ -143,8 +152,10 @@ export default function App() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [editing, setEditing] = useState<Exam>();
   const [snapshot, setSnapshot] = useState<Snapshot>();
-  const [cameraCheck,setCameraCheck]=useState<{resolve:(value:boolean|undefined)=>void}>();
-  const [integrityIntro,setIntegrityIntro]=useState<{done:()=>void}>();
+  const [cameraCheck, setCameraCheck] = useState<{
+    resolve: (value: boolean | undefined) => void;
+  }>();
+  const [integrityIntro, setIntegrityIntro] = useState<{ done: () => void }>();
   const [connection, setConnection] = useState(true);
   const [search, setSearch] = useState('');
   const [examCode, setExamCode] = useState('');
@@ -154,7 +165,18 @@ export default function App() {
     [exitPassword, setExitPassword] = useState(''),
     [exitError, setExitError] = useState('');
   const [exitBusy, setExitBusy] = useState(false);
-  useEffect(()=>{const navigate=(event:Event)=>{const value=(event as CustomEvent).detail;if(session?.role==='teacher'&&['assistant','books','tools','exams','students','settings','monitor'].includes(value))setPage(value);};window.addEventListener('workflow-navigate',navigate);return()=>window.removeEventListener('workflow-navigate',navigate);},[session?.role]);
+  useEffect(() => {
+    const navigate = (event: Event) => {
+      const value = (event as CustomEvent).detail;
+      if (
+        session?.role === 'teacher' &&
+        ['assistant', 'books', 'tools', 'exams', 'students', 'settings', 'monitor'].includes(value)
+      )
+        setPage(value);
+    };
+    window.addEventListener('workflow-navigate', navigate);
+    return () => window.removeEventListener('workflow-navigate', navigate);
+  }, [session?.role]);
   useEffect(() => {
     const restore = async () => {
       try {
@@ -162,6 +184,7 @@ export default function App() {
           ? await window.desktop.studentSession()
           : JSON.parse(sessionStorage.getItem('student-session') || 'null');
         if (saved?.role !== 'student' || !saved.student) return;
+        sessionStorage.setItem('school-account-scope', saved.teacherId || 'master');
         setToken(saved.token);
         sessionGuard.current = saved.token;
         setSession(saved);
@@ -280,28 +303,42 @@ export default function App() {
     if (!session?.student) return;
     setBusy(true);
     try {
-      const old = await findSnapshot(session.student.id, scope());
-      if (old) {
-        setSnapshot(old);
-        return;
-      }
-      const cameraAvailable = await new Promise<boolean|undefined>(resolve=>setCameraCheck({resolve}));
-      if(cameraAvailable===undefined)return;
-      await new Promise<void>(resolve=>setIntegrityIntro({done:()=>{setIntegrityIntro(undefined);resolve();}}));
+      const cameraAvailable = await new Promise<boolean | undefined>((resolve) =>
+        setCameraCheck({ resolve }),
+      );
+      if (cameraAvailable === undefined) return;
+      await new Promise<void>((resolve) =>
+        setIntegrityIntro({
+          done: () => {
+            setIntegrityIntro(undefined);
+            resolve();
+          },
+        }),
+      );
       const result = await api('/api/attempts/start', 'POST', {
         examId: exam?.id,
         code: exam ? undefined : (enteredCode ?? examCode),
         cameraAvailable,
+      });
+      const old = await findSnapshot(session.student.id, scope(), {
+        examId: result.attempt.examId,
+        attemptId: result.attempt.id,
+        includeExpired: true,
       });
       const cached: Snapshot = {
         ...result,
         studentId: session.student.id,
         scope: scope(),
         offset: result.serverNow - Date.now(),
-        answers: result.attempt.answers,
-        revisions: result.attempt.revisions,
-        pending: {},
-        submitPending: false,
+        answers: {
+          ...result.attempt.answers,
+          ...Object.fromEntries(
+            Object.values(old?.pending || {}).map((p) => [p.questionId, p.choice]),
+          ),
+        },
+        revisions: { ...result.attempt.revisions, ...old?.revisions },
+        pending: old?.pending || {},
+        submitPending: old?.submitPending || false,
       };
       await saveSnapshot(cached);
       setSnapshot(cached);
@@ -314,8 +351,15 @@ export default function App() {
   const resume = async (attempt: Attempt) => {
     setBusy(true);
     try {
-      const old = await findSnapshot(session!.student!.id, scope());
-      if (old?.attempt.id === attempt.id) {
+      const old = await findSnapshot(session!.student!.id, scope(), {
+        examId: attempt.examId,
+        attemptId: attempt.id,
+        includeExpired: true,
+      });
+      if (
+        old?.attempt.id === attempt.id &&
+        (!attempt.submittedAt || Object.keys(old.pending).length || old.submitPending)
+      ) {
         setSnapshot(old);
         return;
       }
@@ -347,10 +391,17 @@ export default function App() {
   };
   const [examStatus, setExamStatus] = useState('all');
   const [examGrade, setExamGrade] = useState('');
-  const [examFolder,setExamFolder]=useState('all');
-  const [examOrganization,setExamOrganization]=useState<ExamOrganization>({folders:[],examFolders:{}});
-  const [examMoving,setExamMoving]=useState<string[]>([]);
-  useEffect(()=>{setExamFolder('all');setExamOrganization({folders:[],examFolders:{}});setExamMoving([]);},[session?.teacherId]);
+  const [examFolder, setExamFolder] = useState('all');
+  const [examOrganization, setExamOrganization] = useState<ExamOrganization>({
+    folders: [],
+    examFolders: {},
+  });
+  const [examMoving, setExamMoving] = useState<string[]>([]);
+  useEffect(() => {
+    setExamFolder('all');
+    setExamOrganization({ folders: [], examFolders: {} });
+    setExamMoving([]);
+  }, [session?.teacherId]);
   const teacher = session?.role === 'teacher';
   const nav: [string, string, any][] = teacher
     ? [
@@ -371,15 +422,23 @@ export default function App() {
     setEditing(undefined);
     setPage(simpleMode ? 'simple' : 'editor');
   };
-  const visibleNav: [string, string, any][] = teacher && simpleMode
-    ? [['simple', 'إعداد امتحان مبسط', FileText], ...nav.filter(item => ['exams', 'students', 'monitor', 'settings'].includes(item[0]))]
-    : nav;
+  const visibleNav: [string, string, any][] =
+    teacher && simpleMode
+      ? [
+          ['simple', 'إعداد امتحان مبسط', FileText],
+          ...nav.filter((item) => ['exams', 'students', 'monitor', 'settings'].includes(item[0])),
+        ]
+      : nav;
   const filtered = exams.filter(
     (e) =>
       `${e.title} ${e.subject} ${e.grade}`.includes(search) &&
       (examStatus === 'all' || e.status === examStatus) &&
       (!examGrade || e.grade === examGrade) &&
-      (!teacher || examFolder==='all' || (examFolder==='unfiled'?!examOrganization.examFolders[e.id]:examOrganization.examFolders[e.id]===examFolder)),
+      (!teacher ||
+        examFolder === 'all' ||
+        (examFolder === 'unfiled'
+          ? !examOrganization.examFolders[e.id]
+          : examOrganization.examFolders[e.id] === examFolder)),
   );
   const cards = (list: Exam[]) =>
     list.length ? (
@@ -393,9 +452,26 @@ export default function App() {
             Date.now() >= Date.parse(e.opensAt) &&
             Date.now() < Date.parse(e.closesAt);
           return (
-            <article className="exam-card" key={e.id} draggable={teacher&&page==='exams'} onDragStart={event=>{event.dataTransfer.setData('application/x-school-exam',e.id);event.dataTransfer.effectAllowed='move';}}>
+            <article
+              className="exam-card"
+              key={e.id}
+              draggable={teacher && page === 'exams'}
+              onDragStart={(event) => {
+                event.dataTransfer.setData('application/x-school-exam', e.id);
+                event.dataTransfer.effectAllowed = 'move';
+              }}
+            >
               <div className="exam-card-top">
-                {teacher&&page==='exams'&&<button className="exam-folder-move" aria-label={`نقل الامتحان إلى مجلد: ${e.title}`} title="نقل إلى مجلد" onClick={()=>setExamMoving([e.id])}><FolderInput size={17}/></button>}
+                {teacher && page === 'exams' && (
+                  <button
+                    className="exam-folder-move"
+                    aria-label={`نقل الامتحان إلى مجلد: ${e.title}`}
+                    title="نقل إلى مجلد"
+                    onClick={() => setExamMoving([e.id])}
+                  >
+                    <FolderInput size={17} />
+                  </button>
+                )}
                 <ExamIllustration subject={e.subject} />
                 <span
                   className={`pill ${e.status === 'published' ? 'green' : e.status === 'draft' ? 'amber' : 'gray'}`}
@@ -442,7 +518,7 @@ export default function App() {
                         <Copy size={14} />
                       </button>
                     </span>
-                    <DeleteRecord kind="exams" id={e.id} title={e.title} onDeleted={refresh}/>
+                    <DeleteRecord kind="exams" id={e.id} title={e.title} onDeleted={refresh} />
                     <button
                       className="text-button"
                       onClick={() => {
@@ -528,7 +604,7 @@ export default function App() {
                         ? a.score === null
                           ? 'لم تُنشر'
                           : `${a.score} / ${e?.total || '—'}`
-                        : `${Object.keys(a.answers).length} / ${a.questionCount || e?.delivery?.count || e?.questions.length || '—'}`}
+                        : `${e?.questions.filter((q) => hasAnswer(q, a.answers[q.id])).length || 0} / ${a.questionCount || e?.delivery?.count || e?.questions.length || '—'}`}
                     </td>
                     <td>
                       <span
@@ -575,6 +651,16 @@ export default function App() {
                     {teacher && (
                       <td>
                         <div className="table-actions">
+                          {!!a.submittedAt &&
+                            exams
+                              .find((e) => e.id === a.examId)
+                              ?.questions.some(manualQuestion) && (
+                              <ManualGrading
+                                attempt={a}
+                                onSaved={() => void refresh()}
+                                notify={notify}
+                              />
+                            )}
                           {!a.submittedAt && (
                             <button
                               title="فتح بث كاميرا الطالب"
@@ -646,7 +732,7 @@ export default function App() {
     );
   return (
     <>
-      <ZunisSplash/>
+      <ZunisSplash />
       {exitOpen && (
         <div className="modal-backdrop student-exit-overlay">
           <form
@@ -764,7 +850,10 @@ export default function App() {
               <div className="main-shell">
                 <header className="topbar">
                   <div className="breadcrumb">
-                    <span className="header-branding"><MinistryBrand /><SchoolBrand /></span>
+                    <span className="header-branding">
+                      <MinistryBrand />
+                      <SchoolBrand />
+                    </span>
                     مساحة {teacher ? 'المعلم' : 'الطالب'} <ChevronLeft size={15} />
                     <strong>
                       {snapshot
@@ -779,9 +868,21 @@ export default function App() {
                     </strong>
                   </div>
                   <div className="topbar-actions">
-                    {teacher && <TeacherTour key={session.teacherId || 'master'} teacherId={session.teacherId || 'master'}/>}
-                    {teacher && <AppUpdates background notify={notify}/>}
-                    {teacher && <button className="secondary small" onClick={() => changeSimpleMode(!simpleMode)}>{simpleMode ? 'الوضع الكامل' : 'الوضع المبسط'}</button>}
+                    {teacher && (
+                      <TeacherTour
+                        key={session.teacherId || 'master'}
+                        teacherId={session.teacherId || 'master'}
+                      />
+                    )}
+                    {teacher && <AppUpdates background notify={notify} />}
+                    {teacher && (
+                      <button
+                        className="secondary small"
+                        onClick={() => changeSimpleMode(!simpleMode)}
+                      >
+                        {simpleMode ? 'الوضع الكامل' : 'الوضع المبسط'}
+                      </button>
+                    )}
                     <span className="date-text">
                       {new Date().toLocaleDateString('ar-JO', {
                         weekday: 'long',
@@ -828,7 +929,7 @@ export default function App() {
                     </div>
                   )}
                 </header>
-                <main>
+                <main ref={motionScene}>
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.div
                       key={snapshot ? 'attempt' : page}
@@ -895,7 +996,11 @@ export default function App() {
                           }}
                         />
                       ) : page === 'simple' && teacher ? (
-                        <SimpleExamCreator onSaved={() => void refresh()} onAdvanced={() => changeSimpleMode(false)} onBooks={() => setPage('books')} />
+                        <SimpleExamCreator
+                          onSaved={() => void refresh()}
+                          onAdvanced={() => changeSimpleMode(false)}
+                          onBooks={() => setPage('books')}
+                        />
                       ) : page === 'editor' && teacher ? (
                         <ExamEditor
                           key={editing?.id || 'new'}
@@ -1091,7 +1196,19 @@ export default function App() {
                               </button>
                             ))}
                           </nav>
-                          {teacher&&<ExamFolders key={session.token} exams={exams} organization={examOrganization} onOrganization={setExamOrganization} folder={examFolder} onFolder={setExamFolder} moving={examMoving} onMoving={setExamMoving} notify={notify}/>}
+                          {teacher && (
+                            <ExamFolders
+                              key={session.token}
+                              exams={exams}
+                              organization={examOrganization}
+                              onOrganization={setExamOrganization}
+                              folder={examFolder}
+                              onFolder={setExamFolder}
+                              moving={examMoving}
+                              onMoving={setExamMoving}
+                              notify={notify}
+                            />
+                          )}
                           <div className="toolbar card">
                             <label className="search-box">
                               <Search size={19} />
@@ -1140,7 +1257,15 @@ export default function App() {
                           {!filtered.length && exams.length > 0 ? (
                             <div className="empty card">
                               <Search size={30} />
-                              <h3>{teacher&&examFolder!=='all'&&!search&&examStatus==='all'&&!examGrade?'هذا المجلد فارغ':'لا توجد امتحانات مطابقة'}</h3>
+                              <h3>
+                                {teacher &&
+                                examFolder !== 'all' &&
+                                !search &&
+                                examStatus === 'all' &&
+                                !examGrade
+                                  ? 'هذا المجلد فارغ'
+                                  : 'لا توجد امتحانات مطابقة'}
+                              </h3>
                               <button
                                 className="text-button"
                                 onClick={() => {
@@ -1169,6 +1294,10 @@ export default function App() {
                               code: student.code,
                             });
                             setToken(login.token);
+                            sessionStorage.setItem(
+                              'school-account-scope',
+                              login.teacherId || 'master',
+                            );
                             sessionGuard.current = login.token;
                             localStorage.setItem(
                               'school-account-scope',
@@ -1228,27 +1357,38 @@ export default function App() {
                 </main>
                 <footer className="app-footer">
                   <span>{school} · الامتحانات الإلكترونية</span>
-                  <ZunisBrand/>
+                  <ZunisBrand />
                 </footer>
               </div>
             </div>
             {teacher && <LiveLab key={session.token} attempts={attempts} />}
             {!teacher && (
               <>
-              {cameraCheck && <CameraCheck onClose={()=>{cameraCheck.resolve(undefined);setCameraCheck(undefined);}} onContinue={value=>{cameraCheck.resolve(value);setCameraCheck(undefined);}}/>}
-              {integrityIntro && <ExamIntegrityIntro onDone={integrityIntro.done}/>}
-              <StudentLiveSession
-                key={session.token}
-                token={session.token}
-                attemptId={snapshot?.attempt.id}
-                page={snapshot ? 'exam' : page}
-              />
+                {cameraCheck && (
+                  <CameraCheck
+                    onClose={() => {
+                      cameraCheck.resolve(undefined);
+                      setCameraCheck(undefined);
+                    }}
+                    onContinue={(value) => {
+                      cameraCheck.resolve(value);
+                      setCameraCheck(undefined);
+                    }}
+                  />
+                )}
+                {integrityIntro && <ExamIntegrityIntro onDone={integrityIntro.done} />}
+                <StudentLiveSession
+                  key={session.token}
+                  token={session.token}
+                  attemptId={snapshot?.attempt.id}
+                  page={snapshot ? 'exam' : page}
+                />
               </>
             )}
             {teacher && (
               <FloatingAssistant
                 key={session.token}
-                teacherId={session.teacherId||'master'}
+                teacherId={session.teacherId || 'master'}
                 page={page}
                 navigate={setPage}
                 openExam={(exam) => {
@@ -1262,15 +1402,7 @@ export default function App() {
           </>
         </MotionConfig>
       )}
-      {toast && (
-        <div className="toast" role="status">
-          <Info size={20} />
-          {toast}
-          <button onClick={() => setToast('')} aria-label="إغلاق">
-            <X size={16} />
-          </button>
-        </div>
-      )}
+      {toast && <NoticeToast message={toast} onClose={()=>setToast('')}/>}
       {photo && (
         <div className="modal-backdrop">
           <div className="modal card">

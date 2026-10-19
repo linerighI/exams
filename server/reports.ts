@@ -1,3 +1,4 @@
+import { answerText, answerKeyText } from '../src/questionFormats';
 import { z } from 'zod';
 import type { Store } from './store';
 import type { Session } from '../src/types';
@@ -105,7 +106,7 @@ export function schoolReport(store: Store, options: ReportOptions, accounts: any
         const letters = ['أ', 'ب', 'ج', 'د'];
         section(
           `تفاصيل محاولة ${e(byStudent.get(a.studentId)?.name || a.studentId)}`,
-          `<p>${e(exam?.title || a.examId)} · ${e(a.id)} · ${e(state(a.status))}${a.archived ? ' · مؤرشفة' : ''}</p><p>الموعد النهائي: ${e(date(a.deadline))} · الكاميرا: ${a.cameraExempt ? 'معفى' : a.cameraAvailable ? 'متاحة' : 'غير متاحة'}</p>${questions.map((q: any, i: number) => `<article class="question"><small>السؤال ${i + 1} · الإجابة: ${e(letters[a.answers?.[q.id]] || 'دون إجابة')} · الصحيح: ${e(letters[q.correct])}${a.lateAnswers?.[q.id] !== undefined ? ` · إجابة متأخرة: ${e(letters[a.lateAnswers[q.id]])}` : ''}</small><h3>${printMath(q.text)}</h3>${printImage(q.image)}<div class="options">${q.options.map((o: string, j: number) => `<div>${letters[j]} · ${printMath(o)}</div>`).join('')}</div><p>${printMath(q.explanation)}</p></article>`).join('') || '<p class="notice">نص الأسئلة غير متوفر لهذه المحاولة المؤرشفة.</p>'}`,
+          `<p>${e(exam?.title || a.examId)} · ${e(a.id)} · ${e(state(a.status))}${a.archived ? ' · مؤرشفة' : ''}</p><p>الموعد النهائي: ${e(date(a.deadline))} · الكاميرا: ${a.cameraExempt ? 'معفى' : a.cameraAvailable ? 'متاحة' : 'غير متاحة'}</p>${questions.map((q: any, i: number) => `<article class="question"><small>السؤال ${i + 1} · الإجابة: ${e(answerText(q,a.answers?.[q.id]))} · الصحيح: ${e(answerKeyText(q))}${a.lateAnswers?.[q.id] !== undefined ? ` · إجابة متأخرة: ${e(answerText(q,a.lateAnswers[q.id]))}` : ''}</small><h3>${printMath(q.text)}</h3>${printImage(q.image)}<div class="options">${q.options.map((o: string, j: number) => `<div>${letters[j]} · ${printMath(o)}</div>`).join('')}</div><p>${printMath(q.explanation)}</p></article>`).join('') || '<p class="notice">نص الأسئلة غير متوفر لهذه المحاولة المؤرشفة.</p>'}`,
         );
       }
   }

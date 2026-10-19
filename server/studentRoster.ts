@@ -102,6 +102,8 @@ const header = (v: string) =>
   v
     .normalize('NFKC')
     .replace(/[أإآ]/g, 'ا')
+    .replace(/[\u064B-\u065F\u0670\u0640\u200E\u200F]/g, '')
+    .replace(/ة/g, 'ه')
     .replace(/[\s_\-:]/g, '')
     .toLowerCase();
 const aliases: Record<string, string[]> = {
@@ -113,6 +115,11 @@ const aliases: Record<string, string[]> = {
     'name',
     'student name',
     'fullname',
+    'اسم التلميذ',
+    'اسم الطالبة',
+    'اسم الطالب الكامل',
+    'الاسم الكامل',
+    'اسم',
   ],
   national: [
     'الرقم الوطني',
@@ -141,6 +148,10 @@ export function registerStudentRoster(
   teacher: (r: any) => any,
   otherStores: () => Store[],
   checkGrade: (grade: string, section: string) => void = () => {},
+  mapColumns?: (
+    headers: string[],
+    profiles: { letters: number; digits: number; empty: number }[],
+  ) => Promise<Record<string, number>>,
 ) {
   const previews = new Map<
     string,
@@ -151,6 +162,7 @@ export function registerStudentRoster(
     const input = z
       .object({
         filename: z.string().max(250),
+        ai: z.boolean().default(false),
         file: z.string().max(11_000_000),
         sheet: z.string().max(200).optional(),
         headerRow: z.number().int().min(1).max(20).optional(),
@@ -167,14 +179,28 @@ export function registerStudentRoster(
     const bytes = Buffer.from(encoded, 'base64');
     if (bytes.length > 8 * 1024 * 1024) throw fail('الحد الأقصى للملف 8 ميغابايت');
     let rows: string[][] = [],
-      sheets: string[] = [];
+      sheets: string[] = [],
+      selectedSheet = '';
     if (/\.xlsx$/i.test(input.filename)) {
       checkRosterZip(bytes);
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(bytes as any);
       sheets = workbook.worksheets.map((s) => s.name);
       const sheet =
-        workbook.worksheets.find((s) => s.name === input.sheet) || workbook.worksheets[0];
+        workbook.worksheets.find((s) => s.name === input.sheet) ||
+        workbook.worksheets.find((s) => {
+          let found = false;
+          s.eachRow((r, n) => {
+            if (
+              n <= 20 &&
+              (r.values as any[]).some((v) => aliases.name.map(header).includes(header(clean(v))))
+            )
+              found = true;
+          });
+          return found;
+        }) ||
+        workbook.worksheets[0];
+      selectedSheet = sheet?.name || '';
       if (!sheet || sheet.rowCount > 3020 || sheet.columnCount > 50)
         throw fail('الحد الأقصى 3000 طالب و50 عمودًا');
       for (let r = 1; r <= sheet.rowCount; r++)
@@ -184,7 +210,13 @@ export function registerStudentRoster(
           ),
         );
     } else if (/\.csv$/i.test(input.filename)) {
-      rows = parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes), {
+      const csvText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      const first = csvText.split(/\r?\n/).find((line) => line.trim()) || '';
+      const delimiter = [';', '\t', ','].sort(
+        (a, b) => first.split(b).length - first.split(a).length,
+      )[0];
+      rows = parse(csvText, {
+        delimiter,
         bom: true,
         skip_empty_lines: false,
         relax_column_count: true,
@@ -192,12 +224,19 @@ export function registerStudentRoster(
       });
       if (rows.length > 3020 || rows.some((r) => r.length > 50))
         throw fail('الحد الأقصى 3000 طالب و50 عمودًا');
-    } else throw fail('اختر XLSX أو CSV. احفظ ملفات XLS القديمة بصيغة XLSX.');
+    } else throw fail('اختر ملف Excel بصيغة XLSX أو CSV. احفظ ملفات XLS القديمة بصيغة XLSX.');
     let headerIndex = input.headerRow
       ? input.headerRow - 1
-      : rows
+      : (rows
           .slice(0, 20)
-          .findIndex((r) => r.some((c) => aliases.national.map(header).includes(header(c))));
+          .map((r, i) => ({
+            i,
+            score: Object.values(aliases).filter((names) =>
+              r.some((c) => names.map(header).includes(header(c))),
+            ).length,
+          }))
+          .sort((a, b) => b.score - a.score)
+          .find((r) => r.score > 0)?.i ?? -1);
     if (headerIndex < 0) headerIndex = 0;
     const labels = (rows[headerIndex] || []).map((value) =>
         /^\d{10}$/.test(nationalNumber(value)) ? 'عنوان مخفي' : value,
@@ -206,23 +245,40 @@ export function registerStudentRoster(
     for (const [key, names] of Object.entries(aliases))
       columns[key] =
         input.columns?.[key] ?? labels.findIndex((v) => names.map(header).includes(header(v)));
+    let aiMapped = false;
+    if (input.ai && !input.columns) {
+      if (!mapColumns) throw fail('مساعد ربط الأعمدة غير جاهز. يمكنك ربط الأعمدة يدويًا.');
+      const profiles = labels.map((_, c) => {
+        const samples = rows.slice(headerIndex + 1, headerIndex + 21).map((r) => r[c] || '');
+        return {
+          letters: samples.filter((v) => /\p{L}/u.test(v)).length,
+          digits: samples.filter((v) => /^\d+$/.test(nationalNumber(v))).length,
+          empty: samples.filter((v) => !v).length,
+        };
+      });
+      const suggested = await mapColumns(
+        labels.map((v) => v.slice(0, 100)),
+        profiles,
+      );
+      for (const key of Object.keys(aliases)) {
+        const value = suggested[key];
+        if (Number.isInteger(value) && value >= -1 && value < labels.length) columns[key] = value;
+      }
+      aiMapped = true;
+    }
     const assignedColumns = Object.values(columns).filter((v) => v >= 0);
-    if (
-      columns.name < 0 ||
-      columns.national < 0 ||
-      new Set(assignedColumns).size !== assignedColumns.length
-    )
+    if (columns.name < 0 || new Set(assignedColumns).size !== assignedColumns.length)
       return {
         token: '',
         sheets,
-        sheet: input.sheet || sheets[0] || '',
+        sheet: selectedSheet || input.sheet || sheets[0] || '',
         headerRow: headerIndex + 1,
         columns,
         labels,
         issues: [
           {
             row: headerIndex + 1,
-            message: 'اختر عمودًا مختلفًا لكل حقل، وحدد الاسم والرقم الوطني ثم أعد المعاينة.',
+            message: 'اختر عمودًا مختلفًا لكل حقل، وحدد اسم الطالب ثم أعد المعاينة.',
           },
         ],
         rows: [],
@@ -243,7 +299,7 @@ export function registerStudentRoster(
         name = get('name'),
         grade = get('grade') || input.grade,
         section = get('section') || input.section;
-      if (!/^\d{10}$/.test(national)) {
+      if (national && !/^\d{10}$/.test(national)) {
         issues.push({
           row: r + 1,
           message: 'الرقم الوطني يجب أن يتكون من 10 أرقام؛ احفظ الأرقام التي تبدأ بصفر كنص.',
@@ -261,13 +317,23 @@ export function registerStudentRoster(
         issues.push({ row: r + 1, message: 'أكمل الاسم والصف والشعبة' });
         continue;
       }
-      const index = lookup(store, national);
+      const index = national
+        ? lookup(store, national)
+        : `code:${get('id') || [name, grade, section].map(header).join(':')}`;
       if (seen.has(index)) {
-        issues.push({ row: r + 1, message: 'رقم وطني مكرر داخل الملف' });
+        issues.push({
+          row: r + 1,
+          message: national
+            ? 'رقم وطني مكرر داخل الملف'
+            : 'طالب مكرر داخل الملف؛ أضف رقم طالب مختلفًا إن كانا شخصين مختلفين',
+        });
         continue;
       }
       seen.add(index);
-      if ([name, grade, section].some((value) => nationalNumber(value).includes(national))) {
+      if (
+        national &&
+        [name, grade, section].some((value) => nationalNumber(value).includes(national))
+      ) {
         issues.push({
           row: r + 1,
           message: 'ظهر الرقم الوطني في حقل عام. راجع ربط أعمدة الاسم والصف والشعبة.',
@@ -275,6 +341,7 @@ export function registerStudentRoster(
         continue;
       }
       if (
+        national &&
         otherStores().some((s) =>
           Object.values(s.getSetting('student-national-credentials') || {}).some(
             (v: any) => v.index === lookup(s, national),
@@ -287,10 +354,33 @@ export function registerStudentRoster(
         });
         continue;
       }
-      const existingId = Object.keys(credentials).find((k) => credentials[k].index === index);
+      const existingId = national
+        ? Object.keys(credentials).find((k) => credentials[k].index === index)
+        : undefined;
       const supplied = get('id');
+      const matches =
+        !national && !supplied
+          ? store
+              .all('students')
+              .filter(
+                (s) =>
+                  !credentials[s.id] &&
+                  header(s.name) === header(name) &&
+                  header(s.grade) === header(grade) &&
+                  header(s.section) === header(section),
+              )
+          : [];
+      if (matches.length > 1) {
+        issues.push({
+          row: r + 1,
+          message: 'يوجد أكثر من طالب بالاسم والصف نفسيهما. حدد رقم الطالب للتمييز.',
+        });
+        continue;
+      }
       let studentId =
-        existingId || (supplied && nationalNumber(supplied) !== national ? supplied : id());
+        existingId ||
+        matches[0]?.id ||
+        (supplied && nationalNumber(supplied) !== national ? supplied : id());
       if (
         studentId.length > 300 ||
         ids.has(studentId) ||
@@ -320,6 +410,11 @@ export function registerStudentRoster(
         issues.push({ row: r + 1, message: 'هذا الصف غير مسند إلى حسابك. راجع مدير الحسابات.' });
       }
     }
+    if (!entries.length && !issues.length)
+      issues.push({
+        row: headerIndex + 1,
+        message: 'لا توجد أسماء بعد صف العناوين. راجع ورقة العمل وصف العناوين وربط الأعمدة.',
+      });
     if (entries.length > 3000) throw fail('الحد الأقصى 3000 طالب');
     for (const [token, p] of previews)
       if (p.expires < Date.now() || p.owner === store.tenantId()) previews.delete(token);
@@ -335,15 +430,16 @@ export function registerStudentRoster(
     }
     return {
       token: issues.length ? '' : token,
+      aiMapped,
       sheets,
-      sheet: input.sheet || sheets[0] || '',
+      sheet: selectedSheet || input.sheet || sheets[0] || '',
       headerRow: headerIndex + 1,
       columns,
       labels,
       issues,
       rows: entries.map(({ national, ...e }) => ({
         ...e,
-        national: `••••••${national.slice(-4)}`,
+        national: national ? `••••••${national.slice(-4)}` : 'دخول برمز الطالب',
         action: e.existing ? (input.mode === 'skip' ? 'تخطي' : 'تحديث') : 'إضافة',
       })),
       count: entries.length,
@@ -368,6 +464,10 @@ export function registerStudentRoster(
       await Promise.all(
         preview.entries.slice(i, i + 2).map(async (entry) => {
           if (entry.existing && preview.mode === 'skip') return;
+          if (!entry.national) {
+            prepared.push({ entry, credential: null });
+            return;
+          }
           const salt = randomBytes(16).toString('hex'),
             hash = (await derive(entry.national, salt, 64)) as Buffer;
           prepared.push({
@@ -382,16 +482,20 @@ export function registerStudentRoster(
     )
       throw fail('تغيرت قائمة الطلاب أثناء التحضير. أعد المعاينة.');
     if (
-      prepared.some(({ entry }) =>
-        otherStores().some((s) =>
-          Object.values(s.getSetting('student-national-credentials') || {}).some(
-            (v: any) => v.index === lookup(s, entry.national),
+      prepared.some(
+        ({ entry }) =>
+          entry.national &&
+          otherStores().some((s) =>
+            Object.values(s.getSetting('student-national-credentials') || {}).some(
+              (v: any) => v.index === lookup(s, entry.national),
+            ),
           ),
-        ),
       )
     )
       throw fail('تغير تسجيل أحد الطلاب. أعد المعاينة.');
-    const usedCodes=new Set([store,...otherStores()].flatMap(s=>s.all('students').map(row=>row.code)));
+    const usedCodes = new Set(
+      [store, ...otherStores()].flatMap((s) => s.all('students').map((row) => row.code)),
+    );
     store.db.transaction(() => {
       const credentials = store.getSetting('student-national-credentials') || {};
       for (const { entry, credential } of prepared) {
@@ -403,9 +507,9 @@ export function registerStudentRoster(
           grade: entry.grade,
           section: entry.section,
           code: old?.code || studentCode(usedCodes),
-          loginMethod: 'national',
+          loginMethod: credential ? 'national' : old?.loginMethod,
         });
-        credentials[entry.id] = credential;
+        if (credential) credentials[entry.id] = credential;
       }
       store.setSetting('student-national-credentials', credentials);
       store.audit(`استيراد قائمة طلاب: ${prepared.length}`);

@@ -1,11 +1,15 @@
+import MorphMark from './MorphMark';
+import ExamIssues from './ExamIssues';
+import { examIssues, issuesFromError, type ExamIssue } from './examValidation';
+import { guideToField, useSceneMotion } from './appMotion';
+import ExamQuestionStudio from './ExamQuestionStudio';
 import { refreshBankQuestions } from './refreshBankQuestions';
 import AudioPlayer from './AudioPlayer';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AudioAttachment from './AudioAttachment';
 import ExamAppearanceEditor from './ExamAppearanceEditor';
 import { api } from './api';
 import MathText from './MathText';
-import QuestionComposer from './QuestionComposer';
 import BankWizard from './BankWizard';
 import FocusWindow from './FocusWindow';
 import { deliveryForCount } from './examDelivery';
@@ -53,7 +57,26 @@ export default function SimpleExamCreator({
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [saved, setSaved] = useState<Exam>();
+  const savedScene = useRef<HTMLElement>(null);
+  useSceneMotion(savedScene, '.simple-success-mark, h1, p', saved?.id);
   const [draftId, setDraftId] = useState('');
+  const root = useRef<HTMLDivElement>(null);
+  const [issues, setIssues] = useState<ExamIssue[]>([]);
+  useSceneMotion(root, ':scope > header, :scope > section > h2');
+  const locate = (issue: ExamIssue) => {
+    if (issue.path[0] === 'questions' && typeof issue.path[1] === 'number')
+      root.current?.querySelector('.question-studio')?.dispatchEvent(
+        new CustomEvent('qs-focus-question', {
+          detail: { index: issue.path[1], field: issue.path[2] },
+        }),
+      );
+    else {
+      const target = root.current?.querySelector<HTMLElement>(
+        `[data-exam-field="${issue.path[0]}"]`,
+      );
+      if (target) guideToField(target);
+    }
+  };
   useEffect(() => {
     void api('/api/books')
       .then(setBooks)
@@ -82,12 +105,29 @@ export default function SimpleExamCreator({
     setApproved(false);
   };
   const refreshQuestions = async () => {
-    setBusy(true); setError('');
-    try { setQuestions(await refreshBankQuestions(questions)); setApproved(false); }
-    catch (e) { setError((e as Error).message); }
-    finally { setBusy(false); }
+    setBusy(true);
+    setError('');
+    try {
+      setQuestions(await refreshBankQuestions(questions));
+      setApproved(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
   const save = async (publish: boolean) => {
+    const problems = examIssues({ ...form, questions }, publish, approved);
+    setIssues(problems);
+    if (problems.length) {
+      requestAnimationFrame(() =>
+        root.current
+          ?.querySelector('.exam-issues')
+          ?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+      );
+      return;
+    }
+
     setBusy(true);
     setError('');
     try {
@@ -115,13 +155,17 @@ export default function SimpleExamCreator({
       onSaved(exam);
     } catch (e) {
       setError((e as Error).message);
+      setIssues(issuesFromError(e));
     } finally {
       setBusy(false);
     }
   };
   if (saved)
     return (
-      <section className="card simple-exam">
+      <section ref={savedScene} className="card simple-exam">
+        <span className="simple-success-mark">
+          <MorphMark shape="check" size={32} />
+        </span>
         <h1>{saved.status === 'published' ? 'امتحانك جاهز للطلاب' : 'حُفظت المسودة'}</h1>
         <p>{saved.title}</p>
         {saved.status === 'published' && (
@@ -148,7 +192,7 @@ export default function SimpleExamCreator({
       </section>
     );
   return (
-    <div className="simple-exam">
+    <div className="simple-exam" ref={root}>
       <header className="page-title">
         <div>
           <h1>أنشئ امتحانك بسهولة</h1>
@@ -158,13 +202,18 @@ export default function SimpleExamCreator({
           العودة للوضع الكامل
         </button>
       </header>
+      <ExamIssues issues={issues} onSelect={locate} />
       <section className="card">
         <h2>١. لمن هذا الامتحان؟</h2>
         <div className="form-grid">
           {(['title', 'subject', 'grade', 'section'] as const).map((key, i) => (
             <label className="field" key={key}>
               {['اسم الامتحان', 'المادة', 'الصف', 'الشعبة (اختياري)'][i]}
-              <input value={form[key]} onChange={(e) => patch(key, e.target.value)} />
+              <input
+                data-exam-field={key}
+                value={form[key]}
+                onChange={(e) => patch(key, e.target.value)}
+              />
             </label>
           ))}
           <label className="field">
@@ -173,6 +222,7 @@ export default function SimpleExamCreator({
               type="number"
               min={1}
               max={240}
+              data-exam-field="duration"
               value={form.duration}
               onChange={(e) => patch('duration', Number(e.target.value))}
             />
@@ -183,6 +233,7 @@ export default function SimpleExamCreator({
               type="number"
               min={1}
               max={1000}
+              data-exam-field="total"
               value={form.total}
               onChange={(e) => patch('total', Number(e.target.value))}
             />
@@ -191,6 +242,7 @@ export default function SimpleExamCreator({
             يفتح في
             <input
               type="datetime-local"
+              data-exam-field="opensAt"
               value={form.opensAt}
               onChange={(e) => patch('opensAt', e.target.value)}
             />
@@ -199,6 +251,7 @@ export default function SimpleExamCreator({
             يغلق في
             <input
               type="datetime-local"
+              data-exam-field="closesAt"
               value={form.closesAt}
               onChange={(e) => patch('closesAt', e.target.value)}
             />
@@ -221,7 +274,14 @@ export default function SimpleExamCreator({
       </section>
       <section className="card">
         <h2>٢. أضف أسئلتك</h2>
-        {editing && <div className="info-note">تعدّل سؤالًا موجودًا. احفظ التعديل أو ألغِه قبل النشر. <button className="text-button" onClick={() => setEditing(undefined)}>إلغاء تعديل السؤال</button></div>}
+        {editing && (
+          <div className="info-note">
+            تعدّل سؤالًا موجودًا. احفظ التعديل أو ألغِه قبل النشر.{' '}
+            <button className="text-button" onClick={() => setEditing(undefined)}>
+              إلغاء تعديل السؤال
+            </button>
+          </div>
+        )}
         <div className="simple-actions">
           <button
             className={source === 'manual' ? 'primary' : 'secondary'}
@@ -253,19 +313,7 @@ export default function SimpleExamCreator({
             />
           </FocusWindow>
         )}
-        {source === 'manual' ? (
-          <QuestionComposer
-            key={editing?.id || 'new'}
-            initial={editing}
-            onSave={async (q) => {
-              setQuestions((old) =>
-                editing ? old.map((item) => (item.id === editing.id ? q : item)) : [...old, q],
-              );
-              setEditing(undefined);
-              setApproved(false);
-            }}
-          />
-        ) : (
+        {source === 'manual' ? null : (
           <>
             <label className="field">
               البنك
@@ -317,10 +365,36 @@ export default function SimpleExamCreator({
             </div>
           </>
         )}
+        <ExamQuestionStudio
+          questions={questions}
+          onChange={(value) => {
+            setQuestions(value);
+            setApproved(false);
+          }}
+          onBank={() => {
+            setSource('bank');
+            requestAnimationFrame(() =>
+              document
+                .querySelector('[aria-label="البنك"]')
+                ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+            );
+          }}
+          notify={setError}
+          total={form.total}
+          random={random}
+        />
       </section>
       <section className="card">
         <h2>٣. راجع ثم انشر — {questions.length} سؤالًا</h2>
-        {questions.some(q=>q.bankId) && <button className="secondary small" disabled={busy} onClick={()=>void refreshQuestions()}>تحديث الأسئلة من البنك</button>}
+        {questions.some((q) => q.bankId) && (
+          <button
+            className="secondary small"
+            disabled={busy}
+            onClick={() => void refreshQuestions()}
+          >
+            تحديث الأسئلة من البنك
+          </button>
+        )}
         <label className="check-label">
           <input
             type="checkbox"
@@ -339,6 +413,7 @@ export default function SimpleExamCreator({
               type="number"
               min={1}
               max={Math.min(100, questions.length)}
+              data-exam-field="delivery"
               value={count}
               onChange={(e) => {
                 setCount(Number(e.target.value));
@@ -358,48 +433,20 @@ export default function SimpleExamCreator({
             {['السماح بالآلة الحاسبة', 'السماح بالرسم في GeoGebra', 'اشتراط الكاميرا'][i]}
           </label>
         ))}
-        <ExamAppearanceEditor value={form.appearance} onChange={value=>patch('appearance',value)}/>
-        <AudioAttachment value={form.audio} onChange={value=>patch('audio',value)} label="تعليمات صوتية للامتحان"/>
-        {questions.map((q, index) => (
-          <details className="simple-question-review" key={q.id}>
-            <summary>
-              {index + 1}. <MathText text={q.text} />
-            </summary>
-            {q.image && <img className="manual-image" src={q.image} alt="رسم السؤال" />}
-            {q.audio && <AudioPlayer audio={q.audio}/>}
-            {q.options.map((option, i) => (
-              <p key={i} className={q.correct === i ? 'correct' : ''}>
-                {q.correct === i ? '✓ ' : ''}
-                <MathText text={option} />
-              </p>
-            ))}
-            <MathText text={q.explanation} />
-            <div className="simple-actions">
-              <button
-                className="secondary"
-                onClick={() => {
-                  setEditing(q);
-                  setApproved(false);
-                  setSource('manual');
-                }}
-              >
-                تعديل
-              </button>
-              <button
-                className="text-button"
-                onClick={() => {
-                  setQuestions((old) => old.filter((item) => item.id !== q.id));
-                  setApproved(false);
-                }}
-              >
-                حذف
-              </button>
-            </div>
-          </details>
-        ))}
+        <ExamAppearanceEditor
+          value={form.appearance}
+          onChange={(value) => patch('appearance', value)}
+        />
+        <AudioAttachment
+          value={form.audio}
+          onChange={(value) => patch('audio', value)}
+          label="تعليمات صوتية للامتحان"
+        />
+
         <label className="check-label">
           <input
             type="checkbox"
+            data-exam-field="approved"
             checked={approved}
             onChange={(e) => setApproved(e.target.checked)}
           />
@@ -416,9 +463,15 @@ export default function SimpleExamCreator({
             disabled={busy || !!editing || !approved || !questions.length}
             onClick={() => void save(true)}
           >
+            <MorphMark shape={busy ? 'working' : 'check'} />
             نشر الامتحان للطلاب
           </button>
-          <button className="secondary" disabled={busy || !!editing} onClick={() => void save(false)}>
+          <button
+            className="secondary"
+            disabled={busy || !!editing}
+            onClick={() => void save(false)}
+          >
+            <MorphMark shape={busy ? 'working' : 'saved'} />
             حفظ كمسودة
           </button>
         </div>

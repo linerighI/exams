@@ -5,7 +5,7 @@ const { root, dotnet, run, nodeScript } = require('./desktop-tools.cjs');
   // Fail before distributing a package missing the existing offline OCR feature.
   await require('./check-worker.cjs')();
   nodeScript('scripts/create-icon.cjs');
-  nodeScript('scripts/build-desktop.cjs');
+  nodeScript('scripts/build-desktop.cjs', ['--package-only']);
   run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/prepare-distribution.ps1']);
   const stage = path.join(root, 'release', 'webview2-unpacked');
   const expected = path.join(root, 'release') + path.sep;

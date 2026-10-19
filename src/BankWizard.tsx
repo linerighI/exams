@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import SelectionIndicator from './SelectionIndicator';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Copy,
@@ -15,6 +16,9 @@ import { bankPrompt, pictureInstruction, providers, type BankMeta } from './bank
 import MathText from './MathText';
 import PromptOrbEditor from './PromptOrbEditor';
 import { svgToPng } from './svgDiagram';
+import QuestionTypeSelection from './QuestionTypeSelection';
+import { questionKinds, type QuestionKind } from './questionFormats';
+import { questionTypeGuide } from './questionTypeGuide';
 export default function BankWizard({
   books,
   onImported,
@@ -24,6 +28,7 @@ export default function BankWizard({
   onImported: (id: string) => Promise<void>;
   notify: (s: string) => void;
 }) {
+  const stepsRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState(0),
     [meta, setMeta] = useState<BankMeta>({ title: '', subject: '', grade: '', term: 'الأول' }),
     [count, setCount] = useState(200),
@@ -39,8 +44,10 @@ export default function BankWizard({
     [done, setDone] = useState<any>();
   const [customPrompt, setCustomPrompt] = useState<string>();
   const [includePictures, setIncludePictures] = useState(true);
-  const promptBase = customPrompt ?? bankPrompt(meta, count, range, difficulty, includePictures);
-  const prompt = `${promptBase}\n\n[خيار الرسوم للمعلم]\n${pictureInstruction(includePictures)}`;
+  const [types, setTypes] = useState<QuestionKind[]>(questionKinds.map((k) => k[0]));
+  const promptBase =
+    customPrompt ?? bankPrompt(meta, count, range, difficulty, includePictures, types);
+  const prompt = `${promptBase}\n\n[خيار الرسوم للمعلم]\n${pictureInstruction(includePictures)}\n\n[الأنواع الملزمة لهذا الطلب]\n${questionTypeGuide(types)}`;
   useEffect(() => {
     void api('/api/bank/prompt')
       .then((r) => {
@@ -77,7 +84,12 @@ export default function BankWizard({
           </span>
         </div>
       </div>
-      <nav className="exchange-steps" aria-label="خطوات استيراد البنك">
+      <nav
+        ref={stepsRef}
+        className="exchange-steps selection-track"
+        aria-label="خطوات استيراد البنك"
+      >
+        <SelectionIndicator root={stepsRef} selector='button[aria-current="step"]' value={step} />
         {['جهّز الطلب', 'افتح المساعد', 'استورد البنك'].map((name, i) => (
           <button
             key={name}
@@ -101,8 +113,20 @@ export default function BankWizard({
         >
           {step === 0 && (
             <div className="exchange-setup">
-              <label className="check-label picture-choice"><input type="checkbox" checked={includePictures} onChange={e => { setIncludePictures(e.target.checked); setCopied(false); }} />تضمين صور ورسوم وأسئلة تعتمد على الشكل (موصى به للرياضيات والفيزياء)</label>
-              <p className="info-note">يمكنك إنشاء بنك فارغ وكتابة أسئلتك بنفسك، أو إعداد طلب للذكاء الاصطناعي أدناه.</p>
+              <label className="check-label picture-choice">
+                <input
+                  type="checkbox"
+                  checked={includePictures}
+                  onChange={(e) => {
+                    setIncludePictures(e.target.checked);
+                    setCopied(false);
+                  }}
+                />
+                تضمين صور ورسوم وأسئلة تعتمد على الشكل (موصى به للرياضيات والفيزياء)
+              </label>
+              <p className="info-note">
+                يمكنك إنشاء بنك فارغ وكتابة أسئلتك بنفسك، أو إعداد طلب للذكاء الاصطناعي أدناه.
+              </p>
               <div className="exchange-fields">
                 {(['title', 'subject', 'grade'] as const).map((key, i) => (
                   <label className="field" key={key}>
@@ -156,15 +180,22 @@ export default function BankWizard({
                   />
                   <small>المواضع في الملف، وليست أرقام الصفحات المطبوعة.</small>
                 </label>
+                <QuestionTypeSelection value={types} onChange={setTypes} />
                 <button
                   className="secondary"
-                  disabled={busy || !meta.title.trim() || !meta.subject.trim() || !meta.grade.trim()}
-                  onClick={() => void run(async () => {
-                    const bank = await api('/api/books/manual', 'POST', meta);
-                    await onImported(bank.id);
-                    notify('أُنشئ البنك الفارغ. أضف أسئلتك يدويًا.');
-                  })}
-                >إنشاء بنك فارغ يدويًا — دون ذكاء اصطناعي</button>
+                  disabled={
+                    busy || !meta.title.trim() || !meta.subject.trim() || !meta.grade.trim()
+                  }
+                  onClick={() =>
+                    void run(async () => {
+                      const bank = await api('/api/books/manual', 'POST', meta);
+                      await onImported(bank.id);
+                      notify('أُنشئ البنك الفارغ. أضف أسئلتك يدويًا.');
+                    })
+                  }
+                >
+                  إنشاء بنك فارغ يدويًا — دون ذكاء اصطناعي
+                </button>
                 <button
                   className="primary"
                   disabled={
@@ -257,7 +288,10 @@ export default function BankWizard({
                       setCopied(false);
                     }}
                   />
-                  <small>يُضاف خيار الرسوم الذي اخترته تلقائيًا عند نسخ الطلب أو حفظه.</small>
+                  <small>
+                    تُضاف أنواع الأسئلة وخيار الرسوم اللذان اخترتهما تلقائيًا عند نسخ الطلب أو حفظه،
+                    حتى مع طلبك المخصص.
+                  </small>
                 </label>
                 <div className="button-row">
                   <button
