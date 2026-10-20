@@ -1,3 +1,5 @@
+import {applyPendingRestore,createSnapshotBackups} from './snapshotBackups';
+import {registerTeacherQr} from './teacherQr';
 import { studentCode } from './studentCodes';
 import { normalizeStudentCode } from '../src/studentCode';
 import Fastify from 'fastify';
@@ -94,7 +96,9 @@ export async function createApp(options: {
   pairingFingerprint?: string;
   secretProtection?: SecretProtection;
 }) {
+  applyPendingRestore(options.directory);
   let updateMaintenance = false;
+  let restorePending = false;
   const tenancy = openTenantStores(options.directory);
   const store = tenancy.store;
   const protection = options.secretProtection || localSecretProtection(options.directory);
@@ -138,6 +142,7 @@ export async function createApp(options: {
     return session;
   };
   const teacher = (req: any) => auth(req, 'teacher');
+  const verifyTeacherQr = registerTeacherQr(app,tenancy,teacher);
   registerDeletion(app,store,teacher,studentId=>[...sessions.values()].some(s=>s.role==='student' && s.teacherId===store.tenantId() && s.student?.id===studentId),(grade,section)=>tenancy.checkGrade(store.tenantId(),grade,section),()=>new Set(tenancy.accounts().flatMap(a=>tenancy.forTeacher(a.id).all('students').map(s=>s.code))));
   registerReports(app, store, teacher, () => tenancy.accounts().map(accountView));
   registerSpreadsheets(app,store,teacher);
@@ -172,6 +177,7 @@ export async function createApp(options: {
     (grade, section) => tenancy.allowed(store.tenantId(), grade, section),
   );
   app.addHook('onRequest', (req, reply, done) => {
+    if(restorePending && !['GET','HEAD','OPTIONS'].includes(req.method)){reply.code(409).send({error:'الاستعادة جاهزة. أعد تشغيل الجهاز الرئيسي قبل أي تعديل.'});return;}
     const token = String(req.headers.authorization || '').replace(/^Bearer /, '');
     const session = sessions.get(token);
     if (session?.teacherId && tenancy.account(session.teacherId)?.disabled) {
@@ -180,11 +186,74 @@ export async function createApp(options: {
     }
     tenancy.run(session?.teacherId || 'master', done);
   });
+  // School-roster students keep one login while exams and attempts stay with their teacher.
+  const studentOwners = (session: Session) => {
+    const home = session.teacherId || 'master';
+    if (home !== 'master') return [home];
+    const student = tenancy.forTeacher('master').get('students', session.student!.id);
+    if (!student || student.code !== session.student!.code) return [home];
+    return tenancy.accounts().filter(a => {
+      if (a.disabled || !tenancy.allowed(a.id, student.grade, student.section)) return false;
+      const local = tenancy.forTeacher(a.id).get('students', student.id);
+      return !local || local.code === student.code;
+    }).map(a => a.id);
+  };
+  const studentDevices = new Map<string, string>();
+  app.addHook('preValidation', (req: any, _reply, done) => {
+    const token = String(req.headers.authorization || '').replace(/^Bearer /, '');
+    const session = sessions.get(token);
+    if (session?.role !== 'student') return done();
+    const owners = studentOwners(session);
+    if (owners.length === 1 && owners[0] === session.teacherId) return done();
+    const path = req.url.split('?')[0];
+    const isStart = path === '/api/attempts/start';
+    const heartbeat = path === '/api/lab/heartbeat';
+    const attemptId = /^\/api\/attempts\/([^/]+)/.exec(path)?.[1] || (heartbeat ? req.body?.attemptId : undefined);
+    const deviceId = /^\/api\/lab\/devices\/([^/]+)/.exec(path)?.[1];
+    const assetId = /^\/api\/exam-audio\/([^/]+)/.exec(path)?.[1];
+    const owner = owners.find(key => {
+      const own = tenancy.forTeacher(key);
+      if (isStart) return own.all('exams').some(e => req.body?.examId ? e.id === req.body.examId : e.code === req.body?.code?.trim().toUpperCase());
+      if (attemptId) return (own.db.prepare('SELECT studentId FROM attempts WHERE id=?').get(attemptId) as any)?.studentId === session.student!.id;
+      if (deviceId) return studentDevices.get(`${token}:${deviceId}`) === key;
+      if (assetId) return !!own.get('assets', assetId);
+      return false;
+    });
+    if (heartbeat && owner && typeof req.body?.clientId === 'string') {
+      for (const key of studentDevices.keys()) if (key.startsWith(`${token}:`)) studentDevices.delete(key);
+      studentDevices.set(`${token}:${req.body.clientId}`, owner);
+    }
+    tenancy.run(owner || session.teacherId || 'master', done);
+  });
   const admin = (req: any) => {
     const session = teacher(req);
     if (!session.teacher?.isAdmin) throw fail('هذه العملية لمدير الحسابات', 403);
     return session;
   };
+  const backups=createSnapshotBackups({directory:options.directory,protection,
+    snapshot:()=>[...tenancy.databaseSnapshot(),...backupProtectionFile(options.directory)],
+    canRun:()=>{
+      if(updateMaintenance)throw fail('الاستعادة أو التحديث قيد التنفيذ',409);
+      if([...jobs.values()].some(j=>j.status==='running')||tenancy.accounts().some(a=>tenancy.forTeacher(a.id).all('book_jobs').some(j=>j.status==='running')))throw fail('انتظر اكتمال معالجة البنوك قبل النسخ أو الاستعادة',409);
+      if(tenancy.accounts().some(a=>tenancy.forTeacher(a.id).all('attempts').some(t=>!t.submittedAt&&t.deadline>Date.now())))throw fail('تُؤجّل النسخة الكاملة حتى انتهاء محاولات الطلاب',409);
+    }
+  });
+  const backupTimer=setInterval(()=>void backups.tick(),60000);backupTimer.unref();
+  app.addHook('onClose',async()=>clearInterval(backupTimer));
+  app.addHook('onResponse',async(req,reply)=>{
+    if(reply.statusCode<400&&['POST','PUT','PATCH','DELETE'].includes(req.method)&&/^\/api\/(students|books|bank|exams|attempts|settings|teachers|account|records|sources|generate|ai)/.test(req.url))backups.markChanged();
+  });
+  app.get('/api/backups',async req=>{admin(req);return {config:backups.config(),snapshots:backups.history()};});
+  const backupAction=async<T,>(action:()=>T|Promise<T>):Promise<T>=>{try{return await action();}catch(error){const e=error as Error & {statusCode?:number};if(e.statusCode)throw e;throw fail(/^[\u0600-\u06ff]/.test(e.message)?e.message:'تعذر الوصول إلى ملفات النسخ؛ تحقق من المجلد والمساحة المتاحة',400);}};
+  app.put('/api/backups/config',async req=>{admin(req);const input=z.object({enabled:z.boolean(),mode:z.enum(['daily','changes']),time:z.string(),folder:z.string().max(1000),password:z.string().max(256).optional()}).parse(req.body);return backupAction(()=>backups.configure(input));});
+  app.post('/api/backups/run',async req=>{admin(req);return backupAction(()=>backups.run());});
+  app.post('/api/backups/sync',async req=>{admin(req);return backupAction(()=>backups.syncCloud());});
+  app.post('/api/backups/:id/restore',async(req:any)=>{
+    const session=admin(req),input=z.object({currentPassword:z.string().max(128),backupPassword:z.string().min(12).max(256)}).parse(req.body);
+    const account=tenancy.account(session.teacherId||'master')!;
+    if(!verifyPassword(input.currentPassword,account.password))throw fail('كلمة مرور المدير غير صحيحة',403);
+    const result=await backupAction(()=>backups.stageRestore(req.params.id,input.backupPassword));updateMaintenance=true;restorePending=true;return result;
+  });
   app.get('/api/exports/database',async(req,reply)=>{
     admin(req);
     if(tenancy.accounts().some(a=>tenancy.forTeacher(a.id).all('attempts').some(t=>!t.submittedAt && t.deadline>Date.now())))throw fail('أكمل محاولات الطلاب قبل إنشاء نسخة كاملة لكل الحسابات',409);
@@ -412,6 +481,7 @@ export async function createApp(options: {
       .object({
         role: z.enum(['teacher', 'student']),
         password: z.string().max(128).optional(),
+        qrToken:z.string().max(200).optional(),
         code: z.string().max(40).optional(),
         username: z.string().max(40).default('admin'),
       })
@@ -424,7 +494,7 @@ export async function createApp(options: {
     let owner = 'master';
     let valid = false;
     if (data.role === 'teacher') {
-      account = data.password ? tenancy.verify(data.username, data.password) : undefined;
+      account = data.qrToken ? verifyTeacherQr(data.qrToken) : data.password ? tenancy.verify(data.username, data.password) : undefined;
       valid = !!account;
       if (account) owner = account.id;
     } else {
@@ -438,6 +508,9 @@ export async function createApp(options: {
           matches.push({ student: found, owner: a.id });
         }
       }
+      const schoolMatch = matches.find(match => match.owner === 'master');
+      if (schoolMatch && matches.every(match => match.student.id === schoolMatch.student.id && match.student.code === schoolMatch.student.code))
+        matches.splice(0, matches.length, schoolMatch);
       if (matches.length === 1) {
         student = matches[0].student;
         owner = matches[0].owner;
@@ -489,6 +562,7 @@ export async function createApp(options: {
       store.audit(`خروج الطالب ${session.student!.id} بإذن المعلم`);
     }
     sessions.delete(session.token);
+    for (const key of studentDevices.keys()) if (key.startsWith(`${session.token}:`)) studentDevices.delete(key);
     return { ok: true };
   });
   app.get('/api/settings', async (req) => {
@@ -628,7 +702,7 @@ export async function createApp(options: {
   app.post('/api/students', async (req) => {
     teacher(req);
     const input = z.object({ id: text, name: text, grade: text, section: text }).parse(req.body);
-    if (store.get('students', input.id)) throw fail('رقم الطالب موجود مسبقًا', 409);
+    if (tenancy.forTeacher(store.tenantId()).get('students', input.id)) throw fail('رقم الطالب موجود مسبقًا', 409);
     const student = { ...input, code: freshStudentCode() };
     store.put('students', student);
     return student;
@@ -639,6 +713,8 @@ export async function createApp(options: {
     if(!student)throw fail('الطالب غير موجود',404);
     if([...sessions.values()].some(s=>s.role==='student' && s.teacherId===store.tenantId() && s.student?.id===student.id) || store.attemptsFor(student.id).some(a=>!a.submittedAt))
       throw fail('سجّل خروج الطالب وأنهِ محاولته قبل تغيير رمز الدخول',409);
+    if (store.tenantId() !== 'master' && !tenancy.forTeacher(store.tenantId()).get('students', student.id))
+      throw fail('اطلب من مدير المدرسة تغيير رمز طالب القائمة المشتركة', 403);
     student.code=freshStudentCode();
     store.put('students',student);
     store.audit(`تغيير رمز دخول الطالب ${student.id}`);
@@ -678,8 +754,10 @@ export async function createApp(options: {
   });
   app.get('/api/exams', async (req) => {
     const session = auth(req);
-    return store
-      .all('exams')
+    const exams = session.role === 'student'
+      ? studentOwners(session).flatMap(key => tenancy.run(key, () => store.all('exams')))
+      : store.all('exams');
+    return exams
       .filter(
         (e: Exam) => visible(e, session) && (session.role === 'teacher' || e.status !== 'draft'),
       )
@@ -797,10 +875,12 @@ export async function createApp(options: {
   });
   app.get('/api/attempts', async (req) => {
     const session = auth(req);
-    return store
-      .attemptsFor(session.role === 'student' ? session.student!.id : undefined)
-      .filter((a: Attempt) => session.role === 'teacher' || a.studentId === session.student!.id)
-      .map((a: Attempt) => cleanAttempt(a, session));
+    if (session.role === 'student')
+      return studentOwners(session).flatMap(key => tenancy.run(key, () => {
+        expire();
+        return store.attemptsFor(session.student!.id).map(a => cleanAttempt(a, session));
+      }));
+    return store.attemptsFor().map(a => cleanAttempt(a, session));
   });
   app.get('/api/exam-audio/:id',async(req:any,reply)=>{
     const session=auth(req),asset=store.get('assets',req.params.id);

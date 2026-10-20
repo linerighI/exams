@@ -1,4 +1,4 @@
-import { BrandTrace, useBrandMotion } from './BrandMotion';
+import { BrandTrace, ZunisAtmosphere, useBrandMotion } from './BrandMotion';
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, LockKeyhole, KeyRound } from 'lucide-react';
@@ -27,11 +27,18 @@ export function ZunisSplash() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      <ZunisAtmosphere />
       <span className="zunis-emblem">
         <BrandTrace />
         <ShieldCheck size={48} />
       </span>
-      <h1>Zunis</h1>
+      <h1 aria-label="Zunis" dir="ltr">
+        {[...'Zunis'].map((letter, i) => (
+          <span className="zunis-letter" aria-hidden="true" key={i}>
+            {letter}
+          </span>
+        ))}
+      </h1>
       <p>حماية مساحة المدرسة</p>
       <small>صلاحيات المعلّم · جلسات الطلاب · خصوصية البيانات</small>
       <button className="text-button" onClick={close}>

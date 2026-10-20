@@ -209,6 +209,27 @@ export function registerStudentRoster(
             clean(sheet.getRow(r).getCell(c + 1).value),
           ),
         );
+    } else if (/\.json$/i.test(input.filename)) {
+      let data: unknown;
+      try { data = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^\uFEFF/, '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); }
+      catch { throw fail('ملف JSON غير صالح. انسخ JSON فقط أو ارفع الملف الناتج.'); }
+      const field = z.string().trim().max(300);
+      const student = z.object({
+        name: field.min(1), grade: field.default(''), section: field.default(''),
+        id: field.optional(), national: field.optional(),
+      }).strict();
+      const schema = z.union([
+        z.array(student).min(1).max(3000),
+        z.object({ students: z.array(student).min(1).max(3000), version: z.literal(1).optional() }).strict(),
+      ]);
+      const result = schema.safeParse(data);
+      if (!result.success) throw fail('استخدم قائمة students من 1 إلى 3000 طالب. الحقول: name وgrade وsection وid وnational؛ جميع القيم نصوص، خصوصًا الأرقام التي تبدأ بصفر.');
+      const students = Array.isArray(result.data) ? result.data : result.data.students;
+      rows = [['name', 'grade', 'section', 'id', 'national id'], ...students.map(s => [s.name, s.grade, s.section, s.id || '', s.national || ''])];
+      // JSON has a fixed schema; spreadsheet column overrides do not apply.
+      input.headerRow = 1;
+      input.columns = { name: 0, grade: 1, section: 2, id: 3, national: 4 };
+      input.ai = false;
     } else if (/\.csv$/i.test(input.filename)) {
       const csvText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
       const first = csvText.split(/\r?\n/).find((line) => line.trim()) || '';
@@ -224,7 +245,7 @@ export function registerStudentRoster(
       });
       if (rows.length > 3020 || rows.some((r) => r.length > 50))
         throw fail('الحد الأقصى 3000 طالب و50 عمودًا');
-    } else throw fail('اختر ملف Excel بصيغة XLSX أو CSV. احفظ ملفات XLS القديمة بصيغة XLSX.');
+    } else throw fail('اختر ملف XLSX أو CSV أو JSON. احفظ ملفات XLS القديمة بصيغة XLSX.');
     let headerIndex = input.headerRow
       ? input.headerRow - 1
       : (rows
@@ -286,6 +307,8 @@ export function registerStudentRoster(
         added: 0,
         existing: 0,
       };
+    const roster = store.all('students');
+    const foreignCredentials = otherStores().map(s => ({ store: s, indices: new Set(Object.values(s.getSetting('student-national-credentials') || {}).map((v: any) => v.index)) }));
     const credentials = store.getSetting('student-national-credentials') || {},
       seen = new Set<string>(),
       ids = new Set<string>(),
@@ -342,11 +365,7 @@ export function registerStudentRoster(
       }
       if (
         national &&
-        otherStores().some((s) =>
-          Object.values(s.getSetting('student-national-credentials') || {}).some(
-            (v: any) => v.index === lookup(s, national),
-          ),
-        )
+        foreignCredentials.some(s => s.indices.has(lookup(s.store, national)))
       ) {
         issues.push({
           row: r + 1,
@@ -360,9 +379,7 @@ export function registerStudentRoster(
       const supplied = get('id');
       const matches =
         !national && !supplied
-          ? store
-              .all('students')
-              .filter(
+          ? roster.filter(
                 (s) =>
                   !credentials[s.id] &&
                   header(s.name) === header(name) &&

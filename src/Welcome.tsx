@@ -1,6 +1,17 @@
+import LoginWallpaper from './LoginWallpaper';
+import { TeacherQrScanner } from './TeacherQr';
 import { useSceneMotion } from './appMotion';
 import { useEffect, useRef, useState } from 'react';
-import { GraduationCap, BookOpen, School, Wifi, Monitor, ArrowLeft, Loader2 } from 'lucide-react';
+import {
+  GraduationCap,
+  BookOpen,
+  School,
+  Wifi,
+  Monitor,
+  ArrowLeft,
+  Loader2,
+  QrCode,
+} from 'lucide-react';
 import { api, setToken } from './api';
 import Orb from './BlueOrb';
 import MinistryBrand from './MinistryBrand';
@@ -26,6 +37,7 @@ export default function Welcome({
   notify: (s: string) => void;
   onResume: (s: Session, c: Snapshot) => void;
 }) {
+  const [qrOpen, setQrOpen] = useState(false);
   const [mode, setMode] = useState<'teacher' | 'student'>('teacher');
   const [school, setSchool] = useState('مدرسة محمد الشريقي');
   const [setup, setSetup] = useState(false);
@@ -120,7 +132,7 @@ export default function Welcome({
     )
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
-  const login = async () => {
+  const login = async (qrToken?: string) => {
     setBusy(true);
     setError('');
     try {
@@ -130,6 +142,7 @@ export default function Welcome({
       }
       const value: Session = await api('/api/login', 'POST', {
         role: mode,
+        qrToken,
         username: mode === 'teacher' ? username : undefined,
         password: mode === 'teacher' ? password : undefined,
         code: mode === 'student' ? normalizeStudentCode(studentCode) : undefined,
@@ -199,6 +212,7 @@ export default function Welcome({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
+      <LoginWallpaper />
       <div className="welcome-frame">
         <div className="login-layout">
           <section className="login-story">
@@ -388,6 +402,17 @@ export default function Welcome({
                 </button>
               </form>
             )}
+            {ready && mode === 'teacher' && !setup && (
+              <button
+                type="button"
+                className="secondary wide teacher-qr-login"
+                disabled={busy}
+                onClick={() => setQrOpen(true)}
+              >
+                <QrCode size={18} />
+                الدخول بصورة الرمز
+              </button>
+            )}
             {error && (
               <div className="error-note" role="alert">
                 {error}
@@ -399,6 +424,15 @@ export default function Welcome({
           </section>
         </div>
       </div>
+      {qrOpen && (
+        <TeacherQrScanner
+          onClose={() => setQrOpen(false)}
+          onToken={(token) => {
+            setQrOpen(false);
+            void login(token);
+          }}
+        />
+      )}
       {connectOpen && window.desktop && (
         <ConnectionDialog
           connection={connection}

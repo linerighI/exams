@@ -144,8 +144,8 @@
 }
 .page-surface .student-exam-theme.student-exam-theme .primary,
 .app-shell.student-session-shell .page-surface .student-exam-theme .primary {
-  background: var(--exam-accent);
-  border-color: var(--exam-accent);
+  background: var(--exam-action, var(--exam-accent));
+  border-color: var(--exam-action, var(--exam-accent));
 }
 .student-exam-theme .question-map button.current{background:var(--exam-accent);border-color:var(--exam-accent);color:#fff}
 .student-exam-theme .progress-track>div{background:var(--exam-accent)}

@@ -1,4 +1,4 @@
-import { BrandTrace, useBrandMotion } from './BrandMotion';
+import { BrandTrace, ZunisAtmosphere, useBrandMotion } from './BrandMotion';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'motion/react';
@@ -30,6 +30,7 @@ export default function ExamIntegrityIntro({ onDone }: { onDone: () => void }) {
       animate={{ opacity: 1 }}
       transition={{ duration: reduced ? 0 : 0.2 }}
     >
+      <ZunisAtmosphere />
       <div className="integrity-emblem">
         <BrandTrace />
         <ShieldCheck size={52} />
@@ -37,16 +38,18 @@ export default function ExamIntegrityIntro({ onDone }: { onDone: () => void }) {
       <div className="gsap-exam-readiness">
         <i /> مساحتك جاهزة للتركيز
       </div>
-      <span className="integrity-brand">Zunis</span>
+      <span className="integrity-brand" aria-label="Zunis" dir="ltr">
+        {[...'Zunis'].map((letter, i) => (
+          <span className="zunis-letter" aria-hidden="true" key={i}>
+            {letter}
+          </span>
+        ))}
+      </span>
       <h1>ابدأ بثقة. أجب بأمانة.</h1>
       <p>الغش قد يؤدي إلى إلغاء المحاولة وتطبيق إجراءات المدرسة.</p>
       <small>التزم بتعليمات المعلم واستخدم الأدوات المسموحة فقط.</small>
       <div className="integrity-progress">
-        <motion.span
-          initial={{ scaleX: reduced ? 1 : 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: reduced ? 0 : 3, ease: 'linear' }}
-        />
+        <span />
       </div>
       <span>سيفتح الامتحان تلقائيًا خلال لحظات</span>
     </motion.div>,

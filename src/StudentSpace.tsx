@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   BookOpen,
@@ -11,8 +11,11 @@ import {
   ShieldCheck,
   Wifi,
   WifiOff,
-  Sparkles,
 } from 'lucide-react';
+import { gsap } from 'gsap';
+import { Flip } from 'gsap/Flip';
+import { useStudentWorkspaceMotion, prefersQuietMotion } from './appMotion';
+gsap.registerPlugin(Flip);
 import type { Attempt, Exam, Student } from './types';
 import './studentSpace.css';
 
@@ -27,6 +30,34 @@ const available = (exam: Exam) =>
   exam.status === 'published' &&
   Date.now() >= Date.parse(exam.opensAt) &&
   Date.now() < Date.parse(exam.closesAt);
+function ExamPaper({ exam }: { exam: Exam }) {
+  return (
+    <div className="student-paper-art" aria-hidden="true">
+      <div className="student-paper-back" />
+      <div className="student-cover-paper">
+        <span>{exam.subject}</span>
+        <strong>{exam.title}</strong>
+        <small>
+          الصف {exam.grade} · الفصل {exam.term}
+        </small>
+        <svg className="student-paper-lines" viewBox="0 0 180 100" fill="none">
+          <g stroke="#e2eaf5" strokeWidth="3" strokeLinecap="round">
+            <path d="M17 12H161M45 30H161M17 52H161M45 70H161M17 92H161" />
+          </g>
+          <g stroke="#94b5df" strokeWidth="1.5">
+            <circle cx="23" cy="30" r="5" />
+            <circle cx="23" cy="70" r="5" />
+          </g>
+        </svg>
+        <div className="student-paper-seal">
+          <GraduationCap size={16} />
+          <span>امتحانات الشريقي</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentSpace({
   page,
   student,
@@ -48,9 +79,20 @@ export default function StudentSpace({
   start: (exam?: Exam, code?: string) => void;
   resume: (attempt: Attempt) => void;
 }) {
+  const scene = useRef<HTMLDivElement>(null);
+  useStudentWorkspaceMotion(scene, page);
+  const filterState = useRef<ReturnType<typeof Flip.getState> | null>(null);
   const [search, setSearch] = useState(''),
     [filter, setFilter] = useState('all'),
     [code, setCode] = useState('');
+  useLayoutEffect(() => {
+    if (!filterState.current || prefersQuietMotion()) return;
+    const context = gsap.context(() => {
+      Flip.from(filterState.current!, { duration: 0.45, ease: 'power3.inOut', scale: true });
+    }, scene);
+    filterState.current = null;
+    return () => context.revert();
+  }, [filter]);
   const completed = attempts.filter((a) => !!a.submittedAt);
   const active = attempts.filter((a) => !a.submittedAt);
   const resultReady = (a: Attempt) =>
@@ -60,6 +102,8 @@ export default function StudentSpace({
   const upcoming = exams
     .filter((e) => e.status === 'published' && Date.parse(e.opensAt) > Date.now())
     .sort((a, b) => Date.parse(a.opensAt) - Date.parse(b.opensAt));
+  const nextExam = exams.find((e) => e.id === active[0]?.examId) || ready[0] || upcoming[0];
+  const nextAttempt = nextExam && active.find((a) => a.examId === nextExam.id);
   const byExam = (exam: Exam) => attempts.find((a) => a.examId === exam.id);
   const filtered = exams
     .filter((e) => `${e.title} ${e.subject} ${e.grade}`.includes(search))
@@ -86,7 +130,10 @@ export default function StudentSpace({
           const attempt = byExam(e),
             canStart = available(e);
           return (
-            <article className="exam-card student-exam-card" key={e.id}>
+            <article className="exam-card student-exam-card" key={e.id} data-flip-id={e.id}>
+              <div className="student-card-cover">
+                <ExamPaper exam={e} />
+              </div>
               <header>
                 <span className="student-subject-icon">
                   <BookOpen size={22} />
@@ -133,7 +180,7 @@ export default function StudentSpace({
               </div>
               <button
                 className={attempt?.submittedAt ? 'secondary wide' : 'primary wide'}
-                disabled={busy || !!attempt?.submittedAt || (!canStart && !attempt)}
+                disabled={busy || !connected || !!attempt?.submittedAt || (!canStart && !attempt)}
                 onClick={() => (attempt ? resume(attempt) : start(e))}
               >
                 {attempt?.submittedAt ? (
@@ -163,7 +210,7 @@ export default function StudentSpace({
       )
     );
   return (
-    <div className="student-space">
+    <div className="student-space" ref={scene} data-student-page={page}>
       <div className="student-page-heading">
         <div>
           <span className="student-kicker">
@@ -178,7 +225,7 @@ export default function StudentSpace({
           </h1>
           <p>
             {page === 'dashboard'
-              ? 'خطوة واضحة، تركيز أكثر، وكل إنجاز في مكانه.'
+              ? 'امتحاناتك ومواعيدك ونتائجك، في مكان واحد.'
               : page === 'results'
                 ? 'تابع ما أنجزته، واطّلع على درجاتك بعد نشرها من المعلم.'
                 : 'امتحانات صفك ومحاولاتك، مرتبة لتعرف خطوتك التالية.'}
@@ -197,108 +244,233 @@ export default function StudentSpace({
       )}
       {page === 'dashboard' ? (
         <>
-          <section className="student-welcome-panel">
-            <div className="student-welcome-copy">
-              <span className="student-kicker">مساحة هادئة لتُظهر ما تعلمته</span>
-              <h2>
-                {active.length
-                  ? 'لنُكمل ما بدأت.'
-                  : ready.length
-                    ? 'خطوتك التالية جاهزة.'
-                    : 'كل بداية، فرصة جديدة.'}
-              </h2>
-              <p>
-                {active.length
-                  ? 'لديك محاولة بدأت بها. عد إليها وأكمل إجاباتك قبل انتهاء الوقت.'
-                  : ready.length
-                    ? `لديك ${ready.length} امتحان متاح. اقرأ التعليمات، وخذ وقتك في كل سؤال.`
-                    : 'تابع هذه المساحة؛ ستظهر امتحاناتك عندما ينشرها المعلم.'}
-              </p>
-              <div className="student-hero-actions">
-                <button
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => (active[0] ? resume(active[0]) : navigate('exams'))}
-                >
-                  {active.length ? 'متابعة محاولتي' : 'استعراض امتحاناتي'}
-                  <ArrowLeft size={17} />
-                </button>
-                <span>
-                  <ShieldCheck size={15} />
-                  إجاباتك تُحفظ أثناء الحل
-                </span>
-              </div>
-            </div>
-          </section>
-          <div className="student-summary">
+          <div className="student-summary" aria-label="ملخص الامتحانات">
             {[
-              [BookOpen, ready.length, 'متاح للبدء'],
-              [Clock3, active.length, 'محاولات جارية'],
-              [CheckCircle2, completed.length, 'امتحانات مكتملة'],
-              [GraduationCap, published.length, 'نتائج منشورة'],
-            ].map(([Icon, value, title]: any) => (
-              <div key={title}>
-                <span className="student-summary-icon">
-                  <Icon size={20} />
-                </span>
-                <div>
-                  <strong>{value}</strong>
-                  <span>{title}</span>
-                </div>
-              </div>
+              [ready.length, 'متاح الآن'],
+              [active.length, 'قيد الإجابة'],
+              [completed.length, 'تم التسليم'],
+              [published.length, 'نتائج منشورة'],
+            ].map(([value, title]) => (
+              <button
+                key={title}
+                className="student-summary-item"
+                onClick={() => {
+                  setFilter(
+                    title === 'متاح الآن'
+                      ? 'ready'
+                      : title === 'قيد الإجابة'
+                        ? 'active'
+                        : title === 'تم التسليم'
+                          ? 'done'
+                          : 'all',
+                  );
+                  navigate(title === 'نتائج منشورة' ? 'results' : 'exams');
+                }}
+              >
+                <strong>{value}</strong>
+                <span>{title}</span>
+                <ArrowLeft size={16} aria-hidden="true" />
+              </button>
             ))}
           </div>
-          <section className="student-section">
-            <header>
-              <div>
-                <span className="student-kicker">ابدأ من هنا</span>
-                <h2>امتحاناتك الأقرب</h2>
-              </div>
-              <button className="text-button" onClick={() => navigate('exams')}>
-                كل الامتحانات
-                <ArrowLeft size={16} />
-              </button>
-            </header>
-            {cards(
-              [...exams]
-                .sort(
-                  (a, b) =>
-                    Number(available(b)) - Number(available(a)) ||
-                    Date.parse(a.opensAt) - Date.parse(b.opensAt),
-                )
-                .slice(0, 3),
-            )}
-          </section>
-          <div className="student-support-grid">
-            <section className="student-help-card">
-              <span className="student-kicker">قبل أن تبدأ</span>
-              <h3>دقيقة للاستعداد، فرق في التركيز.</h3>
-              <ol>
-                <li>اقرأ مدة الامتحان ووقت إتاحته.</li>
-                <li>استخدم خريطة الأسئلة لمراجعة إجاباتك.</li>
-                <li>حين تصبح الكرة خضراء، راجع ثم أكّد التسليم.</li>
-              </ol>
-            </section>
-            <section className="student-help-card">
-              <span className="student-kicker">على جدولك</span>
-              <h3>{upcoming.length ? 'القادم في مساحتك' : 'أنت على اطلاع'}</h3>
-              {upcoming.slice(0, 2).map((e) => (
-                <div className="student-upcoming" key={e.id}>
-                  <CalendarDays size={19} />
-                  <div>
-                    <strong>{e.title}</strong>
-                    <span>{date(e.opensAt)}</span>
+          <div className="student-dashboard-layout">
+            <div className="student-dashboard-main">
+              <section className="student-next-exam" aria-label="الامتحان التالي">
+                <div className="student-next-content">
+                  <div className="student-next-label">
+                    <BookOpen size={18} aria-hidden="true" />
+                    <span>{nextAttempt ? 'أكمل امتحانك' : 'الامتحان التالي'}</span>
+                    <i />
                   </div>
+                  {nextExam ? (
+                    <>
+                      <div className="student-next-topline">
+                        <span>
+                          {nextExam.subject} / الفصل {nextExam.term}
+                        </span>
+                        <span className={`student-badge ${available(nextExam) ? 'blue' : 'muted'}`}>
+                          {nextAttempt
+                            ? 'قيد الإجابة'
+                            : available(nextExam)
+                              ? 'متاح الآن'
+                              : 'قريبًا'}
+                        </span>
+                      </div>
+                      <h2 className="student-feature-title">{nextExam.title}</h2>
+                      <p className="student-feature-class">
+                        الصف {nextExam.grade}
+                        {nextExam.section ? ` · الشعبة ${nextExam.section}` : ''}
+                      </p>
+                      <div className="student-feature-facts">
+                        <span>
+                          <Clock3 size={16} />
+                          <strong>{nextExam.duration}</strong> دقيقة
+                        </span>
+                        <span>
+                          <GraduationCap size={17} />
+                          <strong>{nextExam.total}</strong> درجة
+                        </span>
+                      </div>
+                      <div className="student-next-date">
+                        <CalendarDays size={18} aria-hidden="true" />
+                        <div>
+                          <span>{available(nextExam) ? 'متاح حتى' : 'يبدأ في'}</span>
+                          <strong>
+                            {date(available(nextExam) ? nextExam.closesAt : nextExam.opensAt)}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="student-next-footer">
+                        <button
+                          className="primary student-launch"
+                          disabled={busy || !connected || (!nextAttempt && !available(nextExam))}
+                          onClick={() => (nextAttempt ? resume(nextAttempt) : start(nextExam))}
+                        >
+                          {nextAttempt
+                            ? 'متابعة الامتحان'
+                            : available(nextExam)
+                              ? 'ابدأ الامتحان'
+                              : 'بانتظار موعد الامتحان'}
+                          <ArrowLeft size={19} />
+                        </button>
+                        <span>
+                          <ShieldCheck size={15} />
+                          الحفظ تلقائي أثناء الإجابة
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="student-next-empty">
+                      <h2>لا يوجد امتحان متاح حاليًا</h2>
+                      <p>ستظهر هنا الامتحانات التي ينشرها معلموك لصفك وشعبتك.</p>
+                      <button className="text-button" onClick={() => navigate('exams')}>
+                        لديك رمز امتحان؟
+                        <ArrowLeft size={17} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
-              {!upcoming.length && (
-                <p>لا توجد امتحانات بموعد قادم حاليًا. نتائجك تبقى في صفحة «نتائجي» بعد نشرها.</p>
-              )}
-              <button className="text-button" onClick={() => navigate('results')}>
-                الذهاب إلى نتائجي
-                <ArrowLeft size={16} />
-              </button>
-            </section>
+                {nextExam && (
+                  <div className="student-exam-ticket">
+                    <ExamPaper exam={nextExam} />
+                  </div>
+                )}
+              </section>
+              <section className="student-section student-other-exams">
+                <header>
+                  <div>
+                    <span className="student-kicker">قائمة الامتحانات</span>
+                    <h2>بقية امتحاناتك</h2>
+                  </div>
+                  <button className="text-button" onClick={() => navigate('exams')}>
+                    كل الامتحانات
+                    <ArrowLeft size={16} />
+                  </button>
+                </header>
+                {exams.some((e) => e.id !== nextExam?.id) ? (
+                  cards(exams.filter((e) => e.id !== nextExam?.id).slice(0, 3))
+                ) : (
+                  <p className="student-no-more">لا توجد امتحانات أخرى في قائمتك.</p>
+                )}
+              </section>
+            </div>
+            <aside className="student-agenda">
+              <section className="student-join-panel">
+                <div className="student-aside-heading">
+                  <LockKeyhole size={18} />
+                  <h2>لديك رمز امتحان؟</h2>
+                </div>
+                <p>أدخل الرمز الذي أعطاك إياه المعلم.</p>
+                <form
+                  className="student-dashboard-code"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (code.trim() && connected && !busy) start(undefined, code.trim());
+                  }}
+                >
+                  <label className="sr-only" htmlFor="dashboard-exam-code">
+                    رمز الامتحان
+                  </label>
+                  <input
+                    id="dashboard-exam-code"
+                    dir="ltr"
+                    placeholder="رمز الامتحان"
+                    maxLength={32}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                  />
+                  <button
+                    className="primary"
+                    disabled={busy || !connected || !code.trim()}
+                    aria-label="الانضمام بالرمز"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                </form>
+              </section>
+              <section>
+                <div className="student-aside-heading">
+                  <CalendarDays size={18} />
+                  <h2>على جدولك</h2>
+                </div>
+                {upcoming.length ? (
+                  upcoming.slice(0, 3).map((e) => (
+                    <div className="student-agenda-item" key={e.id}>
+                      <time dateTime={e.opensAt}>
+                        <strong>
+                          {new Date(e.opensAt).toLocaleDateString('ar-JO', { day: 'numeric' })}
+                        </strong>
+                        <small>
+                          {new Date(e.opensAt).toLocaleDateString('ar-JO', { month: 'short' })}
+                        </small>
+                      </time>
+                      <div>
+                        <strong>{e.title}</strong>
+                        <small>
+                          {new Date(e.opensAt).toLocaleTimeString('ar-JO', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </small>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p>جدولك خالٍ الآن. سيظهر موعد امتحانك القادم هنا.</p>
+                )}
+              </section>
+              <section>
+                <div className="student-aside-heading">
+                  <CheckCircle2 size={18} />
+                  <h2>آخر تسليم</h2>
+                </div>
+                {completed.length ? (
+                  <>
+                    <strong>
+                      {exams.find(
+                        (e) =>
+                          e.id ===
+                          [...completed].sort((a, b) => b.submittedAt! - a.submittedAt!)[0].examId,
+                      )?.title || 'امتحان مكتمل'}
+                    </strong>
+                    <p>يمكنك متابعة حالة النتيجة من سجل النتائج.</p>
+                  </>
+                ) : (
+                  <p>لم تسلّم أي امتحان بعد.</p>
+                )}
+                <button className="text-button" onClick={() => navigate('results')}>
+                  عرض النتائج
+                  <ArrowLeft size={15} />
+                </button>
+              </section>
+              <section className="student-preflight">
+                <span className="student-kicker">قبل البدء</span>
+                <p>
+                  اقرأ التعليمات، وتأكد من الوقت المتاح. يمكنك تعليم أي سؤال للعودة إليه قبل
+                  التسليم.
+                </p>
+              </section>
+            </aside>
           </div>
         </>
       ) : page === 'exams' ? (
@@ -317,7 +489,7 @@ export default function StudentSpace({
               className="student-code-form"
               onSubmit={(e) => {
                 e.preventDefault();
-                start(undefined, code.trim());
+                if (code.trim() && connected && !busy) start(undefined, code.trim());
               }}
             >
               <label htmlFor="student-exam-code">لديك رمز؟</label>
@@ -329,7 +501,7 @@ export default function StudentSpace({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
               />
-              <button className="primary small" disabled={busy || !code.trim()}>
+              <button className="primary small" disabled={busy || !connected || !code.trim()}>
                 انضمام
               </button>
             </form>
@@ -345,9 +517,23 @@ export default function StudentSpace({
                 key={id}
                 aria-pressed={filter === id}
                 className={filter === id ? 'active' : ''}
-                onClick={() => setFilter(id)}
+                onClick={() => {
+                  if (id === filter) return;
+                  if (!prefersQuietMotion() && scene.current)
+                    filterState.current = Flip.getState(
+                      scene.current.querySelectorAll('.student-filter-marker, .student-exam-card'),
+                    );
+                  setFilter(id);
+                }}
               >
-                {label}
+                {filter === id && (
+                  <span
+                    className="student-filter-marker"
+                    data-flip-id="student-filter-marker"
+                    aria-hidden="true"
+                  />
+                )}
+                <span>{label}</span>
               </button>
             ))}
             <span>{filtered.length} امتحانات</span>
@@ -362,7 +548,7 @@ export default function StudentSpace({
               <strong>{published.length} نتائج منشورة</strong>
               <p>{completed.length - published.length} امتحانات مكتملة بانتظار نشر الدرجة</p>
             </div>
-            <span className="student-badge blue">إنجازك، خطوة بخطوة</span>
+            <span className="student-badge blue">سجل النتائج</span>
           </div>
           {attempts.length ? (
             <div className="student-result-list">

@@ -1,3 +1,5 @@
+import {TeacherQrCard} from './TeacherQr';
+import SnapshotBackupSettings from './SnapshotBackupSettings';
 import { useEffect, useState } from 'react';
 import {
   Activity,
@@ -409,11 +411,12 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
             )}
           </section>
         )}
-        {tab === 'accounts' && <TeacherAccounts notify={notify} />}
+        {tab === 'accounts' && <><TeacherQrCard notify={notify}/><TeacherAccounts notify={notify} /></>}
         {tab === 'updates' && <AppUpdates embedded/>}
         {tab === 'trash' && <RecycleBin notify={notify}/>}
         {tab === 'backup' && (
           <section className="card settings-card">
+            <SnapshotBackupSettings notify={notify} admin={adminBackup}/>
             <div className="database-backup-card"><h2>كل قواعد بيانات المدرسة في ملف Excel واحد</h2><p>يشمل جميع حسابات المعلمين وطلابهم وبنوكهم وامتحاناتهم وإجاباتهم وإعداداتهم والتسجيلات والرسوم. تُحفظ ملفات SQLite الأصلية كاملة داخل المصنف مع تحقق من سلامتها.</p><p className="muted">خاص بمدير الحسابات. يحتوي بيانات دخول خاصة، ولا يشمل ملفات تثبيت التطبيق أو نماذج الذكاء الاصطناعي. أكمل امتحانات الطلاب قبل إنشاء النسخة.</p><button className="primary" disabled={busy||!adminBackup} onClick={()=>void run(async()=>{if(await exportSpreadsheet('database'))notify('حُفظت نسخة كل قواعد البيانات في Excel');})}><Download size={17}/>نسخ كل قواعد البيانات إلى Excel</button>{!adminBackup && <small>اطلب من مدير حسابات المدرسة إنشاء النسخة الشاملة. نسخة بيانات حسابك متاحة أدناه.</small>}</div>
             <div className="section-heading">
               <ShieldCheck />

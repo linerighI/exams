@@ -24,6 +24,7 @@
     studentSession: 'student-session',
     updateState: 'update-state', checkUpdates: 'update-check', downloadUpdate: 'update-download',
     cancelUpdate: 'update-cancel', installUpdate: 'update-install',
+    chooseBackupFolder:'backup-folder',restartApp:'restart-app',
     saveBackup: 'backup-save', readBackup: 'backup-read', exportCSV: 'export-csv', exportSpreadsheet: 'spreadsheet-save',
     downloadModel: 'model-download', openOllama: 'ollama-download-page',
     openProvider: 'ai-provider-page', exportBankPDF: 'bank-pdf', exportReportPDF: 'report-pdf',

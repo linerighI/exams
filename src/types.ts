@@ -118,6 +118,8 @@ export type Session = {
   teacher?: TeacherAccount;
 };
 export interface DesktopAPI {
+  chooseBackupFolder:()=>Promise<string|null>;
+  restartApp:()=>Promise<boolean>;
   updateState: () => Promise<import('../desktop/appUpdater').UpdateState>;
   checkUpdates: (previews?: boolean) => Promise<import('../desktop/appUpdater').UpdateState>;
   downloadUpdate: () => Promise<import('../desktop/appUpdater').UpdateState>;

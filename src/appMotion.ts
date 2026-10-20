@@ -1,5 +1,8 @@
-import { useEffect, useLayoutEffect, useSyncExternalStore, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useSyncExternalStore, useRef, type RefObject } from 'react';
 import { gsap } from 'gsap';
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
 
 let preference: MediaQueryList | undefined;
 const preferenceListeners = new Set<() => void>();
@@ -25,7 +28,7 @@ export function useAppInteractions() {
     const toggle = (event: Event) => {
       const detail = event.target;
       if (!(detail instanceof HTMLDetailsElement) || !detail.open || prefersQuietMotion()) return;
-      if (detail.closest('.student-session-shell,.student-exam-theme')) return;
+      if (detail.closest('.student-exam-theme')) return;
       const children = Array.from(detail.children).filter((el) => el.tagName !== 'SUMMARY');
       context.add(() => {
         gsap.fromTo(
@@ -35,7 +38,7 @@ export function useAppInteractions() {
             opacity: 1,
             y: 0,
             duration: 0.28,
-            stagger: 0.025,
+            stagger: { amount: 0.25 },
             ease: 'power2.out',
             clearProps: 'opacity,transform',
             overwrite: true,
@@ -47,7 +50,7 @@ export function useAppInteractions() {
       if (event.pointerType !== 'mouse' || prefersQuietMotion()) return;
       if (!(event.target instanceof Element)) return;
       const button = event.target.closest<HTMLButtonElement>(
-        '.teacher-session-shell button, .prism-login button',
+        '.teacher-session-shell button, .student-session-shell button, .prism-login button',
       );
       if (!button || button.disabled || button.closest('.student-exam-theme')) return;
       const icon = button.querySelector(':scope > svg:not(.morph-mark)');
@@ -154,4 +157,269 @@ export function guideToField(target: HTMLElement) {
         },
       },
     );
+}
+
+export function useExamMotion(
+  ref: RefObject<HTMLElement | null>,
+  state: string,
+  attemptId: string,
+) {
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const media = gsap.matchMedia();
+    media.add(
+      '(prefers-reduced-motion: no-preference)',
+      () => {
+        const root = ref.current!;
+        const timeline = gsap.timeline({
+          defaults: { ease: 'power3.out', clearProps: 'opacity,transform' },
+        });
+        if (state === 'finished') {
+          timeline
+            .from(root, { opacity: 0, y: 28, scale: 0.96, duration: 0.65 })
+            .from(
+              root.querySelectorAll('.success-orbit, h1, p, button'),
+              { opacity: 0, y: 14, stagger: 0.09, duration: 0.45 },
+              '-=0.3',
+            )
+            .from(
+              root.querySelectorAll('.success-orbit svg path'),
+              { drawSVG: '0%', duration: 0.65, ease: 'power2.inOut' },
+              0.3,
+            );
+        } else {
+          timeline
+            .from(root.querySelectorAll('.exam-question, .exam-navigation'), {
+              opacity: 0,
+              y: 20,
+              stagger: 0.1,
+              duration: 0.6,
+            })
+            .from(
+              root.querySelectorAll(
+                '.exam-fixed-status .timer, .exam-indicator-orb, .exam-submit-button',
+              ),
+              {
+                opacity: 0,
+                y: 10,
+                stagger: 0.07,
+                duration: 0.45,
+              },
+              0.2,
+            )
+            .from(
+              root.querySelectorAll('.question-map button'),
+              {
+                opacity: 0,
+                scale: 0.85,
+                stagger: { amount: 0.25 },
+                duration: 0.3,
+              },
+              0.35,
+            );
+        }
+      },
+      ref.current,
+    );
+    return () => media.revert();
+  }, [ref, state, attemptId]);
+}
+
+export function useStudentWorkspaceMotion(ref: RefObject<HTMLElement | null>, page: string) {
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const media = gsap.matchMedia();
+    media.add(
+      '(prefers-reduced-motion: no-preference)',
+      (context) => {
+        const select = gsap.utils.selector(root);
+        const timeline = gsap.timeline({
+          defaults: { ease: 'power3.out', duration: 0.6, clearProps: 'opacity,transform' },
+        });
+        timeline
+          .addLabel('heading')
+          .from(select('.student-page-heading h1'), { y: 18, opacity: 0 }, 'heading')
+          .from(
+            select(
+              '.student-page-heading .student-kicker, .student-page-heading p, .student-connection',
+            ),
+            { y: 8, opacity: 0, stagger: 0.045, duration: 0.4 },
+            'heading+=0.12',
+          )
+          .addLabel('workspace', 0.15);
+        const feature = select('.student-next-exam');
+        if (feature.length) {
+          timeline
+            .from(feature, { y: 24, opacity: 0, duration: 0.7 }, 'workspace')
+            .from(
+              select('.student-next-label i'),
+              { scaleX: 0, duration: 0.8, ease: 'power3.inOut' },
+              'workspace+=0.06',
+            )
+            .from(
+              select(
+                '.student-feature-title, .student-feature-class, .student-feature-facts, .student-next-date, .student-next-footer',
+              ),
+              { y: 14, opacity: 0, stagger: 0.065, duration: 0.5 },
+              'workspace+=0.12',
+            );
+        }
+        const entries = select('.student-exam-card, .student-result-card').slice(0, 12);
+        if (entries.length)
+          timeline.from(entries, { y: 18, opacity: 0, stagger: 0.055 }, 'workspace+=0.12');
+        const summary = select('.student-summary-item');
+        if (summary.length)
+          timeline.from(summary, { opacity: 0, y: 8, stagger: 0.045, duration: 0.45 }, 'workspace');
+        const paper = select('.student-exam-ticket .student-paper-art');
+        if (paper.length) {
+          timeline.from(paper, { rotation: -9, y: 12, opacity: 0, duration: 0.7 }, 'workspace');
+          timeline.from(
+            select('.student-exam-ticket .student-paper-lines path'),
+            {
+              drawSVG: '0%',
+              duration: 0.65,
+              stagger: 0.065,
+              ease: 'power2.inOut',
+            },
+            'workspace+=0.25',
+          );
+        }
+        // Use the app's actual scrolling element, including when embedded in WebView2.
+        let scroller: HTMLElement | Window = window;
+        for (let parent = root.parentElement; parent; parent = parent.parentElement) {
+          if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) {
+            scroller = parent;
+            break;
+          }
+        }
+        const reveals = select('.student-other-exams, .student-agenda > section');
+        reveals.forEach((element, index) => {
+          gsap.from(element, {
+            y: 20,
+            opacity: 0,
+            duration: 0.6,
+            delay: Math.min(index * 0.04, 0.12),
+            ease: 'power3.out',
+            clearProps: 'opacity,transform',
+            scrollTrigger: { trigger: element, scroller, start: 'top 96%', once: true },
+          });
+        });
+        let frame = 0;
+        let disposed = false;
+        const refresh = () => {
+          cancelAnimationFrame(frame);
+          frame = requestAnimationFrame(() => {
+            if (!disposed) ScrollTrigger.refresh();
+          });
+        };
+        const resize = new ResizeObserver(refresh);
+        resize.observe(root);
+        void document.fonts.ready.then(() => {
+          if (!disposed) refresh();
+        });
+        const hover = (event: PointerEvent) => {
+          if (event.pointerType !== 'mouse' || !(event.target instanceof Element)) return;
+          const button = event.target.closest<HTMLButtonElement>(
+            '.student-launch, .student-space .text-button, .student-exam-card button',
+          );
+          if (!button || button.disabled || button.contains(event.relatedTarget as Node)) return;
+          const arrow = button.querySelector('svg:last-child');
+          if (arrow)
+            context.add(() => {
+              gsap.fromTo(
+                arrow,
+                { x: 4 },
+                {
+                  x: -3,
+                  duration: 0.4,
+                  ease: 'power3.out',
+                  overwrite: true,
+                  clearProps: 'transform',
+                },
+              );
+            });
+        };
+        const liftPaper = (event: Event) => {
+          if (event instanceof PointerEvent && event.pointerType !== 'mouse') return;
+          if (!(event.target instanceof Element)) return;
+          const card = event.target.closest('.student-next-exam, .student-exam-card');
+          if (!card) return;
+          if (
+            event instanceof MouseEvent &&
+            event.relatedTarget instanceof Node &&
+            card.contains(event.relatedTarget)
+          )
+            return;
+          if (
+            event instanceof FocusEvent &&
+            event.relatedTarget instanceof Node &&
+            card.contains(event.relatedTarget)
+          )
+            return;
+          const paper = card.querySelector('.student-cover-paper');
+          if (!paper) return;
+          const entering = event.type === 'pointerover' || event.type === 'focusin';
+          context.add(() =>
+            gsap.to(paper, {
+              rotation: entering ? -1 : -5,
+              y: entering ? -5 : 0,
+              duration: 0.5,
+              ease: 'power3.out',
+              overwrite: 'auto',
+            }),
+          );
+        };
+        const paperEvents = ['pointerover', 'pointerout', 'focusin', 'focusout'];
+        paperEvents.forEach((type) => root.addEventListener(type, liftPaper));
+        root.addEventListener('pointerover', hover);
+        return () => {
+          disposed = true;
+          resize.disconnect();
+          cancelAnimationFrame(frame);
+          root.removeEventListener('pointerover', hover);
+          paperEvents.forEach((type) => root.removeEventListener(type, liftPaper));
+        };
+      },
+      root,
+    );
+    return () => media.revert();
+  }, [ref, page]);
+}
+
+export function useQuestionMotion(ref: RefObject<HTMLElement | null>, index: number) {
+  const previous = useRef(index);
+  useLayoutEffect(() => {
+    const old = previous.current;
+    previous.current = index;
+    if (old === index || !ref.current) return;
+    const media = gsap.matchMedia();
+    media.add(
+      '(prefers-reduced-motion: no-preference)',
+      () => {
+        const content = ref.current!.querySelector('.student-question-content');
+        if (content) {
+          gsap.from(content, {
+            x: index > old ? -18 : 18,
+            opacity: 0,
+            duration: 0.32,
+            ease: 'power3.out',
+            clearProps: 'opacity,transform',
+          });
+          const labels = content.querySelectorAll('.student-options .option-letter');
+          if (labels.length)
+            gsap.from(labels, {
+              y: 5,
+              opacity: 0,
+              stagger: 0.035,
+              duration: 0.3,
+              delay: 0.08,
+              clearProps: 'opacity,transform',
+            });
+        }
+      },
+      ref.current,
+    );
+    return () => media.revert();
+  }, [ref, index]);
 }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { UploadCloud, CheckCircle2, Loader2, FileSpreadsheet } from 'lucide-react';
 import { api, fileBase64 } from './api';
+import { studentRosterPrompt } from './studentRosterPrompt';
 import FocusWindow from './FocusWindow';
 import BlueOrb from './BlueOrb';
 import './workflow.css';
@@ -13,6 +14,8 @@ export default function StudentRosterImport({
 }) {
   const [file, setFile] = useState<File>(),
     [encoded, setEncoded] = useState(''),
+    [jsonText, setJsonText] = useState(''),
+    [copied, setCopied] = useState(false),
     [preview, setPreview] = useState<any>(),
     [ai, setAi] = useState(false),
     [busy, setBusy] = useState(false),
@@ -36,8 +39,8 @@ export default function StudentRosterImport({
     setFile(f);
     setEncoded('');
     if (!f) return;
-    if (!/\.(xlsx|csv)$/i.test(f.name) || f.size > 8 * 1024 * 1024) {
-      setError('اختر ملف Excel بصيغة XLSX أو CSV بحجم لا يتجاوز 8 ميغابايت.');
+    if (!/\.(xlsx|csv|json)$/i.test(f.name) || f.size > 8 * 1024 * 1024) {
+      setError('اختر ملف XLSX أو CSV أو JSON بحجم لا يتجاوز 8 ميغابايت.');
       return;
     }
     try {
@@ -108,22 +111,78 @@ export default function StudentRosterImport({
             }}
           >
             <UploadCloud size={28} />
-            <strong>{file?.name || 'اسحب ملف Excel هنا أو اختره'}</strong>
-            <span>Excel (.xlsx) · حتى 3000 طالب</span>
+            <strong>{file?.name || 'اسحب ملف Excel أو JSON هنا أو اختره'}</strong>
+            <span>Excel (.xlsx) · CSV · JSON · حتى 3000 طالب</span>
             <input
               aria-label="ملف قائمة الطلاب"
               type="file"
-              accept=".xlsx,.csv"
+              accept=".xlsx,.csv,.json"
               disabled={busy}
               onChange={(e) => void choose(e.target.files?.[0])}
             />
           </label>
+          <details className="roster-mapping">
+            <summary>استيراد JSON بمساعدة ChatGPT أو Gemini</summary>
+            <p>
+              انسخ الطلب وأرفق قائمة المدرسة في حسابك، ثم ارفع ملف JSON الناتج أو الصقه هنا. راجع
+              الأسماء والأرقام قبل الاعتماد.
+            </p>
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(studentRosterPrompt);
+                  setCopied(true);
+                } catch {
+                  setError('تعذر النسخ. يمكنك تحديد الطلب أدناه ونسخه يدويًا.');
+                }
+              }}
+            >
+              {copied ? 'تم نسخ الطلب' : 'نسخ طلب تحويل قائمة الطلاب'}
+            </button>
+            <details>
+              <summary>عرض الطلب</summary>
+              <textarea
+                aria-label="طلب تحويل قائمة الطلاب"
+                readOnly
+                value={studentRosterPrompt}
+                rows={6}
+              />
+            </details>
+            <label className="field">
+              الصق JSON
+              <textarea
+                dir="ltr"
+                aria-label="قائمة الطلاب JSON"
+                rows={7}
+                value={jsonText}
+                disabled={busy}
+                placeholder={'{"students":[{"name":"اسم الطالب","grade":"العاشر","section":"أ"}]}'}
+                onChange={(e) => {
+                  setJsonText(e.target.value);
+                  setEncoded('');
+                  setFile(undefined);
+                  changed();
+                }}
+              />
+            </label>
+            <button
+              className="secondary"
+              disabled={busy || !jsonText.trim()}
+              onClick={() =>
+                void choose(new File([jsonText], 'students.json', { type: 'application/json' }))
+              }
+            >
+              استخدام JSON للمعاينة
+            </button>
+          </details>
           <label className="field">
             <span>
               <input
                 type="checkbox"
                 checked={ai}
-                disabled={busy}
+                disabled={busy || /\.json$/i.test(file?.name || '')}
                 onChange={(e) => {
                   setAi(e.target.checked);
                   setColumns(undefined);
@@ -179,7 +238,7 @@ export default function StudentRosterImport({
               </select>
             </label>
           </div>
-          {columns && (
+          {columns && !/\.json$/i.test(file?.name || '') && (
             <details className="roster-mapping">
               <summary>ورقة العمل وربط الأعمدة</summary>
               <div className="roster-options">

@@ -1,3 +1,4 @@
+import { createRequestQueue } from './requestQueue';
 import { readJsonResponse } from './readJsonResponse';
 import { allowedRequestPath } from './requestPolicy';
 import { safeStorage } from './backend-platform';
@@ -12,7 +13,7 @@ import { randomBytes, X509Certificate } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import dgram from 'node:dgram';
 import selfsigned from 'selfsigned';
-import { createApp } from '../server/app';
+import type { createApp } from '../server/app';
 import { modelPattern, ollamaRequest } from '../server/ollama';
 import { providers } from '../src/bankExchange';
 import { trustedTeacherResource } from '../src/teacherResources';
@@ -114,6 +115,7 @@ function connectEvents() {
     if (role === 'teacher') reconnectTimer = setTimeout(connectEvents, 5000);
   });
 }
+const schoolRequests = createRequestQueue(4);
 function secureRequest(
   host: string,
   pin: string,
@@ -123,7 +125,7 @@ function secureRequest(
   authorization = token,
   timeout = 190000,
 ): Promise<any> {
-  return new Promise((resolve, reject) => {
+  return schoolRequests(() => new Promise((resolve, reject) => {
     const bytes = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
     const req = request(
       {
@@ -159,7 +161,7 @@ function secureRequest(
     req.setTimeout(timeout, () =>
       req.destroy(new Error('تعذر الوصول إلى جهاز المعلم. تحقق من شبكة المدرسة')),
     );
-  });
+  }));
 }
 function persistTarget() {
   if (!target) return;
@@ -203,6 +205,8 @@ async function startHost() {
     }
     const fingerprint = new X509Certificate(pems.cert).fingerprint256;
     pairCode = newPairingCode();
+    // Opening the connection screen does not need the school server/AI modules.
+    const { createApp } = await import('../server/app');
     server = await createApp({
       directory: dataPath(),
       secretProtection: {
@@ -309,6 +313,7 @@ const onlyTeacher = () => {
     throw Error('هذه العملية متاحة للمعلم على الجهاز الرئيسي فقط');
 };
 async function start() {
+  console.error('Startup: restoring saved connection');
   const requireUpdateTeacher = () => { if (role !== 'teacher') throw Error('تحديث التطبيق متاح بعد تسجيل الدخول بحساب المعلم'); };
   const updater = createAppUpdater({
     directory: join(app.getPath('userData'), 'updates'),
@@ -350,6 +355,7 @@ async function start() {
     }
   } catch {}
   if (restoreLocal && role === 'student') {
+    console.error('Startup: restoring this device school server for the saved student');
     const previous = { token, role, studentSession };
     role = ''; // Restore this machine's own saved host, never a remotely paired student.
     try { await host(); } catch (error) { console.error('Local host restore:', (error as Error).message); }
@@ -576,6 +582,8 @@ async function start() {
     await shell.openExternal(url);
     return true;
   });
+  handle('backup-folder',async()=>{onlyTeacher();const account=await secureRequest(target!.host,target!.fingerprint,'/api/account');if(!account.isAdmin)throw Error('هذه العملية لمدير الحسابات');return nativeCall('backup-folder');});
+  handle('restart-app',async()=>{onlyTeacher();const account=await secureRequest(target!.host,target!.fingerprint,'/api/account');if(!account.isAdmin)throw Error('هذه العملية لمدير الحسابات');return nativeCall('restart-app');});
   handle('backup-save', async () => {
     onlyTeacher();
     const backup = await secureRequest(target!.host, target!.fingerprint, '/api/backup');
@@ -671,7 +679,15 @@ async function start() {
       })();
     })
     .on('close', () => process.exit(0));
-  if (role === 'student') await nativeCall('student-mode', true);
+  if (role === 'student') {
+    console.error('Startup: restoring saved student session');
+    await nativeCall('student-mode', true);
+  }
+  if (process.env.SCHOOL_TEST_MODE === '1') {
+    const delay = Number(process.env.SCHOOL_TEST_STARTUP_DELAY_MS || 0);
+    if (Number.isFinite(delay) && delay > 0 && delay <= 60000) await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  console.error('Startup: backend ready');
   send({ event: 'ready' });
 }
 console.log = (...args: unknown[]) => console.error(...args);

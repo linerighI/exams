@@ -10,10 +10,11 @@ export type TeacherAccount = {
   password: string;
   isAdmin: boolean;
   disabled: boolean;
+  loginQr?: {hash:string;expiresAt:number;passwordStamp:string};
   grades?: string[];
   classes?: { id: string; grade: string; section: string }[];
 };
-export const accountView = ({ password, ...account }: TeacherAccount) => account;
+export const accountView = ({ password, loginQr, ...account }: TeacherAccount) => account;
 export function openTenantStores(directory: string) {
   const primary = openStore(directory);
   const registry = new Database(join(directory, 'teachers.sqlite'));
@@ -95,7 +96,7 @@ export function openTenantStores(directory: string) {
         const cache = scope.getStore()?.reads,
           key = `${table}:${id}`;
         if (cache?.has(key)) return cache.get(key);
-        const row = own.get(table, id);
+        const row = own.get(table, id) ?? (table === 'students' && current() !== 'master' ? primary.get(table, id) : null);
         if (cache && !cache.size) queueMicrotask(() => cache.clear());
         cache?.set(key, row);
         return row;
@@ -117,7 +118,14 @@ export function openTenantStores(directory: string) {
         return true;
       };
       if (key === 'all')
-        return (table: string) => own.all(table).filter((row) => visible(table, row));
+        return (table: string) => {
+          const rows = own.all(table);
+          if (table === 'students' && current() !== 'master') {
+            const localIds = new Set(rows.map(row => row.id));
+            rows.push(...primary.all('students').filter(row => !localIds.has(row.id)));
+          }
+          return rows.filter((row) => visible(table, row));
+        };
       if (key === 'attemptsFor')
         return (studentId?: string, examId?: string) =>
           own.attemptsFor(studentId, examId).filter((row) => visible('attempts', row));

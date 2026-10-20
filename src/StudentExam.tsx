@@ -1,5 +1,6 @@
-import { useSceneMotion } from './appMotion';
+import { useExamMotion, useQuestionMotion, useSceneMotion } from './appMotion';
 import AudioPlayer from './AudioPlayer';
+import { useExamFeedback, useExamConfirmationMotion } from './examMotion';
 import { memo, useEffect, useRef, useState } from 'react';
 import {
   Clock3,
@@ -9,6 +10,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Camera,
+  Wifi,
+  HardDrive,
   Flag,
 } from 'lucide-react';
 import { api, setToken, ApiError, isConnectionError } from './api';
@@ -40,9 +43,12 @@ export default function StudentExam({
   const [view, setView] = useState(snapshot);
   const [localSaveState, setLocalSaveState] = useState<'saving' | 'saved' | 'error'>('saved');
   const [index, setIndex] = useState(0);
+  useQuestionMotion(scene, index);
   const [now, setNow] = useState(Date.now());
   const [online, setOnline] = useState(true);
   const [confirm, setConfirm] = useState(false);
+  const confirmationScene = useRef<HTMLDivElement>(null);
+  useExamConfirmationMotion(confirmationScene, confirm);
   const [finishRequested, setFinishRequested] = useState(false);
   const syncBusy = useRef(false);
   const syncTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -50,6 +56,7 @@ export default function StudentExam({
   const [finished, setFinished] = useState(
     !!snapshot.attempt.submittedAt && !Object.keys(snapshot.pending).length,
   );
+  useExamMotion(scene, finished ? 'finished' : 'exam', snapshot.attempt.id);
   const [loginCode, setLoginCode] = useState('');
   const [authNeeded, setAuthNeeded] = useState(false);
   const remaining = Math.max(0, Math.ceil((view.attempt.deadline - (now + view.offset)) / 1000));
@@ -152,7 +159,8 @@ export default function StudentExam({
     }
   };
   useEffect(() => {
-    void saveSnapshot(current.current).catch(() => setLocalSaveState('error'));
+    // Put the initial write in the same queue as subsequent edits.
+    void persist(current.current).catch(() => setLocalSaveState('error'));
     const tick = setInterval(() => setNow(Date.now()), 1000);
     const timer = setInterval(() => void sync(), 3000);
     void sync();
@@ -218,6 +226,30 @@ export default function StudentExam({
         : missing.length && (finishRequested || index === view.questions.length - 1)
           ? 'red'
           : 'blue';
+  const answer = q && view.answers[q.id];
+  useExamFeedback(scene, {
+    questionId: q?.id || '',
+    answerKey:
+      typeof answer === 'number'
+        ? String(answer)
+        : Array.isArray(answer)
+          ? answer.map(String).join('|')
+          : hasAnswer(q, answer)
+            ? 'written'
+            : '',
+    answered,
+    tone: indicatorTone,
+    reviewed: !!q && reviewFlags.includes(q.id),
+    saveState:
+      localSaveState === 'error'
+        ? 'error'
+        : !online
+          ? 'offline'
+          : Object.keys(view.pending).length || localSaveState === 'saving'
+            ? 'pending'
+            : 'synced',
+    urgent: remaining < 300,
+  });
   const indicatorText = authNeeded
     ? 'أعد تسجيل الدخول للمزامنة'
     : localSaveState === 'error'
@@ -231,7 +263,7 @@ export default function StudentExam({
             : 'الامتحان جارٍ';
   if (finished)
     return (
-      <div className="submitted card">
+      <div className="submitted card student-exam-receipt" ref={scene} role="status">
         <div className="success-orbit">
           <CheckCircle2 size={64} />
         </div>
@@ -252,14 +284,21 @@ export default function StudentExam({
           {
             '--exam-bg': appearance.background,
             '--exam-accent': appearance.accent,
+            '--exam-action':
+              appearance.accent === defaultAppearance.accent ? '#608fc9' : appearance.accent,
           } as React.CSSProperties
         }
       >
         <div className="exam-top student-exam-heading">
           <div>
-            <span className="eyebrow">مساحتك للتركيز · خطوة واحدة في كل مرة</span>
+            <span className="eyebrow">جلسة الامتحان</span>
             <h1>{view.exam.title}</h1>
             <p>{appearance.welcome}</p>
+            <div className="exam-live-indicators" aria-live="polite">
+              <span className={online?'':'is-offline'}>{online?<Wifi size={14}/>:<WifiOff size={14}/>} {online?'متصل بجهاز المعلم':'بانتظار عودة الاتصال'}</span>
+              <span className={localSaveState==='error'?'is-offline':''}><HardDrive size={14}/>{localSaveState==='error'?'تعذر الحفظ؛ أبلغ المعلم':localSaveState==='saving'?'جارٍ الحفظ محليًا':'تقدمك محفوظ على الجهاز'}</span>
+              {!!reviewFlags.length&&<span><Flag size={14}/>{reviewFlags.length} للمراجعة</span>}
+            </div>
             {view.exam.audio && (
               <div className="student-audio">
                 <strong>تعليمات المعلم الصوتية</strong>
@@ -330,23 +369,25 @@ export default function StudentExam({
                   : 'فكّر، ثم اختر إجابتك'}
               </span>
             </div>
-            <h2>
-              <MathText text={q.text} />
-            </h2>
-            {q.image && <img className="exam-image" src={q.image} alt="صورة السؤال" />}
-            {q.audio && (
-              <div className="student-audio" key={q.id}>
-                <strong>استمع إلى السؤال</strong>
-                <AudioPlayer audio={q.audio} />
-              </div>
-            )}
-            <QuestionResponse
-              key={q.id}
-              question={q}
-              value={view.answers[q.id]}
-              onChange={(answer) => void choose(answer)}
-              disabled={frozen}
-            />
+            <div className="student-question-content" key={q.id}>
+              <h2>
+                <MathText text={q.text} />
+              </h2>
+              {q.image && <img className="exam-image" src={q.image} alt="صورة السؤال" />}
+              {q.audio && (
+                <div className="student-audio" key={q.id}>
+                  <strong>استمع إلى السؤال</strong>
+                  <AudioPlayer audio={q.audio} />
+                </div>
+              )}
+              <QuestionResponse
+                key={q.id}
+                question={q}
+                value={view.answers[q.id]}
+                onChange={(answer) => void choose(answer)}
+                disabled={frozen}
+              />
+            </div>
             <div className="question-controls">
               <button
                 className="secondary"
@@ -388,10 +429,12 @@ export default function StudentExam({
               </div>
               <div
                 className={`exam-status-indicator is-${indicatorTone}`}
+                data-tone={indicatorTone}
                 role="img"
                 aria-label={`حالة الامتحان: ${indicatorText}`}
               >
                 <div className="exam-indicator-orb" aria-hidden="true">
+                  <span className="exam-status-wave" />
                   <ExamStatusOrb size={1.45} tone={indicatorTone} animationSpeedBase={0.2} />
                 </div>
                 <strong>{indicatorText}</strong>
@@ -471,7 +514,7 @@ export default function StudentExam({
       </div>
       {confirm && (
         <div className="modal-backdrop">
-          <div className="modal card">
+          <div className="modal card exam-submit-confirmation" ref={confirmationScene}>
             <h2>هل تريد تسليم الامتحان؟</h2>
             <p>
               أجبت عن {answered} من {view.questions.length} سؤالًا. بعد التسليم تتوقف التعديلات.

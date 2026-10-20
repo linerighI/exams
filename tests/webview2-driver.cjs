@@ -15,7 +15,8 @@ async function launch(options = {}) {
   const root = path.resolve(__dirname, '..');
   const port = await freePort();
   const packaged = Boolean(options.executablePath);
-  const executable = options.executablePath || path.join(root, 'desktop/native/bin/dev/Alshereqi Exams.exe');
+  const startupAttempts = Math.ceil((options.startupTimeoutMs || 30000) / 200);
+  const executable = options.executablePath || process.env.SCHOOL_TEST_EXECUTABLE || path.join(root, 'desktop/native/bin/dev/Alshereqi Exams.exe');
   const child = spawn(executable, ['--test-mode', '--debug-port', String(port), ...(options.args || [])], {
     windowsHide: !options.visible, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, ...(packaged ? {} : { SCHOOL_APP_ROOT: root, SCHOOL_NODE_EXECUTABLE: process.execPath, SCHOOL_DEVELOPMENT: '1' }),
@@ -28,7 +29,7 @@ async function launch(options = {}) {
   let browser;
   try {
     let available = false;
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < startupAttempts; i++) {
       if (failure) throw failure;
       if (child.exitCode !== null) throw Error('WebView2 exited: ' + output);
       try {
@@ -41,7 +42,7 @@ async function launch(options = {}) {
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
     const context = browser.contexts()[0];
     let page;
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < startupAttempts; i++) {
       page = context.pages().find(p => p.url().startsWith('https://app.alshereqi.invalid/'));
       if (page) break;
       await delay(200);

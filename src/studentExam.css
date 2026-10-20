@@ -9,12 +9,12 @@
   background: #edf3fc;
 }
 .student-exam-shell main {
-  background: linear-gradient(145deg, #edf4ff, #f6f9fe 65%);
+  background: transparent;
 }
 .student-exam-shell .page-surface {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
+  background: #f8faff !important;
+  border: 1px solid #ffffffed !important;
+  box-shadow: 0 18px 60px #2342740a !important;
 }
 .student-exam-heading {
   padding: 8px 0 16px;
@@ -61,7 +61,7 @@
   padding-bottom: 23px;
   border-bottom: 1px solid #edf2f8;
 }
-.student-exam-workspace .exam-question > h2 {
+.student-exam-workspace .student-question-content > h2 {
   font-size: clamp(20px, 1.8vw, 28px);
   line-height: 1.9;
   margin: 22px 0;
@@ -320,7 +320,7 @@
   .student-exam-workspace .question-heading {
     padding-bottom: 13px;
   }
-  .student-exam-workspace .exam-question > h2 {
+  .student-exam-workspace .student-question-content > h2 {
     font-size: 21px;
     line-height: 1.65;
     margin: 17px 0;
@@ -421,3 +421,266 @@
 .exam-fixed-status {
   margin-bottom: 24px;
 }
+
+.student-exam-heading {
+  border-bottom: 1px solid #dce6f6;
+  margin-bottom: 24px;
+  padding-bottom: 22px;
+}
+
+/* Match the rounded white frame and soft blue surfaces of the school workspace.
+   Existing grid, spacing, controls and navigation stay in place. */
+.student-exam-theme {
+  --student-ink: #294c7a;
+  --student-muted: #667e9e;
+}
+.student-exam-heading h1 {
+  color: #294c7a;
+  font-weight: 700;
+}
+.student-exam-heading .eyebrow {
+  color: #6889b0;
+}
+.student-exam-heading p {
+  color: #667e9e;
+}
+.student-exam-workspace > .exam-question {
+  padding: clamp(22px, 3vw, 38px) !important;
+  background: linear-gradient(145deg, #ffffff, #fbfdff) !important;
+  border-color: #d9e6f8 !important;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 8px 28px #355d8f06 !important;
+}
+.student-exam-workspace .exam-navigation {
+  background: linear-gradient(160deg, #edf4ff, #fbfdff 65%) !important;
+  border-color: #d6e4f8 !important;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 8px 28px #355d8f06 !important;
+}
+.student-exam-theme .question-heading {
+  border-color: #e2ebf8;
+}
+.student-exam-theme .question-heading .pill {
+  background: #eaf2ff;
+  color: #4e78ae;
+  border: 1px solid #d9e6f8;
+  border-radius: 12px;
+}
+.student-exam-theme .question-heading .muted {
+  color: #667e9e;
+}
+.student-exam-workspace .student-question-content > h2 {
+  color: #294c7a;
+}
+.student-exam-workspace .student-options > button {
+  background: #f9fbff;
+  border-color: #dbe6f6;
+  color: #365b88;
+  box-shadow: inset 0 1px 0 #fff;
+}
+.student-exam-workspace .student-options > button:hover:not(:disabled) {
+  background: #f0f6ff;
+  border-color: #b8d0ee;
+}
+.student-exam-workspace .student-options > button.selected {
+  background: color-mix(in srgb, var(--exam-accent) 7%, white);
+  border-color: var(--exam-accent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--exam-accent) 20%, transparent),
+    0 4px 14px #355d8f08;
+}
+.student-exam-workspace .option-letter {
+  background: #edf3fc;
+  color: #678bb8;
+  border: 1px solid #e0eafa;
+}
+.student-exam-workspace .selected .option-letter {
+  color: var(--exam-accent);
+  background: #fff;
+  border-color: #d3e1f4;
+}
+.student-exam-workspace .question-controls {
+  background: #ffffffed;
+  border-color: #e2ebf8;
+}
+.student-exam-theme button.primary {
+  border-radius: 14px;
+  box-shadow: 0 5px 16px #608fc918;
+}
+.student-exam-theme button.secondary {
+  border-radius: 14px;
+  background: #f6f9ff;
+  border-color: #d9e6f8;
+  color: #5a7da8;
+}
+.student-exam-theme button:focus-visible {
+  outline: 3px solid #87abd5;
+  outline-offset: 4px;
+}
+.student-exam-theme .student-review-toggle {
+  color: #5c80ae;
+  background: #f3f7ff;
+  border-color: #dce7f7;
+}
+.student-exam-theme .student-review-toggle[aria-pressed='true'] {
+  color: #976c29;
+  background: #fff7e7;
+  border-color: #ebd7ad;
+}
+.student-exam-theme .question-written input,
+.student-exam-theme .question-written textarea,
+.student-exam-theme .response-blanks input,
+.student-exam-theme .response-drawing textarea {
+  background: #f9fbff;
+  border-color: #d9e6f8;
+  color: #294c7a;
+  box-shadow: inset 0 2px 5px #355d8f03;
+}
+.student-exam-theme .question-written input:focus,
+.student-exam-theme .question-written textarea:focus,
+.student-exam-theme .response-blanks input:focus {
+  background: #fff;
+  border-color: var(--exam-accent);
+}
+.exam-navigation .timer {
+  background: #ffffffc4;
+  border-color: #d9e6f8;
+  box-shadow: 0 4px 16px #355d8f04;
+}
+.exam-navigation .timer small {
+  color: #667e9e;
+}
+.exam-navigation .timer strong {
+  color: #4e7fb9;
+  font-variant-numeric: tabular-nums;
+}
+.exam-navigation .timer.urgent {
+  background: #fff4f4;
+  border-color: #efd0d4;
+}
+.exam-navigation .timer.urgent strong {
+  color: #b04e62;
+}
+.exam-status-indicator {
+  color: #5a7fae;
+}
+.exam-status-indicator > span {
+  color: #667e9e;
+}
+.exam-indicator-orb {
+  border-radius: 50%;
+}
+.exam-status-indicator.is-red > strong {
+  color: #ad4c62;
+}
+.exam-status-indicator.is-green > strong {
+  color: #23816b;
+}
+.student-exam-workspace .exam-navigation h3 {
+  color: #345b8c;
+}
+.student-exam-workspace .exam-navigation > p {
+  color: #667e9e;
+}
+.student-exam-theme .progress-track {
+  background: #e5edf9;
+  overflow: hidden;
+}
+.student-exam-theme .progress-track > div {
+  border-radius: inherit;
+}
+.student-exam-workspace .question-map button {
+  background: #ffffffb8;
+  border-color: #d9e6f8;
+  color: #6685ac;
+}
+.student-exam-workspace .question-map button.answered {
+  background: #eaf2ff;
+  border-color: #c4d9f3;
+  color: #4d78af;
+}
+.student-exam-workspace .question-map button.missing {
+  background: #fff2f4;
+  border-color: #efcdd4;
+  color: #b6576d;
+}
+.student-exam-workspace .question-map button.current {
+  border-color: var(--exam-accent);
+  box-shadow: 0 0 0 3px #afcbed24;
+}
+.student-exam-workspace .save-status:not(.offline) {
+  background: #edf5ff;
+  border-color: #d9e7f8;
+  color: #557eac;
+}
+.student-exam-workspace .save-status.offline {
+  background: #fff2f4;
+  border-color: #efcdd4;
+  color: #ad4c62;
+}
+.student-exam-workspace .save-status small {
+  color: inherit;
+}
+.student-exam-theme .student-audio {
+  background: #f5f9ff;
+  border-color: #dce7f7;
+}
+.student-exam-receipt {
+  max-width: 620px;
+  margin: 7vh auto;
+  text-align: center;
+  padding: clamp(30px, 5vw, 64px);
+  background: linear-gradient(145deg, #eaf3ff, #ffffff 70%) !important;
+  border: 1px solid #d9e6f8;
+  border-radius: 26px;
+  box-shadow: 0 12px 35px #355d8f0a;
+}
+.student-exam-receipt .success-orbit {
+  color: #5e8fc8;
+  background: #edf5ff;
+}
+.student-exam-receipt h1 {
+  color: #294c7a;
+}
+.student-exam-receipt p {
+  color: #667e9e;
+}
+.student-exam-shell .exam-submit-confirmation {
+  background: linear-gradient(145deg, #f0f6ff, #fff 70%);
+  border: 1px solid #d9e6f8;
+  border-radius: 24px;
+  box-shadow: 0 22px 70px #294c7a24;
+}
+.student-exam-shell .exam-submit-confirmation h2 {
+  color: #294c7a;
+}
+.student-exam-shell .exam-submit-confirmation p {
+  color: #667e9e;
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-exam-theme .orb-main,
+  .student-exam-theme .orb-main * {
+    animation-play-state: paused !important;
+  }
+  .student-exam-theme .student-options > button {
+    transition: none;
+  }
+}
+
+.exam-status-wave {
+  position: absolute;
+  inset: 17px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.exam-status-indicator.is-green .exam-status-wave {
+  color: #29b68e;
+}
+.exam-status-indicator.is-red .exam-status-wave {
+  color: #e65a71;
+}
+.exam-live-indicators{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.exam-live-indicators>span{display:inline-flex;align-items:center;gap:6px;border:1px solid #d9e6f8;background:#ffffffb3;padding:6px 9px;border-radius:9px;font-size:10px;color:#5a7faa}.exam-live-indicators>span.is-offline{color:#ac4e62;background:#fff2f4;border-color:#efd0d7}

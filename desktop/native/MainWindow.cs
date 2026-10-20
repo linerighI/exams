@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -17,10 +17,17 @@ internal sealed class MainWindow : Form
     private readonly string data;
     private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> pending = new();
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly CancellationTokenSource startupCancellation = new();
+    private readonly Panel startupPanel = new() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(244, 248, 255) };
+    private readonly Label startupStatus = new() { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
+        ForeColor = Color.FromArgb(74, 109, 154), Font = new Font("Segoe UI", 13), Text = "جارٍ تجهيز التطبيق…" };
+    private bool startupCompleted;
+    private bool restartRequested;
+    private string startupStage = "بدء التشغيل";
     private readonly SemaphoreSlim writer = new(1, 1);
     private readonly SemaphoreSlim dialogs = new(1, 1);
     private readonly HashSet<string> commands = new(StringComparer.Ordinal)
-    { "host", "discover", "pair", "connection-state", "connect-teacher", "student-session", "request", "backup-save", "backup-read", "export-csv", "spreadsheet-save", "model-download", "ollama-download-page", "ai-provider-page", "bank-pdf", "report-pdf", "teacher-resource", "speech-status", "speech-transcribe", "speech-synthesize", "update-state", "update-check", "update-download", "update-cancel", "update-install" };
+    { "host", "discover", "pair", "connection-state", "connect-teacher", "student-session", "request", "backup-save", "backup-read", "backup-folder", "restart-app", "export-csv", "spreadsheet-save", "model-download", "ollama-download-page", "ai-provider-page", "bank-pdf", "report-pdf", "teacher-resource", "speech-status", "speech-transcribe", "speech-synthesize", "update-state", "update-check", "update-download", "update-cancel", "update-install" };
     private Process? backend;
     private ProcessJob? job;
     private CoreWebView2Environment? environment;
@@ -60,6 +67,10 @@ internal sealed class MainWindow : Form
             }
         }
         Controls.Add(view);
+        startupPanel.Controls.Add(startupStatus);
+        startupPanel.Controls.Add(new ProgressBar { Dock = DockStyle.Bottom, Height = 4, Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 35 });
+        Controls.Add(startupPanel);
+        startupPanel.BringToFront();
         if (testMode && Environment.GetEnvironmentVariable("SCHOOL_HEADLESS_TEST") == "1") { Opacity = 0; ShowInTaskbar = false; }
         Shown += async (_, _) => await Start();
         FormClosing += OnClosing;
@@ -80,10 +91,12 @@ internal sealed class MainWindow : Form
             }
             // Do not inherit debugging switches from the launching environment.
             Environment.SetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", null);
+            StartupStatus("تهيئة نافذة التطبيق", "جارٍ تجهيز نافذة التطبيق…");
             environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(data, "WebView2"), new CoreWebView2EnvironmentOptions(browserArguments));
             await view.EnsureCoreWebView2Async(environment);
             var core = view.CoreWebView2;
             // Clear grants/denials saved by older builds that bypassed the consent UI.
+            StartupStatus("تهيئة صلاحيات الكاميرا", "جارٍ تجهيز إعدادات التطبيق…");
             await core.Profile.SetPermissionStateAsync(CoreWebView2PermissionKind.Camera, Origin, CoreWebView2PermissionState.Default);
             core.SetVirtualHostNameToFolderMapping("app.alshereqi.invalid", Path.Combine(root, "dist"), CoreWebView2HostResourceAccessKind.DenyCors);
             core.Settings.AreDevToolsEnabled = false;
@@ -117,16 +130,64 @@ internal sealed class MainWindow : Form
             };
             core.WebMessageReceived += OnWebMessage;
             await core.AddScriptToExecuteOnDocumentCreatedAsync(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "bridge.js")));
+            StartupStatus("بدء خدمة التطبيق", "جارٍ بدء خدمة التطبيق واستعادة الاتصال المحفوظ…");
             StartBackend();
-            await ready.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            if (!await WaitForBackendReady()) { Close(); return; }
+            if (closing) return;
+            StartupStatus("فتح الواجهة", "جارٍ فتح مساحة المدرسة…");
+            core.NavigationCompleted += (_, e) => {
+                if (closing) return;
+                if (e.IsSuccess) {
+                    startupCompleted = true;
+                    if (studentMode && !testMode) { lockdown ??= new StudentLockdown(this); lockdown.Enable(); }
+                    startupPanel.Visible = false;
+                    Log("Startup complete");
+                } else {
+                    Log("Startup navigation failed: " + e.WebErrorStatus);
+                    startupStatus.Text = "تعذر فتح واجهة التطبيق. تحقق من اكتمال التثبيت.";
+                }
+            };
             core.Navigate(Origin + "/index.html");
         }
+        catch (OperationCanceledException) when (closing) { }
         catch (Exception error)
         {
-            Log(error.ToString());
-            if (!testMode) MessageBox.Show(this, "تعذر تشغيل التطبيق. تحقق من تثبيت WebView2 Runtime.\n\n" + error.Message, "Alshereqi Exams", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            Close();
+            Log("Startup failed at " + startupStage + ": " + error);
+            if (!closing && !testMode) MessageBox.Show(this,
+                "تعذر تشغيل التطبيق أثناء: " + startupStage + ".\n\n" + error.Message,
+                "Alshereqi Exams", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (!closing) Close();
         }
+    }
+    private void StartupStatus(string stage, string message) {
+        startupStage = stage;
+        startupStatus.Text = message;
+        Log("Startup stage: " + stage);
+    }
+    private async Task<bool> WaitForBackendReady() {
+        var warning = TimeSpan.FromSeconds(30);
+        if (testMode && int.TryParse(Environment.GetEnvironmentVariable("SCHOOL_TEST_STARTUP_WARNING_MS"), out int milliseconds)
+            && milliseconds is >= 100 and <= 30000) warning = TimeSpan.FromMilliseconds(milliseconds);
+        var cancellation = startupCancellation.Token;
+        if (await Task.WhenAny(ready.Task, Task.Delay(warning, cancellation)) != ready.Task) {
+            cancellation.ThrowIfCancellationRequested();
+            StartupStatus("استعادة خدمة التطبيق", "يستغرق بدء الخدمة وقتًا أطول من المعتاد. نتابع تجهيز التطبيق، يرجى الانتظار…");
+            Log("Startup slow: continuing to wait for the existing backend; no restart");
+        }
+        while (!closing) {
+            try {
+                await ready.Task.WaitAsync(TimeSpan.FromSeconds(90), cancellation);
+                return true;
+            } catch (TimeoutException) {
+                Log("Startup backend wait expired; retry is available without starting a second backend");
+                if (testMode) throw;
+                var retry = MessageBox.Show(this,
+                    "خدمة التطبيق لم تصبح جاهزة بعد. قد يكون Windows مشغولًا بتهيئة الملفات أو استعادة الاتصال.\n\nاضغط إعادة المحاولة لمتابعة الانتظار داخل هذه النافذة، أو إلغاء للإغلاق. لن تُحذف بياناتك.",
+                    "بدء تشغيل التطبيق", MessageBoxButtons.RetryCancel, MessageBoxIcon.Information);
+                if (retry != DialogResult.Retry) return false;
+            }
+        }
+        return false;
     }
     private static bool Trusted(string uri) => Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.GetLeftPart(UriPartial.Authority) == Origin;
     private void Log(string message)
@@ -186,7 +247,7 @@ internal sealed class MainWindow : Form
         {
             ready.TrySetException(error);
             foreach (var item in pending.Values) item.TrySetException(error);
-            if (!closing && !IsDisposed) BeginInvoke(() => { Log(error.Message); if (!testMode) MessageBox.Show(this, "توقف خادم المدرسة. أعد تشغيل التطبيق.\n" + error.Message); studentMode=false; Close(); });
+            if ((startupCompleted || ready.Task.IsCompletedSuccessfully) && !closing && !IsDisposed) BeginInvoke(() => { Log(error.Message); if (!testMode) MessageBox.Show(this, "توقف خادم المدرسة. أعد تشغيل التطبيق.\n" + error.Message); studentMode=false; Close(); });
         }
     }
     private async Task Send(object message)
@@ -262,10 +323,21 @@ internal sealed class MainWindow : Form
             case "student-mode":
                 bool enabled=args[0].GetBoolean();
                 if (enabled != studentMode) cameraConsent = false;
-                if(enabled && !testMode) {lockdown ??= new StudentLockdown(this);lockdown.Enable();}
+                if(enabled && startupCompleted && !testMode) {lockdown ??= new StudentLockdown(this);lockdown.Enable();}
                 if(!enabled) {lockdown?.Dispose();lockdown=null;}
                 studentMode=enabled;
                 if(testMode) Console.Error.WriteLine("Student session locked: " + enabled.ToString().ToLowerInvariant());
+                return true;
+            case "backup-folder":
+                if (!teacherSpeechSession || studentMode) throw new Exception("المجلد متاح للمعلم فقط");
+                if (testMode) return testDirectory;
+                using (var folder = new FolderBrowserDialog { Description = "اختر مجلدًا خاصًا داخل OneDrive أو Google Drive", UseDescriptionForTitle = true })
+                    return folder.ShowDialog(this) == DialogResult.OK ? folder.SelectedPath : null;
+            case "restart-app":
+                if (!teacherSpeechSession || studentMode) throw new Exception("إعادة التشغيل متاحة للمعلم فقط");
+                if (testMode) return true;
+                restartRequested = true;
+                _ = Task.Run(async () => { await Task.Delay(500); if (!IsDisposed) BeginInvoke(() => Close()); });
                 return true;
             case "save-dialog":
                 string filename = Path.GetFileName(args[0].GetProperty("defaultPath").GetString()!);
@@ -342,11 +414,12 @@ internal sealed class MainWindow : Form
     }
     private async void OnClosing(object? sender, FormClosingEventArgs e)
     {
-        if(studentMode && !closing && !testMode && e.CloseReason != CloseReason.WindowsShutDown) {e.Cancel=true;return;}
+        if(studentMode && startupCompleted && !closing && !testMode && e.CloseReason != CloseReason.WindowsShutDown) {e.Cancel=true;return;}
         if (stopped) return;
         e.Cancel = true;
         if (closing) return;
         closing = true;
+        startupCancellation.Cancel();
         try
         {
             if (backend is { HasExited: false }) await Call("shutdown", []).WaitAsync(TimeSpan.FromSeconds(3));
@@ -360,6 +433,7 @@ internal sealed class MainWindow : Form
             backend?.Dispose();
             view.Dispose();
             stopped = true;
+            if (restartRequested) Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true, WorkingDirectory = root });
             Close();
         }
     }

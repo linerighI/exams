@@ -121,7 +121,7 @@ test('only admins assign grades; server blocks unassigned students/exams, import
     );
     const csv = 'id,name,grade,section\ns2,طالب ثان,7,أ\ns3,طالب ثالث,10,أ';
     assert.equal((await call('/api/students/import', 'POST', { csv }, teacher)).statusCode, 403);
-    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 1);
+    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 3);
     const backup = (await call('/api/backup', 'GET', undefined, teacher)).json();
     const bad = structuredClone(backup);
     bad.tables.students.push({
@@ -129,12 +129,12 @@ test('only admins assign grades; server blocks unassigned students/exams, import
       data: JSON.stringify({ ...student, id: 'bad', grade: 'العاشر' }),
     });
     assert.ok((await call('/api/restore', 'POST', bad, teacher)).statusCode >= 400);
-    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 1);
+    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 3);
     assert.equal(
       (await call(`/api/teachers/${account.id}`, 'PATCH', { classes: [c8] }, admin)).statusCode,
       200,
     );
-    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 0);
+    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 1);
     assert.equal((await call('/api/exams', 'GET', undefined, teacher)).json().length, 0);
     assert.equal(
       (await call(`/api/exams/${created.json().id}/publish`, 'POST', {}, teacher)).statusCode,
@@ -144,7 +144,7 @@ test('only admins assign grades; server blocks unassigned students/exams, import
     assert.equal((await call('/api/restore', 'POST', backup, teacher)).statusCode, 403);
     // Removing access hides old records without deleting them. Assignment is rechecked on existing sessions.
     await call(`/api/teachers/${account.id}`, 'PATCH', { classes: [c7, c8] }, admin);
-    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 1);
+    assert.equal((await call('/api/students', 'GET', undefined, teacher)).json().length, 3);
     await server.app.close();
     server = await createApp({ directory });
     teacher = await login('teacher7');

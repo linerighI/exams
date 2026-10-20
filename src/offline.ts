@@ -33,13 +33,17 @@ function open(): Promise<IDBDatabase> {
 }
 export async function saveSnapshot(snapshot: Snapshot) {
   const db = await open();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('attempts', 'readwrite');
-    tx.objectStore('attempts').put(snapshot);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-  db.close();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('attempts', 'readwrite', { durability: 'strict' });
+      tx.objectStore('attempts').put(snapshot);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || Error('تعذر حفظ الإجابات على الجهاز'));
+      tx.onabort = () => reject(tx.error || Error('توقف حفظ الإجابات على الجهاز'));
+    });
+  } finally {
+    db.close();
+  }
 }
 export function selectSnapshot(
   all: Snapshot[],
@@ -65,11 +69,16 @@ export async function findSnapshot(
   filter: { examId?: string; attemptId?: string; includeExpired?: boolean } = {},
 ) {
   const db = await open();
-  const all = await new Promise<Snapshot[]>((resolve, reject) => {
-    const request = db.transaction('attempts').objectStore('attempts').getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-  db.close();
-  return selectSnapshot(all, studentId, scope, filter);
+  try {
+    const all = await new Promise<Snapshot[]>((resolve, reject) => {
+      const tx = db.transaction('attempts');
+      const request = tx.objectStore('attempts').getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      tx.onabort = () => reject(tx.error || Error('تعذر استعادة الإجابات المحفوظة'));
+    });
+    return selectSnapshot(all, studentId, scope, filter);
+  } finally {
+    db.close();
+  }
 }

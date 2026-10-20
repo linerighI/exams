@@ -11,7 +11,7 @@ mkdirSync('.data',{recursive:true});mkdirSync('test-results',{recursive:true});
 const harness=mkdtempSync(resolve('.data/personalization-ui-')),directory=mkdtempSync(join(tmpdir(),'personalization-ui-'));
 const server=await createApp({directory});
 const call=async(url:string,method='GET',payload?:any,token?:string)=>{const r=await server.app.inject({url,method:method as any,payload,headers:token?{authorization:`Bearer ${token}`}:{}});assert.equal(r.statusCode,200,r.body.slice(0,180));return r.json();};
-const vite=await createServer({server:{host:'127.0.0.1',port:0},optimizeDeps:{noDiscovery:true,include:['react','react-dom/client','react/jsx-dev-runtime','lucide-react','motion/react','katex','driver.js']}});
+const vite=await createServer({server:{host:'127.0.0.1',port:0,strictPort:false},optimizeDeps:{noDiscovery:true,include:['react','react-dom/client','react/jsx-dev-runtime','lucide-react','motion/react','katex','driver.js']}});
 let browser;
 try {
   await call('/api/setup','POST',{school:'مدرسة الشريقي',password:'Personal-ui123'});const teacher=(await call('/api/login','POST',{role:'teacher',password:'Personal-ui123'})).token;
