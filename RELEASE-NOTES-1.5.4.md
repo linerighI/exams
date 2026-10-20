@@ -16,6 +16,7 @@ Teacher QR sign-in, encrypted dated backups, a refreshed student workspace and s
 - Restore the orb's blue/red/green status feedback. Completion colors do not expose grades or answer keys.
 - Strengthen IndexedDB answer persistence, rapid offline answer revisions, reload recovery, queued submission and reconnect behavior.
 - Improve teacher/class assignment matching and spreadsheet roster import, with clearer preview and optional AI column mapping.
+- Fix school-roster students being limited to the administrator's exams. Students can see published exams from teachers assigned to their class, including randomized exams built from those teachers' approved banks. Drafts and exams for other classes remain hidden; attempts and results stay with the exam's teacher.
 - Improve startup recovery when the school server is slow to start, with accurate progress and error messages instead of incorrectly blaming WebView2.
 - Motion respects reduced-motion preferences. Login wallpaper pauses when the window is hidden.
 
@@ -25,4 +26,4 @@ The libraries and runtimes are included in the application package. Updating kee
 
 This is a preview release. Enable **إظهار الإصدارات التجريبية أيضًا** in **الإعدادات → تحديث التطبيق** to detect it. The small online installer still downloads the complete application package. Full and online installers include SHA-256 checksum files.
 
-Validation: 111 automated tests; QR sign-in and dated-backup browser workflows; recovery from only a sync-folder snapshot on another installation; native bridge authorization checks; offline/reconnect exam browser checks; TypeScript and production builds. A local HTTPS stress test with 30 simultaneous students and camera traffic preserved all answers and scores after a server restart. Physical school Wi-Fi performance still depends on the network and host hardware.
+Validation: 111 automated tests; QR sign-in and dated-backup browser workflows; recovery from only a sync-folder snapshot on another installation; native bridge authorization checks; offline/reconnect exam browser checks; TypeScript and production builds. An additional bank-to-publish browser regression verified two non-admin teachers, live student-list refresh without reloading, randomized questions from the correct bank, class isolation, teacher-specific results and restart persistence. Packaged desktop checks passed. A local HTTPS stress test with 30 simultaneous students and camera traffic preserved all answers and scores after a server restart. Physical school Wi-Fi performance still depends on the network and host hardware.
