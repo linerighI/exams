@@ -1,13 +1,15 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { mathSegments } from './mathNotation';
+import { textDirection } from './textDirection';
+import './contentText.css';
 import { lazy, Suspense } from 'react';
 const VisualFormulaEditor = lazy(() => import('./VisualFormulaEditor'));
 
 export default function MathText({ text }: { text: string }) {
   const pieces = mathSegments(text);
   return (
-    <span className="math-text">
+    <span className="math-text" dir={textDirection(text)}>
       {pieces.map((part, i) => {
         const display = !!part.display;
         if (!part.math) return <span key={i}>{part.text}</span>;

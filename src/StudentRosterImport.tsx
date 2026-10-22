@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { UploadCloud, CheckCircle2, Loader2, FileSpreadsheet } from 'lucide-react';
 import { api, fileBase64 } from './api';
-import { studentRosterPrompt } from './studentRosterPrompt';
 import FocusWindow from './FocusWindow';
 import BlueOrb from './BlueOrb';
+import { studentRosterPrompt } from './studentRosterExchange';
 import './workflow.css';
 export default function StudentRosterImport({
   onClose,
@@ -14,14 +14,15 @@ export default function StudentRosterImport({
 }) {
   const [file, setFile] = useState<File>(),
     [encoded, setEncoded] = useState(''),
-    [jsonText, setJsonText] = useState(''),
-    [copied, setCopied] = useState(false),
     [preview, setPreview] = useState<any>(),
     [ai, setAi] = useState(false),
+    [source, setSource] = useState<'file' | 'gemini' | 'json'>('gemini'),
+    [json, setJson] = useState(''),
+    [copied, setCopied] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [grade, setGrade] = useState(''),
-    [section, setSection] = useState('أ'),
+    [section, setSection] = useState(''),
     [mode, setMode] = useState('skip'),
     [sheet, setSheet] = useState(''),
     [columns, setColumns] = useState<Record<string, number>>(),
@@ -39,11 +40,24 @@ export default function StudentRosterImport({
     setFile(f);
     setEncoded('');
     if (!f) return;
-    if (!/\.(xlsx|csv|json)$/i.test(f.name) || f.size > 8 * 1024 * 1024) {
-      setError('اختر ملف XLSX أو CSV أو JSON بحجم لا يتجاوز 8 ميغابايت.');
+    if (source === 'json') setJson('');
+    if (
+      !(source === 'json' ? /\.json$/i : /\.(xlsx|csv)$/i).test(f.name) ||
+      f.size > (source === 'json' ? 4_000_000 : 8 * 1024 * 1024)
+    ) {
+      setError(
+        source === 'json'
+          ? 'اختر ملف JSON بحجم لا يتجاوز 4 ميغابايت.'
+          : 'اختر ملف Excel بصيغة XLSX أو CSV بحجم لا يتجاوز 8 ميغابايت.',
+      );
       return;
     }
     try {
+      if (source === 'json') {
+        const text = await f.text();
+        if (current === generation.current) setJson(text);
+        return;
+      }
       const data = await fileBase64(f);
       if (current === generation.current) setEncoded(data);
     } catch {
@@ -56,6 +70,8 @@ export default function StudentRosterImport({
     try {
       const result = await api('/api/students/roster/preview', 'POST', {
         filename: file?.name,
+        source,
+        ...(source === 'json' ? { json } : {}),
         ai,
         file: encoded,
         grade,
@@ -65,7 +81,7 @@ export default function StudentRosterImport({
         ...(columns ? { columns, headerRow } : {}),
       });
       setPreview(result);
-      setColumns(result.columns);
+      setColumns(source === 'file' ? result.columns : undefined);
       setSheet(result.sheet);
       setHeaderRow(result.headerRow);
     } catch (e) {
@@ -100,6 +116,79 @@ export default function StudentRosterImport({
       </div>
       {!done ? (
         <>
+          <label className="field">
+            طريقة إضافة الطلاب
+            <select
+              aria-label="طريقة استيراد الطلاب"
+              value={source}
+              disabled={busy}
+              onChange={(e) => {
+                ++generation.current;
+                setSource(e.target.value as typeof source);
+                setPreview(undefined);
+                setColumns(undefined);
+                setFile(undefined);
+                setEncoded('');
+                setError('');
+              }}
+            >
+              <option value="gemini">1. قراءة الملف كاملًا باستخدام Gemini</option>
+              <option value="json">2. طلب للمساعد أو استيراد JSON</option>
+              <option value="file">قراءة Excel محليًا وربط الأعمدة</option>
+            </select>
+          </label>
+          {source === 'gemini' && (
+            <p className="info-note">
+              يقرأ Gemini بيانات جميع أوراق الملف، بما فيها أسماء الطلاب وأرقامهم، عبر الإنترنت
+              باستخدام مفتاح Gemini في الإعدادات. اضغط «معاينة القائمة» لإرسالها، ثم راجع النتائج
+              قبل الحفظ.
+            </p>
+          )}
+          {source === 'json' && (
+            <div className="roster-mapping">
+              <p>
+                انسخ الطلب إلى Gemini أو مساعدك وأرفق ملف Excel، ثم الصق النتيجة أو ارفع ملف JSON.
+              </p>
+              <label className="field">
+                طلب استخراج الطلاب
+                <textarea
+                  aria-label="طلب استخراج الطلاب"
+                  readOnly
+                  rows={7}
+                  value={studentRosterPrompt}
+                />
+              </label>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(studentRosterPrompt);
+                    setCopied(true);
+                  } catch {
+                    setError('حدد نص الطلب وانسخه يدويًا.');
+                  }
+                }}
+              >
+                {copied ? 'تم نسخ الطلب' : 'نسخ الطلب'}
+              </button>
+              <label className="field">
+                بيانات الطلاب JSON
+                <textarea
+                  aria-label="بيانات الطلاب JSON"
+                  dir="ltr"
+                  rows={8}
+                  disabled={busy}
+                  value={json}
+                  placeholder={'{"students":[{"name":"أحمد علي"}]}'}
+                  onChange={(e) => {
+                    setJson(e.target.value);
+                    changed();
+                  }}
+                />
+              </label>
+            </div>
+          )}
           <label
             className={`roster-drop ${busy ? 'is-busy' : ''}`}
             onDragOver={(e) => {
@@ -111,91 +200,46 @@ export default function StudentRosterImport({
             }}
           >
             <UploadCloud size={28} />
-            <strong>{file?.name || 'اسحب ملف Excel أو JSON هنا أو اختره'}</strong>
-            <span>Excel (.xlsx) · CSV · JSON · حتى 3000 طالب</span>
+            <strong>
+              {file?.name ||
+                (source === 'json'
+                  ? 'اختر ملف JSON أو الصق البيانات أعلاه'
+                  : 'اسحب ملف Excel هنا أو اختره')}
+            </strong>
+            <span>{source === 'json' ? 'JSON' : 'Excel (.xlsx) / CSV'} · حتى 3000 طالب</span>
             <input
               aria-label="ملف قائمة الطلاب"
               type="file"
-              accept=".xlsx,.csv,.json"
+              accept={source === 'json' ? '.json' : '.xlsx,.csv'}
               disabled={busy}
               onChange={(e) => void choose(e.target.files?.[0])}
             />
           </label>
-          <details className="roster-mapping">
-            <summary>استيراد JSON بمساعدة ChatGPT أو Gemini</summary>
-            <p>
-              انسخ الطلب وأرفق قائمة المدرسة في حسابك، ثم ارفع ملف JSON الناتج أو الصقه هنا. راجع
-              الأسماء والأرقام قبل الاعتماد.
-            </p>
-            <button
-              className="secondary"
-              disabled={busy}
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(studentRosterPrompt);
-                  setCopied(true);
-                } catch {
-                  setError('تعذر النسخ. يمكنك تحديد الطلب أدناه ونسخه يدويًا.');
-                }
-              }}
-            >
-              {copied ? 'تم نسخ الطلب' : 'نسخ طلب تحويل قائمة الطلاب'}
-            </button>
-            <details>
-              <summary>عرض الطلب</summary>
-              <textarea
-                aria-label="طلب تحويل قائمة الطلاب"
-                readOnly
-                value={studentRosterPrompt}
-                rows={6}
-              />
-            </details>
+          {source === 'file' && (
             <label className="field">
-              الصق JSON
-              <textarea
-                dir="ltr"
-                aria-label="قائمة الطلاب JSON"
-                rows={7}
-                value={jsonText}
-                disabled={busy}
-                placeholder={'{"students":[{"name":"اسم الطالب","grade":"العاشر","section":"أ"}]}'}
-                onChange={(e) => {
-                  setJsonText(e.target.value);
-                  setEncoded('');
-                  setFile(undefined);
-                  changed();
-                }}
-              />
+              <span>
+                <input
+                  type="checkbox"
+                  checked={ai}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setAi(e.target.checked);
+                    setColumns(undefined);
+                    changed();
+                  }}
+                />{' '}
+                مساعد ذكي للتعرّف على الأعمدة
+              </span>
+              <small>
+                اختياري: يرسل عناوين الأعمدة وإحصاءات أنواع الخلايا فقط إلى مزوّدك المحدد، دون إرسال
+                سجلات الطلاب. راجع ربط الأعمدة ثم اعتمد القائمة.
+              </small>
             </label>
-            <button
-              className="secondary"
-              disabled={busy || !jsonText.trim()}
-              onClick={() =>
-                void choose(new File([jsonText], 'students.json', { type: 'application/json' }))
-              }
-            >
-              استخدام JSON للمعاينة
-            </button>
-          </details>
-          <label className="field">
-            <span>
-              <input
-                type="checkbox"
-                checked={ai}
-                disabled={busy || /\.json$/i.test(file?.name || '')}
-                onChange={(e) => {
-                  setAi(e.target.checked);
-                  setColumns(undefined);
-                  changed();
-                }}
-              />{' '}
-              مساعد ذكي للتعرّف على الأعمدة
-            </span>
-            <small>
-              اختياري: يرسل عناوين الأعمدة وإحصاءات أنواع الخلايا فقط إلى مزوّدك المحدد، دون إرسال
-              سجلات الطلاب. راجع ربط الأعمدة ثم اعتمد القائمة.
-            </small>
-          </label>
+          )}
+          <p>
+            اسم الطالب يكفي للإضافة. يمكنك إكمال الصف والشعبة لاحقًا، ويُنشأ رمز دخول تلقائيًا عند
+            غياب الرقم الوطني. لحساب المعلم ذي الصفوف المحددة، اختر صفًا مسندًا إليه.
+          </p>
           <div className="roster-options">
             <label className="field">
               الصف عند غيابه من الملف
@@ -247,6 +291,7 @@ export default function StudentRosterImport({
                     ورقة العمل
                     <select
                       aria-label="ورقة قائمة الطلاب"
+                      disabled={busy}
                       value={sheet}
                       onChange={(e) => {
                         setSheet(e.target.value);
@@ -266,6 +311,7 @@ export default function StudentRosterImport({
                     type="number"
                     min={1}
                     max={20}
+                    disabled={busy}
                     value={headerRow}
                     onChange={(e) => {
                       setHeaderRow(+e.target.value);
@@ -284,6 +330,7 @@ export default function StudentRosterImport({
                     {label}
                     <select
                       aria-label={`عمود ${label}`}
+                      disabled={busy}
                       value={columns[key] ?? -1}
                       onChange={(e) => {
                         setColumns({ ...columns, [key]: +e.target.value });
@@ -303,13 +350,16 @@ export default function StudentRosterImport({
             </details>
           )}
           <div className="button-row">
-            <button className="secondary" disabled={!encoded || busy} onClick={() => void review()}>
+            <button
+              className="secondary"
+              disabled={(source === 'json' ? !json.trim() : !encoded) || busy}
+              onClick={() => void review()}
+            >
               {busy ? <Loader2 size={17} className="spin" /> : <FileSpreadsheet size={17} />}معاينة
               القائمة
             </button>
             <small>
-              تُقرأ بيانات Excel محليًا؛ المساعد الذكي يقترح ربط الأعمدة فقط ولا يكتب أسماء أو
-              أرقامًا من عنده.
+              راجع الأسماء والبيانات المتاحة قبل اعتماد القائمة؛ لا تُحفظ بيانات أثناء المعاينة.
             </small>
           </div>
           {preview && (
@@ -327,6 +377,16 @@ export default function StudentRosterImport({
                 <span>{preview.existing} طالب موجود</span>
                 <span>{preview.issues.length} ملاحظة</span>
               </div>
+              {preview.warnings?.length > 0 && (
+                <div className="info-note" role="status">
+                  {preview.warnings.slice(0, 15).map((warning: any) => (
+                    <p key={`${warning.row}-${warning.message}`}>
+                      الصف {warning.row}: {warning.message}
+                    </p>
+                  ))}
+                  <small>يمكن اعتماد الطلاب بالبيانات المتاحة.</small>
+                </div>
+              )}
               {preview.issues.length > 0 ? (
                 <div role="alert" className="form-error">
                   {preview.issues.slice(0, 15).map((i: any) => (
@@ -352,8 +412,8 @@ export default function StudentRosterImport({
                     {preview.rows.slice(0, 100).map((s: any) => (
                       <tr key={s.id}>
                         <td>{s.name}</td>
-                        <td>{s.grade}</td>
-                        <td>{s.section}</td>
+                        <td>{s.grade || 'غير محدد'}</td>
+                        <td>{s.section || 'غير محددة'}</td>
                         <td dir="ltr">{s.national}</td>
                         <td>{s.action}</td>
                       </tr>
@@ -404,7 +464,13 @@ export default function StudentRosterImport({
           </button>
         </div>
       )}
-      {busy && <p role="status">جارٍ التحضير محليًا… القوائم الكبيرة قد تستغرق قليلًا.</p>}
+      {busy && (
+        <p role="status">
+          {source === 'gemini'
+            ? 'جارٍ قراءة جميع أوراق الملف عبر Gemini… قد تستغرق القوائم الكبيرة عدة دقائق.'
+            : 'جارٍ التحضير…'}
+        </p>
+      )}
       {error && (
         <p role="alert" className="form-error">
           {error}

@@ -13,7 +13,7 @@ SetCompressor /SOLID lzma
 ShowInstDetails show
 !define MUI_ICON "..\build\icon.ico"
 !define MUI_WELCOMEPAGE_TITLE "Alshereqi Exams - Preview"
-!define MUI_WELCOMEPAGE_TEXT "Setup downloads the application from linerighI/exams on GitHub, verifies it, and installs it.$\r$\n$\r$\nAn internet connection and approximately 590 MB of downloads are required. The installed app includes its offline tools.$\r$\n$\r$\nThis is a preview version for testing."
+!define MUI_WELCOMEPAGE_TEXT "Setup downloads the application from linerighI/exams on GitHub, verifies it, and installs it.$\r$\n$\r$\nAn internet connection is required to download the full application package. The installed app includes its offline tools.$\r$\n$\r$\nThis is a preview version for testing."
 !define MUI_ABORTWARNING
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY

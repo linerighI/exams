@@ -1,3 +1,50 @@
+// Keep output structure, but enforce size/range rules in the caller's Zod schema.
+// Large string/array limits (including optional audio fields) can exceed Gemini's
+// constrained-decoding state budget even for a one-question request.
+const localConstraints = new Set([
+  '$schema',
+  'default',
+  'examples',
+  'minLength',
+  'maxLength',
+  'pattern',
+  'format',
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  'minProperties',
+  'maxProperties',
+]);
+export function geminiSchema(schema: any): any {
+  if (Array.isArray(schema)) return schema.map(geminiSchema);
+  if (!schema || typeof schema !== 'object') return schema;
+  return Object.fromEntries(
+    Object.entries(schema).flatMap(([key, value]) => {
+      if (localConstraints.has(key)) return [];
+      if (key === 'const') return [['enum', [value]]];
+      if (
+        ['properties', '$defs', 'definitions'].includes(key) &&
+        value &&
+        typeof value === 'object'
+      )
+        return [
+          [
+            key,
+            Object.fromEntries(
+              Object.entries(value).map(([name, child]) => [name, geminiSchema(child)]),
+            ),
+          ],
+        ];
+      return [[key, geminiSchema(value)]];
+    }),
+  );
+}
+
 export async function geminiGenerate(
   model: string,
   key: string,
@@ -18,11 +65,22 @@ export async function geminiGenerate(
         signal,
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: prompt }, ...media.map(inlineData => ({ inlineData }))] }],
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }, ...media.map((inlineData) => ({ inlineData }))],
+            },
+          ],
           generationConfig: {
             temperature: 0.3,
             maxOutputTokens: 6000,
-            ...(model.startsWith('gemini-2') ? { responseMimeType:'application/json', responseJsonSchema:schema } : { responseFormat:{text:{mimeType:'application/json',schema}} }),
+            ...(model.startsWith('gemini-2')
+              ? { responseMimeType: 'application/json', responseJsonSchema: geminiSchema(schema) }
+              : {
+                  responseFormat: {
+                    text: { mimeType: 'APPLICATION_JSON', schema: geminiSchema(schema) },
+                  },
+                }),
             ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
           },
         }),
@@ -42,6 +100,17 @@ export async function geminiGenerate(
       throw Error('نموذج Gemini غير متاح لهذا الحساب. غيّر اسم النموذج من الإعدادات');
     if (response.status === 400 && /API_KEY/i.test(result.error?.message || ''))
       throw Error('مفتاح Gemini غير صالح');
+    if (response.status === 400) {
+      const reason = String(result.error?.message || '')
+        .split(key)
+        .join('[محجوب]')
+        .replace(/AIza[A-Za-z0-9_-]+/g, '[محجوب]')
+        .replace(/\s+/g, ' ')
+        .slice(0, 700);
+      throw Error(
+        `رفض Gemini الطلب (HTTP 400)${reason ? `: ${reason}` : '. تحقق من إعدادات النموذج'}`,
+      );
+    }
     throw Error(`تعذر التوليد عبر Gemini (HTTP ${response.status}). تحقق من إعدادات النموذج`);
   }
   const candidate = result.candidates?.[0];
@@ -49,7 +118,7 @@ export async function geminiGenerate(
     ?.filter((p: any) => !p.thought)
     .map((p: any) => p.text || '')
     .join('');
-  if (!text) throw Error('لم يُرجع Gemini أسئلة. تحقق من محتوى الصفحات وأعد المحاولة');
+  if (!text) throw Error('لم يُرجع Gemini بيانات. تحقق من المحتوى وأعد المحاولة');
   return {
     usage: result.usageMetadata,
     message: { content: text },

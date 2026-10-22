@@ -874,7 +874,7 @@ export default function App() {
                         teacherId={session.teacherId || 'master'}
                       />
                     )}
-                    {teacher && <AppUpdates background notify={notify} />}
+                    <AppUpdates background student={!teacher} notify={notify} />
                     {teacher && (
                       <button
                         className="secondary small"

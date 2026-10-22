@@ -11,6 +11,7 @@ import {
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { updateManifestSchema, type UpdateManifest } from '../src/schoolUpdate';
 
 export type UpdateState = {
   status:
@@ -28,6 +29,9 @@ export type UpdateState = {
   size?: number;
   received?: number;
   error?: string;
+  source?: 'github' | 'school';
+  waiting?: boolean;
+  installAt?: number;
 };
 const version = (s: string) => /^(?:v)?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(s);
 export function newerRelease(tag: string, current: string) {
@@ -66,7 +70,15 @@ export function createAppUpdater(options: {
 }) {
   const fetcher = options.fetcher || fetch;
   let state: UpdateState = { status: 'idle', current: options.current };
-  let selected: { url: string; hash: string; size: number; version: string } | undefined;
+  let selected:
+    | {
+        url: string;
+        hash: string;
+        size: number;
+        version: string;
+        download?: (offset: number, signal: AbortSignal) => Promise<Response>;
+      }
+    | undefined;
   let controller: AbortController | undefined;
   let readyFile = '';
   const patch = (next: Partial<UpdateState>) => {
@@ -83,7 +95,7 @@ export function createAppUpdater(options: {
     if (!response.ok) throw Error(`تعذر تنزيل التحديث (${response.status})`);
     return response;
   };
-  const check = async (previews = false) => {
+  const check = async (previews = false, includeCurrent = false) => {
     if (['checking', 'downloading', 'ready', 'installing'].includes(state.status)) return state;
     patch({ status: 'checking', error: undefined });
     try {
@@ -94,7 +106,10 @@ export function createAppUpdater(options: {
       const release = releases
         .filter(
           (r: any) =>
-            !r.draft && (previews || !r.prerelease) && newerRelease(r.tag_name, options.current),
+            !r.draft &&
+            (previews || !r.prerelease) &&
+            (newerRelease(r.tag_name, options.current) ||
+              (includeCurrent && r.tag_name.replace(/^v/, '').split('-')[0] === options.current)),
         )
         .sort((a: any, b: any) =>
           newerRelease(a.tag_name, b.tag_name) ? -1 : newerRelease(b.tag_name, a.tag_name) ? 1 : 0,
@@ -133,6 +148,9 @@ export function createAppUpdater(options: {
         notes: String(release.body || '').slice(0, 4000),
         size: asset.size,
         received: 0,
+        source: 'github',
+        waiting: false,
+        installAt: undefined,
       });
     } catch (e) {
       return patch({ status: 'error', error: (e as Error).message });
@@ -161,10 +179,12 @@ export function createAppUpdater(options: {
         offset = 0;
       }
       if (offset < asset.size) {
-        const response = await get(asset.url, {
-          signal: controller.signal,
-          headers: offset ? { Range: `bytes=${offset}-` } : {},
-        });
+        const response = asset.download
+          ? await asset.download(offset, controller.signal)
+          : await get(asset.url, {
+              signal: controller.signal,
+              headers: offset ? { Range: `bytes=${offset}-` } : {},
+            });
         if (
           offset &&
           (response.status !== 206 ||
@@ -212,6 +232,43 @@ export function createAppUpdater(options: {
     state: () => state,
     check,
     download,
+    acceptSchool: (
+      input: UpdateManifest,
+      transport: (offset: number, signal: AbortSignal) => Promise<Response>,
+    ) => {
+      const manifest = updateManifestSchema.parse(input);
+      if (!newerRelease(manifest.version, options.current)) return patch({ status: 'current' });
+      if (controller || state.status === 'installing') throw Error('انتظر اكتمال التحديث الجاري');
+      selected = { ...manifest, url: '', download: transport };
+      return patch({
+        status: 'available',
+        ...manifest,
+        source: 'school',
+        received: 0,
+        error: undefined,
+        waiting: false,
+        installAt: undefined,
+      });
+    },
+    defer: (waiting: boolean, installAt?: number) => patch({ waiting, installAt }),
+    readyPackage: async () => {
+      if (
+        !selected ||
+        state.source !== 'github' ||
+        state.status !== 'ready' ||
+        !existsSync(readyFile)
+      )
+        throw Error('نزّل تحديث GitHub وتحقق منه على الجهاز الرئيسي أولًا');
+      if ((await hashFile(readyFile)) !== selected.hash)
+        throw Error('ملف التحديث تغيّر؛ أعد تنزيله');
+      return {
+        version: selected.version,
+        hash: selected.hash,
+        size: selected.size,
+        notes: state.notes || '',
+        file: readyFile,
+      };
+    },
     cancel: () => {
       controller?.abort();
       return state;

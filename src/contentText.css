@@ -1,0 +1,16 @@
+/* Content chooses its own direction; surrounding Arabic controls keep RTL. */
+.math-text[dir] {
+  display: inline-block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+.visual-formula-parts textarea[dir],
+.question-written input[dir],
+.question-written textarea[dir],
+.response-blanks input[dir] {
+  text-align: start;
+  unicode-bidi: plaintext;
+}

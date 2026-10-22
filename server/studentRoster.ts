@@ -1,5 +1,4 @@
 import { studentCode } from './studentCodes';
-import ExcelJS from 'exceljs';
 import { parse } from 'csv-parse/sync';
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -122,6 +121,7 @@ const aliases: Record<string, string[]> = {
     'اسم',
   ],
   national: [
+    'national',
     'الرقم الوطني',
     'رقم وطني',
     'الرقم الوطني للطالب',
@@ -142,6 +142,43 @@ type Entry = {
   row: number;
   existing: boolean;
 };
+const optionalRosterText = z
+  .union([z.string(), z.number(), z.null()])
+  .optional()
+  .transform((value) => (value == null ? '' : String(value).trim()));
+export const rosterStudentsSchema = z.object({
+  students: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(300),
+        id: optionalRosterText,
+        national: optionalRosterText,
+        grade: optionalRosterText,
+        section: optionalRosterText,
+      }),
+    )
+    .min(1)
+    .max(3000),
+});
+export type RosterSheet = { name: string; rows: string[][] };
+export function parseRosterJson(text: string) {
+  let data: any;
+  try {
+    data = JSON.parse(
+      text
+        .replace(/^\uFEFF/, '')
+        .trim()
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/, ''),
+    );
+  } catch {
+    throw fail('ملف JSON غير صالح. الصق النتيجة كاملة أو اختر ملف JSON.');
+  }
+  const result = rosterStudentsSchema.safeParse(Array.isArray(data) ? { students: data } : data);
+  if (!result.success)
+    throw fail('استخدم {"students":[{"name":"اسم الطالب"}]}؛ الاسم مطلوب والحد الأقصى 3000 طالب.');
+  return result.data.students;
+}
 export function registerStudentRoster(
   app: any,
   store: Store,
@@ -152,6 +189,7 @@ export function registerStudentRoster(
     headers: string[],
     profiles: { letters: number; digits: number; empty: number }[],
   ) => Promise<Record<string, number>>,
+  readWorkbook?: (sheets: RosterSheet[]) => Promise<unknown>,
 ) {
   const previews = new Map<
     string,
@@ -161,31 +199,57 @@ export function registerStudentRoster(
     teacher(req);
     const input = z
       .object({
-        filename: z.string().max(250),
+        filename: z.string().max(250).default('students.json'),
+        source: z.enum(['file', 'gemini', 'json']).default('file'),
+        json: z.string().max(4_000_000).optional(),
         ai: z.boolean().default(false),
-        file: z.string().max(11_000_000),
+        file: z.string().max(11_000_000).default(''),
         sheet: z.string().max(200).optional(),
         headerRow: z.number().int().min(1).max(20).optional(),
         columns: z.record(z.string(), z.number().int().min(-1).max(49)).optional(),
         grade: z.string().trim().max(100).default(''),
-        section: z.string().trim().max(100).default('أ'),
+        section: z.string().trim().max(100).default(''),
         mode: z.enum(['skip', 'update']).default('skip'),
       })
       .parse(req.body);
     const encoded = input.file.includes(',')
       ? input.file.slice(input.file.indexOf(',') + 1)
       : input.file;
-    if (!/^[A-Za-z0-9+/=]+$/.test(encoded)) throw fail('ملف غير صالح');
+    if (input.source !== 'json' && !/^[A-Za-z0-9+/=]+$/.test(encoded)) throw fail('ملف غير صالح');
     const bytes = Buffer.from(encoded, 'base64');
     if (bytes.length > 8 * 1024 * 1024) throw fail('الحد الأقصى للملف 8 ميغابايت');
     let rows: string[][] = [],
       sheets: string[] = [],
       selectedSheet = '';
-    if (/\.xlsx$/i.test(input.filename)) {
+    let workbookData: RosterSheet[] = [];
+    if (input.source === 'json') {
+      const students = parseRosterJson(input.json || '');
+      rows = [
+        ['name', 'national', 'id', 'grade', 'section'],
+        ...students.map((s) => [s.name, s.national, s.id, s.grade, s.section]),
+      ];
+    } else if (/\.xlsx$/i.test(input.filename)) {
       checkRosterZip(bytes);
+      const { default: ExcelJS } = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(bytes as any);
       sheets = workbook.worksheets.map((s) => s.name);
+      if (input.source === 'gemini') {
+        let totalRows = 0;
+        workbookData = workbook.worksheets.map((s) => {
+          totalRows += s.rowCount;
+          if (s.rowCount > 3020 || s.columnCount > 50 || totalRows > 10000)
+            throw fail('ملف كبير جدًا؛ قسّمه إلى قوائم أصغر (حتى 3000 طالب).');
+          return {
+            name: s.name,
+            rows: Array.from({ length: s.rowCount }, (_, r) =>
+              Array.from({ length: s.columnCount }, (_, c) =>
+                clean(s.getRow(r + 1).getCell(c + 1).value),
+              ),
+            ),
+          };
+        });
+      }
       const sheet =
         workbook.worksheets.find((s) => s.name === input.sheet) ||
         workbook.worksheets.find((s) => {
@@ -245,19 +309,30 @@ export function registerStudentRoster(
       });
       if (rows.length > 3020 || rows.some((r) => r.length > 50))
         throw fail('الحد الأقصى 3000 طالب و50 عمودًا');
-    } else throw fail('اختر ملف XLSX أو CSV أو JSON. احفظ ملفات XLS القديمة بصيغة XLSX.');
-    let headerIndex = input.headerRow
-      ? input.headerRow - 1
-      : (rows
-          .slice(0, 20)
-          .map((r, i) => ({
-            i,
-            score: Object.values(aliases).filter((names) =>
-              r.some((c) => names.map(header).includes(header(c))),
-            ).length,
-          }))
-          .sort((a, b) => b.score - a.score)
-          .find((r) => r.score > 0)?.i ?? -1);
+    } else throw fail('اختر ملف Excel بصيغة XLSX أو CSV. احفظ ملفات XLS القديمة بصيغة XLSX.');
+    if (input.source === 'gemini') {
+      if (!readWorkbook) throw fail('قراءة Gemini غير جاهزة. استخدم JSON أو الاستيراد المحلي.');
+      if (!workbookData.length) workbookData = [{ name: input.filename, rows }];
+      const students = parseRosterJson(JSON.stringify(await readWorkbook(workbookData)));
+      rows = [
+        ['name', 'national', 'id', 'grade', 'section'],
+        ...students.map((s) => [s.name, s.national, s.id, s.grade, s.section]),
+      ];
+    }
+    const structured = input.source !== 'file' || /\.json$/i.test(input.filename);
+    let headerIndex =
+      !structured && input.headerRow
+        ? input.headerRow - 1
+        : (rows
+            .slice(0, 20)
+            .map((r, i) => ({
+              i,
+              score: Object.values(aliases).filter((names) =>
+                r.some((c) => names.map(header).includes(header(c))),
+              ).length,
+            }))
+            .sort((a, b) => b.score - a.score)
+            .find((r) => r.score > 0)?.i ?? -1);
     if (headerIndex < 0) headerIndex = 0;
     const labels = (rows[headerIndex] || []).map((value) =>
         /^\d{10}$/.test(nationalNumber(value)) ? 'عنوان مخفي' : value,
@@ -265,9 +340,10 @@ export function registerStudentRoster(
       columns: Record<string, number> = {};
     for (const [key, names] of Object.entries(aliases))
       columns[key] =
-        input.columns?.[key] ?? labels.findIndex((v) => names.map(header).includes(header(v)));
+        (!structured ? input.columns?.[key] : undefined) ??
+        labels.findIndex((v) => names.map(header).includes(header(v)));
     let aiMapped = false;
-    if (input.ai && !input.columns) {
+    if (!structured && input.ai && !input.columns) {
       if (!mapColumns) throw fail('مساعد ربط الأعمدة غير جاهز. يمكنك ربط الأعمدة يدويًا.');
       const profiles = labels.map((_, c) => {
         const samples = rows.slice(headerIndex + 1, headerIndex + 21).map((r) => r[c] || '');
@@ -313,31 +389,29 @@ export function registerStudentRoster(
       seen = new Set<string>(),
       ids = new Set<string>(),
       entries: Entry[] = [],
-      issues: { row: number; message: string }[] = [];
+      issues: { row: number; message: string }[] = [],
+      warnings: { row: number; message: string }[] = [];
     for (let r = headerIndex + 1; r < rows.length; r++) {
       const values = rows[r];
       if (values.every((v) => !v)) continue;
       const get = (key: string) => values[columns[key]] || '';
-      const national = nationalNumber(get('national')),
-        name = get('name'),
+      let national = nationalNumber(get('national'));
+      const name = get('name'),
         grade = get('grade') || input.grade,
         section = get('section') || input.section;
       if (national && !/^\d{10}$/.test(national)) {
+        warnings.push({
+          row: r + 1,
+          message:
+            'تم تجاهل رقم وطني غير مكتمل؛ سيستخدم الطالب رمز الدخول أو هويته المحفوظة. يمكنك تصحيحه لاحقًا.',
+        });
+        national = '';
+      }
+      if (!/\p{L}/u.test(name) || name.length > 300 || grade.length > 100 || section.length > 100) {
         issues.push({
           row: r + 1,
-          message: 'الرقم الوطني يجب أن يتكون من 10 أرقام؛ احفظ الأرقام التي تبدأ بصفر كنص.',
+          message: 'اسم الطالب مطلوب؛ حد الاسم 300 حرف والصف والشعبة 100 حرف',
         });
-        continue;
-      }
-      if (
-        !/\p{L}/u.test(name) ||
-        name.length > 300 ||
-        !grade ||
-        grade.length > 100 ||
-        !section ||
-        section.length > 100
-      ) {
-        issues.push({ row: r + 1, message: 'أكمل الاسم والصف والشعبة' });
         continue;
       }
       const index = national
@@ -381,10 +455,9 @@ export function registerStudentRoster(
         !national && !supplied
           ? roster.filter(
                 (s) =>
-                  !credentials[s.id] &&
                   header(s.name) === header(name) &&
-                  header(s.grade) === header(grade) &&
-                  header(s.section) === header(section),
+                  (!grade || header(s.grade) === header(grade)) &&
+                  (!section || header(s.section) === header(section)),
               )
           : [];
       if (matches.length > 1) {
@@ -408,21 +481,26 @@ export function registerStudentRoster(
       }
       ids.add(studentId);
       const existing = store.get('students', studentId);
-      if (existing && credentials[studentId] && credentials[studentId].index !== index) {
+      if (
+        national &&
+        existing &&
+        credentials[studentId] &&
+        credentials[studentId].index !== index
+      ) {
         issues.push({ row: r + 1, message: 'رقم الطالب مرتبط بهوية مختلفة' });
         continue;
       }
       entries.push({
         id: studentId,
         name,
-        grade,
-        section,
+        grade: grade || existing?.grade || '',
+        section: section || existing?.section || '',
         national,
         row: r + 1,
         existing: !!existing,
       });
       try {
-        checkGrade(grade, section);
+        checkGrade(grade || existing?.grade || '', section || existing?.section || '');
       } catch {
         issues.push({ row: r + 1, message: 'هذا الصف غير مسند إلى حسابك. راجع مدير الحسابات.' });
       }
@@ -454,9 +532,14 @@ export function registerStudentRoster(
       columns,
       labels,
       issues,
+      warnings,
       rows: entries.map(({ national, ...e }) => ({
         ...e,
-        national: national ? `••••••${national.slice(-4)}` : 'دخول برمز الطالب',
+        national: national
+          ? `••••••${national.slice(-4)}`
+          : credentials[e.id]
+            ? 'هوية الدخول المحفوظة'
+            : 'دخول برمز الطالب',
         action: e.existing ? (input.mode === 'skip' ? 'تخطي' : 'تحديث') : 'إضافة',
       })),
       count: entries.length,
@@ -521,8 +604,8 @@ export function registerStudentRoster(
           ...old,
           id: entry.id,
           name: entry.name,
-          grade: entry.grade,
-          section: entry.section,
+          grade: entry.grade || old?.grade || '',
+          section: entry.section || old?.section || '',
           code: old?.code || studentCode(usedCodes),
           loginMethod: credential ? 'national' : old?.loginMethod,
         });

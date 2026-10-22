@@ -20,7 +20,10 @@ import { trustedTeacherResource } from '../src/teacherResources';
 import { isIP } from 'node:net';
 import { timingSafeEqual } from 'node:crypto';
 import { assertCanHost, assertHostElection } from './hostPolicy';
-import { createAppUpdater } from './appUpdater';
+import { createAppUpdater, newerRelease } from './appUpdater';
+import { createManagedUpdates } from './managedUpdates';
+import { downloadSchoolUpdate } from './schoolUpdateDownload';
+import type { UpdateManifest, SchoolUpdate } from '../src/schoolUpdate';
 import { newPairingCode, normalizePairingCode, pairingKey, pairingProof } from '../server/pairing';
 const root = resolve(process.env.SCHOOL_APP_ROOT || process.cwd());
 const app = {
@@ -49,6 +52,7 @@ const handlers = new Map<string, (...args: any[]) => any>();
 const handle = (name: string, fn: (...args: any[]) => any) => handlers.set(name, fn);
 
 let server: Awaited<ReturnType<typeof createApp>> | undefined;
+let updatePackageSource: (() => Promise<UpdateManifest & {file:string}>) | undefined;
 let udp: dgram.Socket | undefined;
 let target: { host: string; fingerprint: string } | undefined;
 let token = '';
@@ -209,6 +213,10 @@ async function startHost() {
     const { createApp } = await import('../server/app');
     server = await createApp({
       directory: dataPath(),
+      updatePackage: () => {
+        if(!updatePackageSource)throw Error('خدمة التحديث غير جاهزة');
+        return updatePackageSource();
+      },
       secretProtection: {
         seal: (value) => {
           if (!safeStorage.isEncryptionAvailable())
@@ -314,29 +322,72 @@ const onlyTeacher = () => {
 };
 async function start() {
   console.error('Startup: restoring saved connection');
-  const requireUpdateTeacher = () => { if (role !== 'teacher') throw Error('تحديث التطبيق متاح بعد تسجيل الدخول بحساب المعلم'); };
+  const currentVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
+  const installReceiptPath=join(app.getPath('userData'),'updates','school-install.json');
+  let previousSchoolInstall:{id:string;version:string}|undefined;
+  try{previousSchoolInstall=JSON.parse(readFileSync(installReceiptPath,'utf8'));}catch{}
+  const clientIdPath=join(app.getPath('userData'),'updates','client-id');
+  mkdirSync(join(app.getPath('userData'),'updates'),{recursive:true});
+  const updateClientId=existsSync(clientIdPath)?readFileSync(clientIdPath,'utf8'):randomBytes(16).toString('hex');
+  if(!existsSync(clientIdPath))writeFileSync(clientIdPath,updateClientId);
+  let managedCampaign:SchoolUpdate|undefined;
+  let lastUpdateReport=0;
+  const reportUpdate=async(campaign:SchoolUpdate,status:string,progress=0,error?:string)=>{
+    if(role!=='student'||!target||!token)throw Error('جلسة الطالب غير متصلة');
+    return secureRequest(target.host,target.fingerprint,'/api/school-updates/student/status','POST',
+      {campaignId:campaign.id,clientId:updateClientId,current:currentVersion,status,progress,error},token,10000);
+  };
   const updater = createAppUpdater({
     directory: join(app.getPath('userData'), 'updates'),
-    current: JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version,
-    emit: state => win.webContents.send('server-event', { type: 'app-update', state }),
+    current: currentVersion,
+    emit: state => {
+      win.webContents.send('server-event', { type: 'app-update', state });
+      if(state.source==='school'&&state.status==='downloading'&&managedCampaign&&Date.now()-lastUpdateReport>5000) {
+        lastUpdateReport=Date.now();
+        void reportUpdate(managedCampaign,'downloading',Math.min(100,100*(state.received||0)/(state.size||1))).catch(()=>{});
+      }
+    },
     install: async (file, hash) => {
-      requireUpdateTeacher();
       if (!app.isPackaged) throw Error('تثبيت التحديث متاح في النسخة المثبتة فقط، وليس داخل مجلد تطوير المشروع.');
       if (server && !server.beginUpdateMaintenance()) throw Error('يوجد طلاب في امتحانات جارية على هذا الجهاز الرئيسي؛ انتظر انتهاء جميع المعلمين قبل التحديث.');
       try {
-        if (target && token) {
+        const installToken=token;
+        if (role==='student') {
+          if(!target||!managedCampaign||managedCampaign.hash!==hash)throw Error('التحديث لا يطابق التحديث الذي أرسله المعلم');
+          const info=await secureRequest(target.host,target.fingerprint,'/api/school-updates/student','GET',undefined,token,10000);
+          if(info.active||info.campaign?.id!==managedCampaign.id)throw Error('يُؤجّل تحديث الطالب حتى تسليم الامتحان');
+          await reportUpdate(managedCampaign,'installing',100);
+          if(role!=='student'||token!==installToken)throw Error('تغيرت جلسة الطالب؛ أُلغي التثبيت');
+        } else if (target && token) {
           const attempts = await secureRequest(target.host, target.fingerprint, '/api/attempts', 'GET', undefined, token, 6000);
           if (attempts.some((a: any) => !a.submittedAt && a.deadline > Date.now())) throw Error('لا يمكن إغلاق التطبيق للتحديث أثناء وجود امتحانات جارية. ثبّت التحديث بعد انتهاء الطلاب.');
         }
-        await nativeCall('install-update', file, hash);
+        if(role==='student'&&managedCampaign)writeFileSync(installReceiptPath,JSON.stringify({id:managedCampaign.id,version:managedCampaign.version}));
+        await nativeCall(role==='student'?'install-school-update':'install-update', file, hash);
       } catch (error) { server?.cancelUpdateMaintenance(); throw error; }
     },
   });
-  handle('update-state', () => { requireUpdateTeacher(); return updater.state(); });
-  handle('update-check', (previews = false) => { requireUpdateTeacher(); return updater.check(previews === true); });
-  handle('update-download', () => { requireUpdateTeacher(); return updater.download(); });
-  handle('update-cancel', () => { requireUpdateTeacher(); return updater.cancel(); });
-  handle('update-install', () => { requireUpdateTeacher(); return updater.install(); });
+  updatePackageSource=()=>updater.readyPackage();
+  const managed=createManagedUpdates({updater,current:currentVersion,
+    failedCampaign:()=>previousSchoolInstall&&newerRelease(previousSchoolInstall.version,currentVersion)?previousSchoolInstall.id:undefined,
+    context:()=>role==='student'&&target&&token?`${target.fingerprint}:${token}`:undefined,
+    query:async()=>{
+      if(!target)throw Error('اتصل بجهاز المعلم');
+      const info=await secureRequest(target.host,target.fingerprint,'/api/school-updates/student','GET',undefined,token,10000);
+      managedCampaign=info.campaign||undefined;return info;
+    },
+    report:reportUpdate,
+    transport:(campaign,offset,signal)=>{
+      if(!target)throw Error('اتصل بجهاز المعلم');
+      return downloadSchoolUpdate({...target,port,token,id:campaign.id,offset,signal});
+    },
+  });
+  const managedTimer=setInterval(()=>void managed.tick(),5000);managedTimer.unref();
+  handle('update-state', () => updater.state());
+  handle('update-check', (previews = false, forStudents = false) => updater.check(previews === true, forStudents === true));
+  handle('update-download', () => updater.download());
+  handle('update-cancel', () => updater.cancel());
+  handle('update-install', () => updater.install());
   let restoreLocal = false;
   try {
     const file = join(dataPath(), 'connection');
@@ -533,7 +584,8 @@ async function start() {
       );
       token = fresh.token;
     }
-    const result = await secureRequest(target.host, target.fingerprint, path, method, body);
+    const result = await secureRequest(target.host, target.fingerprint, path, method, body, token,
+      path === '/api/students/roster/preview' && input?.source === 'gemini' ? 30 * 60 * 1000 : 190000);
     if (path === '/api/login') {
       token = result.token;
       role = result.role;
@@ -545,6 +597,7 @@ async function start() {
       connectEvents();
     }
     if (path === '/api/logout' || path === '/api/restore') {
+      managed.reset();managedCampaign=undefined;
       token = '';
       role = '';
       studentSession = undefined;
@@ -666,7 +719,7 @@ async function start() {
             throw Error('Invalid request');
           if (
             role === 'student' &&
-            !['request', 'connection-state', 'student-session', 'shutdown'].includes(message.method)
+            !['request', 'connection-state', 'student-session', 'update-state', 'shutdown'].includes(message.method)
           )
             throw Error('جلسة الطالب مقفلة. يلزم تسجيل الخروج بكلمة مرور المعلم');
           const handler = handlers.get(message.method);

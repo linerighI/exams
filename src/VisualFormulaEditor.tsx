@@ -3,6 +3,7 @@ import { MathfieldElement } from 'mathlive';
 import 'mathlive/fonts.css';
 import MathText from './MathText';
 import { mathSegments } from './mathNotation';
+import { textDirection } from './textDirection';
 import './visualMath.css';
 MathfieldElement.fontsDirectory = null;
 MathfieldElement.soundsDirectory = null;
@@ -113,7 +114,7 @@ export default function VisualFormulaEditor({
           ))}
         </div>
       )}
-      <div className="visual-formula-parts">
+      <div className="visual-formula-parts" dir={textDirection(value)}>
         {parts.map((p, i) =>
           p.math ? (
             <div className="visual-equation" key={p.id}>
@@ -134,6 +135,7 @@ export default function VisualFormulaEditor({
             <textarea
               key={p.id}
               className="question-text"
+              dir={textDirection(p.text || value)}
               aria-label={i === 0 ? ariaLabel : `${ariaLabel} · النص ${i + 1}`}
               rows={Math.max(1, p.text.split('\n').length)}
               value={p.text}

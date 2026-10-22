@@ -113,3 +113,28 @@ test('wrong digests are discarded and prereleases require explicit opt-in', asyn
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('teacher can prepare the current release for older student devices without offering it as a normal upgrade', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'update-current-'));
+  const updater = createAppUpdater({
+    directory,
+    current: '1.4.4',
+    emit: () => {},
+    install: async () => {},
+    fetcher: (async (requested: any) =>
+      String(requested).includes('/releases?')
+        ? Response.json([release])
+        : new Response(bytes)) as typeof fetch,
+  });
+  try {
+    assert.equal((await updater.check()).status, 'current');
+    assert.equal((await updater.check(false, true)).status, 'available');
+    assert.equal((await updater.download()).status, 'ready');
+    const ready = await updater.readyPackage();
+    assert.equal(ready.hash, hash);
+    writeFileSync(ready.file, 'changed');
+    await assert.rejects(updater.readyPackage(), /تغيّر/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

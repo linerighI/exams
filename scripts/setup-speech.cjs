@@ -53,7 +53,12 @@ async function setup() {
     }
     if ('sha256:' + hash(archive) !== asset.digest || fs.statSync(archive).size !== asset.size)
       throw Error(`Speech archive checksum mismatch: ${asset.name}`);
-    const list = spawnSync('tar', ['-tjf', archive], { encoding: 'utf8', windowsHide: true });
+    // Windows tar can corrupt non-ASCII absolute path arguments. Resolve relative
+    // paths from the project directory so Arabic workspace names remain usable.
+    const relativeArchive = path.relative(root, archive);
+    const list = spawnSync('tar', ['-tjf', relativeArchive], {
+      cwd: root, encoding: 'utf8', windowsHide: true,
+    });
     if (list.status !== 0) throw Error('Cannot inspect speech archive');
     if (
       list.stdout
@@ -61,7 +66,8 @@ async function setup() {
         .some((entry) => entry && (path.isAbsolute(entry) || entry.split(/[\\/]/).includes('..')))
     )
       throw Error('Invalid speech archive path');
-    const unpack = spawnSync('tar', ['-xjf', archive, '-C', models], {
+    const unpack = spawnSync('tar', ['-xjf', relativeArchive, '-C', path.relative(root, models)], {
+      cwd: root,
       stdio: 'inherit',
       windowsHide: true,
     });

@@ -1,4 +1,5 @@
 import LoginWallpaper from './LoginWallpaper';
+import AppUpdates from './AppUpdates';
 import { TeacherQrScanner } from './TeacherQr';
 import { useSceneMotion } from './appMotion';
 import { useEffect, useRef, useState } from 'react';
@@ -420,6 +421,7 @@ export default function Welcome({
             )}
             <div className="login-bottom">
               <MinistryBrand />
+              <div className="login-update-entry"><AppUpdates /></div>
             </div>
           </section>
         </div>

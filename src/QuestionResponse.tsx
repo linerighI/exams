@@ -4,6 +4,7 @@ import { ArrowUp, ArrowDown, GripVertical, Check, Eraser } from 'lucide-react';
 import type { Question } from './types';
 import { kindOf, matchingColumns, type Answer } from './questionFormats';
 import MathText from './MathText';
+import { textDirection } from './textDirection';
 import './questionStudio.css';
 
 export default function QuestionResponse({
@@ -31,6 +32,7 @@ export default function QuestionResponse({
         )}
         {kind === 'short' ? (
           <input
+            dir={textDirection(typeof value === 'string' && value.trim() ? value : q.text)}
             maxLength={10000}
             disabled={disabled}
             value={typeof value === 'string' ? value : ''}
@@ -39,6 +41,7 @@ export default function QuestionResponse({
           />
         ) : (
           <textarea
+            dir={textDirection(typeof value === 'string' && value.trim() ? value : q.text)}
             rows={6}
             maxLength={10000}
             disabled={disabled}
@@ -57,6 +60,7 @@ export default function QuestionResponse({
           <label className="field" key={i}>
             الفراغ {i + 1}
             <input
+              dir={textDirection(String(values[i] || q.text))}
               disabled={disabled}
               maxLength={1000}
               value={String(values[i] || '')}

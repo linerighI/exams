@@ -304,9 +304,16 @@ internal sealed class MainWindow : Form
         switch (method)
         {
             case "install-update":
-                if (!teacherSpeechSession || studentMode) throw new Exception("التحديث متاح للمعلم خارج جلسة الطالب فقط");
+                if (studentMode) throw new Exception("تحديث الطالب متاح من إرسال المعلم فقط");
                 await UpdateInstaller.Prepare(data, root, args[0].GetString()!, args[1].GetString()!, testMode);
                 if (!testMode) _ = Task.Run(async () => { await Task.Delay(700); if (!IsDisposed) BeginInvoke(() => Close()); });
+                return true;
+            case "install-school-update":
+                // Internal backend command; deliberately absent from the WebView command allowlist.
+                if (!studentMode) throw new Exception("جلسة الطالب غير متاحة");
+                await UpdateInstaller.Prepare(data, root, args[0].GetString()!, args[1].GetString()!, testMode);
+                if (!testMode) { studentMode=false; lockdown?.Dispose(); lockdown=null;
+                    _ = Task.Run(async () => { await Task.Delay(700); if (!IsDisposed) BeginInvoke(() => Close()); }); }
                 return true;
             case "teacher-speech-session":
                 teacherSpeechSession = args[0].GetBoolean();

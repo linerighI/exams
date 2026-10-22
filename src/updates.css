@@ -1,0 +1,230 @@
+.login-update-entry {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+.login-update-entry button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 14px !important;
+  padding: 10px 18px !important;
+  box-shadow: 0 5px 20px #4677b00c;
+}
+.update-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  color: #29476c;
+}
+.update-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+.update-dialog::backdrop {
+  background: #18365766;
+  backdrop-filter: blur(10px);
+  transition: opacity 0.25s;
+}
+.update-dialog.is-closing::backdrop {
+  opacity: 0;
+}
+.update-window {
+  width: min(620px, calc(100vw - 32px));
+  max-height: 88dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: linear-gradient(145deg, #fff, #f5f9ff);
+  border: 1px solid #ffffffde;
+  border-radius: 26px;
+  box-shadow: 0 32px 100px #15365c3d;
+  padding: 24px;
+  transform-origin: center;
+  direction: rtl;
+}
+.update-window-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid #e3ecf7;
+}
+.update-window-heading h2 {
+  margin: 4px 0 0;
+  font-size: 23px;
+  color: #284d7a;
+}
+.update-window-heading small {
+  color: #8196b1;
+}
+.update-window-heading > .icon-button {
+  margin-inline-start: auto;
+  border: 1px solid #dfe8f4;
+  background: #f5f8fd;
+  color: #6b85a5;
+  border-radius: 12px;
+  padding: 8px;
+  display: grid;
+  place-items: center;
+}
+.update-window-icon,
+.school-update-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #e1f2ff, #dce7ff);
+  color: #5483c2;
+  box-shadow:
+    inset 0 1px #fff,
+    0 8px 20px #4988ce16;
+}
+.update-window .app-update-panel {
+  padding: 20px 0 0;
+  gap: 14px;
+}
+.update-source {
+  font-size: 12px;
+  color: #7c94b0;
+}
+.update-download-meter {
+  height: 10px;
+  overflow: hidden;
+  background: #e5edf9;
+  border-radius: 20px;
+}
+.update-download-meter > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #80c8e6, #5885df);
+  transform: scaleX(0);
+  transform-origin: right center;
+}
+.update-window .update-notes {
+  background: #edf4fc;
+  border: 1px solid #e1eaf6;
+  border-radius: 15px;
+  padding: 14px;
+  font: inherit;
+  line-height: 1.8;
+  font-size: 13px;
+  max-height: 170px;
+}
+.school-update-card {
+  margin-top: 26px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid #dce9f6;
+  background: linear-gradient(145deg, #f1f8fe, #f9fbff);
+  display: grid;
+  gap: 15px;
+}
+.school-update-card > header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+}
+.school-update-card h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+.school-update-card p {
+  margin: 0;
+  line-height: 1.8;
+  color: #6e88a9;
+}
+.school-update-card > .button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.school-update-card button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.school-update-card small {
+  color: #8094ad;
+  line-height: 1.8;
+}
+.school-update-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border-radius: 14px;
+  background: #e6f1fc;
+  color: #50749e;
+  font-size: 13px;
+}
+.school-update-devices {
+  overflow: auto;
+}
+.school-update-devices table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: start;
+}
+.school-update-devices th,
+.school-update-devices td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #dce7f3;
+  text-align: start;
+}
+.school-update-devices td small {
+  display: block;
+}
+.school-update-countdown {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 17px;
+  border-radius: 17px;
+  background: #e9f4ee;
+  color: #467761;
+}
+.school-update-countdown p {
+  font-size: 13px;
+  margin: 8px 0 0;
+  line-height: 1.8;
+}
+.update-genie-layer {
+  z-index: 10;
+  pointer-events: none;
+}
+@media (max-width: 600px) {
+  .update-dialog {
+    padding: 12px;
+  }
+  .update-window {
+    padding: 18px;
+  }
+  .school-update-card {
+    padding: 16px;
+  }
+  .school-update-card > .button-row > button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .update-dialog::backdrop {
+    transition: none;
+  }
+}

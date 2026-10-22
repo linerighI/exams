@@ -412,7 +412,7 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
           </section>
         )}
         {tab === 'accounts' && <><TeacherQrCard notify={notify}/><TeacherAccounts notify={notify} /></>}
-        {tab === 'updates' && <AppUpdates embedded/>}
+        {tab === 'updates' && <AppUpdates embedded manageStudents/>}
         {tab === 'trash' && <RecycleBin notify={notify}/>}
         {tab === 'backup' && (
           <section className="card settings-card">
