@@ -62,7 +62,15 @@ function unrank(questions: Question[], count: number, rank: bigint) {
   return result;
 }
 export function assignQuestions(exam: Exam, attempts: Attempt[]) {
-  if (!exam.delivery) return {};
+  if (!exam.delivery) {
+    if (!exam.shuffleQuestions) return {};
+    const assignedQuestions = structuredClone(exam.questions);
+    for (let i = assignedQuestions.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [assignedQuestions[i], assignedQuestions[j]] = [assignedQuestions[j], assignedQuestions[i]];
+    }
+    return { assignedQuestions };
+  }
   const groups = deliveryGroups(exam),
     capacity = groups.reduce((n, g) => n * g.combinations, 1n);
   const used = new Set(
@@ -70,12 +78,9 @@ export function assignQuestions(exam: Exam, attempts: Attempt[]) {
       .filter((a) => a.examId === exam.id && a.assignmentRank !== undefined)
       .map((a) => a.assignmentRank),
   );
-  if (BigInt(used.size) >= capacity)
-    throw bad(
-      'نفدت النماذج المختلفة لهذا الامتحان. اطلب من المعلم توسيع مجموعة الأسئلة؛ لن نكرر نموذج طالب آخر',
-    );
   let rank = randomBelow(capacity);
-  while (used.has(rank.toString())) rank = (rank + 1n) % capacity;
+  // Prefer a new set while available, then allow overlap rather than blocking entry.
+  if (BigInt(used.size) < capacity) while (used.has(rank.toString())) rank = (rank + 1n) % capacity;
   const assignmentRank = rank.toString();
   const assignedQuestions = groups.flatMap((group) => {
     const local = rank % group.combinations;

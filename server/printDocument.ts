@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import katex from 'katex';
+import katex from '../src/mathRenderer';
 import { mathSegments } from '../src/mathNotation';
 import { textDirection } from '../src/textDirection';
 

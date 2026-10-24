@@ -20,6 +20,7 @@
   });
   const methods = {
     request: 'request', host: 'host', discover: 'discover', pair: 'pair',
+    networkState: 'network-state', networkPreferences: 'network-preferences',
     connectionState: 'connection-state', connectTeacher: 'connect-teacher',
     studentSession: 'student-session',
     updateState: 'update-state', checkUpdates: 'update-check', downloadUpdate: 'update-download',

@@ -1,54 +1,19 @@
-import { BrandTrace, ZunisAtmosphere, useBrandMotion } from './BrandMotion';
-import { useEffect, useState, useRef } from 'react';
-import { motion } from 'motion/react';
+import StartupScreen from './StartupScreen';
+import { useEffect, useState } from 'react';
 import { ShieldCheck, LockKeyhole, KeyRound } from 'lucide-react';
 import FocusWindow from './FocusWindow';
 import { api } from './api';
 import './workflow.css';
+import ServicesPanel from './ServicesPanel';
+import {layers} from './serviceCatalog';
 export function ZunisSplash() {
-  const root = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(() => !sessionStorage.getItem('zunis-welcome'));
-  useBrandMotion(root, visible);
-  const close = () => {
-    sessionStorage.setItem('zunis-welcome', '1');
-    setVisible(false);
-  };
-  useEffect(() => {
-    const timer = setTimeout(close, 1800);
-    return () => clearTimeout(timer);
-  }, []);
-  if (!visible) return null;
-  return (
-    <motion.div
-      ref={root}
-      className="zunis-splash"
-      role="dialog"
-      aria-label="مرحبًا بك في Zunis"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <ZunisAtmosphere />
-      <span className="zunis-emblem">
-        <BrandTrace />
-        <ShieldCheck size={48} />
-      </span>
-      <h1 aria-label="Zunis" dir="ltr">
-        {[...'Zunis'].map((letter, i) => (
-          <span className="zunis-letter" aria-hidden="true" key={i}>
-            {letter}
-          </span>
-        ))}
-      </h1>
-      <p>حماية مساحة المدرسة</p>
-      <small>صلاحيات المعلّم · جلسات الطلاب · خصوصية البيانات</small>
-      <button className="text-button" onClick={close}>
-        الدخول إلى التطبيق ←
-      </button>
-      <span className="zunis-powered">Powered by Zunis</span>
-    </motion.div>
-  );
+ const [elapsed]=useState(()=>{const start=Number(sessionStorage.getItem('zunis-started-at'));return start>0?Math.max(0,(Date.now()-start)/1000):0});
+ const [visible,setVisible]=useState(()=>!sessionStorage.getItem('zunis-welcome')&&elapsed<3.85);
+ const close=()=>{try{sessionStorage.setItem('zunis-welcome','1')}catch{}setVisible(false)};
+ return visible?<StartupScreen elapsed={elapsed} onDone={close}/>:null;
 }
 export function ZunisBrand() {
+  const [servicesOpen,setServicesOpen]=useState(false);
   const [open, setOpen] = useState(false),
     [status, setStatus] = useState<any>(),
     [error, setError] = useState('');
@@ -70,10 +35,11 @@ export function ZunisBrand() {
   }, [open]);
   return (
     <>
-      <button className="zunis-brand" onClick={() => setOpen(true)}>
+      <span className="service-footer-group"><button className="zunis-brand" onClick={() => setOpen(true)}>
         <ShieldCheck size={13} />
-        Powered by Zunis
-      </button>
+        Powered by Zunis 1
+      </button>{layers.slice(1).map(layer=><button key={layer.id} className="service-footer-layer" onClick={()=>setServicesOpen(true)}><span dir="ltr">{layer.name} {layer.version}</span></button>)}</span>
+      {servicesOpen&&<FocusWindow title="خدمات المدرسة" onClose={()=>setServicesOpen(false)} wide><ServicesPanel tools={false}/></FocusWindow>}
       {open && (
         <FocusWindow title="Zunis · حالة الحماية" onClose={() => setOpen(false)}>
           <div className="zunis-details">

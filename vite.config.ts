@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 export default defineConfig({
+  resolve: {dedupe:['react','react-dom','remotion']},
   base: './',
   plugins: [react()],
   optimizeDeps: { include: ['gsap', 'gsap/Flip', 'gsap/MorphSVGPlugin'] },
@@ -22,6 +23,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     rollupOptions: {
+      input: {app: 'index.html',boot: 'boot.html'},
       output: {
         manualChunks(id) {
           const module = id.replace(/\\/g, '/');

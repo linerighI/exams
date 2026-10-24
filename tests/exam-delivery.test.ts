@@ -62,12 +62,12 @@ test('balanced random assignments are unique, private, persistent, correctly gra
   } finally {await server.app.close();rmSync(directory,{recursive:true,force:true});}
 });
 
-test('all combinations are usable once; invalid distributions, duplicates and exhaustion never silently fall back',()=>{
+test('all combinations are preferred before reuse; invalid distributions and duplicate pool entries are rejected',()=>{
   assert.equal(combinations(100,50),100891344545564193334812497256n);
   const exam:any={id:'e',questions:Array.from({length:5},(_,i)=>({id:`q${i}`,text:`محتوى ${i}`,chapter:'جبر',difficulty:'سهل'})),delivery:{mode:'random',count:2,quotas:[{chapter:'جبر',difficulty:'سهل',count:2}]}};
   const attempts:any[]=[];const signatures=new Set<string>();
   for(let i=0;i<10;i++){const assignment=assignQuestions(exam,attempts);attempts.push({examId:'e',...assignment});signatures.add(assignment.assignedQuestions!.map(q=>q.id).sort().join(','));}
-  assert.equal(signatures.size,10);assert.throws(()=>assignQuestions(exam,attempts),/نفدت/);
+  assert.equal(signatures.size,10);assert.equal(assignQuestions(exam,attempts).assignedQuestions!.length,2);
   assert.throws(()=>deliveryCapacity({...exam,delivery:{...exam.delivery,count:3}}),/مجموع/);
   assert.throws(()=>deliveryCapacity({...exam,questions:[exam.questions[0],exam.questions[0]]}),/متكررة/);
   assert.throws(()=>deliveryCapacity({...exam,delivery:{...exam.delivery,count:6,quotas:[{chapter:'جبر',difficulty:'سهل',count:6}]}}),/غير كافية/);

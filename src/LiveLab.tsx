@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Activity, AlertCircle, ArrowRight, Camera, Monitor, Search, VideoOff } from 'lucide-react';
-import BlueOrb from './BlueOrb';
+import { publishLiveRoom } from './liveRoomState';
+import ProctorControl from './ProctorControl';
 import FocusWindow from './FocusWindow';
 import { api } from './api';
 import type { Attempt } from './types';
@@ -25,6 +26,7 @@ type Device = {
   total: number;
   deadline?: number;
   status?: string;
+  proctorLock?: Attempt['proctorLock'];
 };
 type Frame = { id: string; image: string; at: number };
 export const openLiveLab = (detail?: { attemptId?: string; cameras?: boolean }) =>
@@ -39,6 +41,7 @@ export default function LiveLab({ attempts }: { attempts: Attempt[] }) {
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [cameraFilter, setCameraFilter] = useState('');
+  const dock = useRef<HTMLElement>(null);
   const refresh = async () => {
     const result = await api('/api/lab');
     setDevices(result.devices);
@@ -67,6 +70,7 @@ export default function LiveLab({ attempts }: { attempts: Attempt[] }) {
       setCameraFilter(detail?.attemptId || '');
       setTab(detail?.cameras ? 'cameras' : 'devices');
       setSelected('');
+      dock.current = document.querySelector<HTMLElement>('.assistant-orb');
       setOpen(true);
     };
     window.addEventListener('school-open-live-lab', show);
@@ -119,8 +123,12 @@ export default function LiveLab({ attempts }: { attempts: Attempt[] }) {
     }
   };
   const online = devices.filter((device) => device.online),
-    active = attempts.filter((attempt) => !attempt.submittedAt),
+    active = attempts.filter((attempt) => !attempt.submittedAt && attempt.deadline > Date.now()),
     focused = devices.find((device) => device.id === selected);
+  useEffect(() => {
+    publishLiveRoom({ online: online.length, active: active.length, open });
+  }, [online.length, active.length, open]);
+  useEffect(() => () => publishLiveRoom({ online: 0, active: 0, open: false }), []);
   const visible = devices.filter(
     (device) =>
       `${device.name} ${device.studentId} ${device.examTitle}`.includes(query) &&
@@ -148,26 +156,13 @@ export default function LiveLab({ attempts }: { attempts: Attempt[] }) {
                 : 'البث متوقف';
   return (
     <>
-      {(active.length > 0 || online.length > 0) && !open && (
-        <button
-          className="live-lab-launcher"
-          onClick={() => openLiveLab()}
-          aria-label="فتح المراقبة المباشرة"
-        >
-          <span className="live-notice-orb" aria-hidden="true">
-            <BlueOrb size={0.8} animationSpeedBase={0.2} />
-          </span>
-          <span>
-            <strong>غرفة الامتحان مباشرة</strong>
-            <small>
-              {online.length} أجهزة متصلة · {active.length} محاولات جارية
-            </small>
-          </span>
-          <Activity size={19} />
-        </button>
-      )}
       {open && (
-        <FocusWindow title="غرفة المتابعة المباشرة" wide onClose={() => setOpen(false)}>
+        <FocusWindow
+          title="غرفة المتابعة المباشرة"
+          wide
+          dockRef={dock}
+          onClose={() => setOpen(false)}
+        >
           <div className="live-lab">
             <nav className="lab-navigation" aria-label="أقسام المراقبة المباشرة">
               {[
@@ -280,6 +275,14 @@ export default function LiveLab({ attempts }: { attempts: Attempt[] }) {
                       src={frames.find((frame) => frame.id === focused.id)!.image}
                     />
                   )}
+                  {focused.attemptId && (
+                    <ProctorControl
+                      attemptId={focused.attemptId}
+                      lock={focused.proctorLock}
+                      name={focused.name}
+                      onChanged={() => void refresh()}
+                    />
+                  )}
                   {focused.cameraAllowed && (
                     <button
                       className="primary"
@@ -360,6 +363,14 @@ export default function LiveLab({ attempts }: { attempts: Attempt[] }) {
                           </button>
                           <footer>
                             <strong>{device.name}</strong>
+                            {device.attemptId && (
+                              <ProctorControl
+                                attemptId={device.attemptId}
+                                lock={device.proctorLock}
+                                name={device.name}
+                                onChanged={() => void refresh()}
+                              />
+                            )}
                             {device.cameraAllowed && device.online && (
                               <button
                                 disabled={busy}

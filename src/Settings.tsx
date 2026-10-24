@@ -1,5 +1,6 @@
 import {TeacherQrCard} from './TeacherQr';
 import SnapshotBackupSettings from './SnapshotBackupSettings';
+import ServicesPanel from './ServicesPanel';
 import { useEffect, useState } from 'react';
 import {
   Activity,
@@ -83,6 +84,7 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
   const tabs = [
     ['school', 'المدرسة', School],
     ['ai', 'الذكاء الاصطناعي', Sparkles],
+    ['services', 'الخدمات', Activity],
     ['connection', 'اتصال الطلاب', Wifi],
     ['accounts', 'حسابات المعلمين', ShieldCheck],
     ['backup', 'النسخ الاحتياطي', Download],
@@ -413,6 +415,7 @@ export default function Settings({ hostInfo, notify, onSchool, onRestore }: Prop
         )}
         {tab === 'accounts' && <><TeacherQrCard notify={notify}/><TeacherAccounts notify={notify} /></>}
         {tab === 'updates' && <AppUpdates embedded manageStudents/>}
+          {tab === 'services' && <ServicesPanel/>}
         {tab === 'trash' && <RecycleBin notify={notify}/>}
         {tab === 'backup' && (
           <section className="card settings-card">

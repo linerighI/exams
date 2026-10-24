@@ -1,0 +1,111 @@
+.startup-screen,
+.zunis-splash.startup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  gap: 0;
+  background: #080b10;
+  color: #eaf0f8;
+  font-family: Tajawal, Arial, sans-serif;
+  overflow: hidden;
+  isolation: isolate;
+}
+.startup-hairline {
+  position: absolute;
+  inset: 20px;
+  border: 1px solid #ffffff07;
+  pointer-events: none;
+}
+.startup-center {
+  width: min(520px, calc(100vw - 42px));
+  text-align: center;
+  margin-top: -32px;
+}
+.startup-art {
+  width: 100%;
+  aspect-ratio: 520/230;
+  position: relative;
+}
+.startup-fallback {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #eaf0f8;
+  font:
+    600 62px Arial,
+    sans-serif;
+  letter-spacing: 3px;
+}
+.startup-screen .startup-caption {
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #b9c6d8;
+  margin: 1px 0 5px;
+}
+.startup-screen .startup-note {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #64758d;
+  margin: 0;
+}
+.startup-rule {
+  width: 112px;
+  height: 1px;
+  background: #1d2b3d;
+  margin: 28px auto 18px;
+  overflow: hidden;
+}
+.startup-rule span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #3d6489, #c6d9ec);
+  transform-origin: right center;
+}
+.startup-screen button.startup-enter {
+  margin: 0;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #8fa5c0;
+  font:
+    500 11px Tajawal,
+    Arial,
+    sans-serif;
+  cursor: pointer;
+}
+.startup-screen button.startup-enter:hover {
+  color: #e4eef9;
+  background: #ffffff06;
+}
+.startup-screen button.startup-enter:focus-visible {
+  outline: 1px solid #55769a;
+  outline-offset: 3px;
+}
+.startup-signature {
+  position: absolute;
+  bottom: 28px;
+  color: #40526c;
+  font:
+    9px Arial,
+    sans-serif;
+  letter-spacing: 2px;
+}
+.startup-loading .startup-note {
+  margin-top: 8px;
+}
+@media (max-width: 540px) {
+  .startup-center {
+    width: calc(100vw - 28px);
+  }
+  .startup-hairline {
+    inset: 10px;
+  }
+  .startup-screen .startup-caption {
+    font-size: 13px;
+  }
+}

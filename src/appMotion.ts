@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useSyncExternalStore, useRef, type RefObject } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
@@ -79,9 +79,9 @@ export function useAppInteractions() {
   }, []);
 }
 
-export function usePanelMotion(ref: RefObject<HTMLDialogElement | null>) {
+export function usePanelMotion(ref: RefObject<HTMLDialogElement | null>, enabled = true) {
   useLayoutEffect(() => {
-    if (!ref.current) return;
+    if (!enabled || !ref.current) return;
     const media = gsap.matchMedia();
     media.add(
       '(prefers-reduced-motion: no-preference)',
@@ -97,7 +97,7 @@ export function usePanelMotion(ref: RefObject<HTMLDialogElement | null>) {
       ref.current,
     );
     return () => media.revert();
-  }, [ref]);
+  }, [ref, enabled]);
 }
 
 // Scope each scene and revert it on unmount, including React Strict Mode remounts.
@@ -188,35 +188,65 @@ export function useExamMotion(
               0.3,
             );
         } else {
+          const waiting = !!document.querySelector('.exam-entry[open]');
+          timeline.pause();
+          const heading = root.querySelectorAll('.student-exam-heading');
+          const panels = root.querySelectorAll('.exam-question, .exam-navigation');
           timeline
-            .from(root.querySelectorAll('.exam-question, .exam-navigation'), {
-              opacity: 0,
-              y: 20,
-              stagger: 0.1,
-              duration: 0.6,
-            })
+            .from(heading, { opacity: 0, y: 14, duration: 0.55 }, 0)
+            .from(panels, { opacity: 0, y: 28, scale: 0.985, stagger: 0.09, duration: 0.7 }, 0.08)
+            .from(
+              root.querySelectorAll(
+                '.question-heading, .student-question-content, .question-controls',
+              ),
+              { opacity: 0, y: 16, stagger: 0.08, duration: 0.5 },
+              0.26,
+            )
             .from(
               root.querySelectorAll(
                 '.exam-fixed-status .timer, .exam-indicator-orb, .exam-submit-button',
               ),
-              {
-                opacity: 0,
-                y: 10,
-                stagger: 0.07,
-                duration: 0.45,
-              },
-              0.2,
+              { opacity: 0, y: 12, stagger: 0.06, duration: 0.45 },
+              0.3,
+            )
+            .from(
+              Array.from(
+                root.querySelectorAll(
+                  '.student-options > button, .question-written, .response-blanks > label, .response-rank, .response-match-grid button',
+                ),
+              ).slice(0, 12),
+              { opacity: 0, y: 9, stagger: { amount: 0.18 }, duration: 0.4 },
+              0.46,
             )
             .from(
               root.querySelectorAll('.question-map button'),
               {
                 opacity: 0,
-                scale: 0.85,
+                scale: 0.7,
                 stagger: { amount: 0.25 },
-                duration: 0.3,
+                duration: 0.35,
+                ease: 'back.out(1.3)',
               },
-              0.35,
+              0.4,
             );
+          let observer: MutationObserver | undefined;
+          const play = () => {
+            observer?.disconnect();
+            timeline.play();
+          };
+          if (waiting) {
+            document.addEventListener('zunis:reveal-exam', play, { once: true });
+            // Also release if the intro is removed by an interrupted start.
+            observer = new MutationObserver(() => {
+              if (!document.querySelector('.exam-entry[open]')) play();
+            });
+            observer.observe(document.body, { childList: true });
+            return () => {
+              observer?.disconnect();
+              document.removeEventListener('zunis:reveal-exam', play);
+            };
+          }
+          play();
         }
       },
       ref.current,

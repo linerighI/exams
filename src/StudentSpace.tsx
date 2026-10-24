@@ -12,7 +12,7 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { Flip } from 'gsap/Flip';
 import { useStudentWorkspaceMotion, prefersQuietMotion } from './appMotion';
 gsap.registerPlugin(Flip);

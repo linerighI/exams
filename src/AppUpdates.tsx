@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { UpdateState } from '../desktop/appUpdater';
 import UpdateDialog from './UpdateDialog';
 import SchoolUpdatePanel from './SchoolUpdatePanel';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { useQuietMotion } from './appMotion';
 import './updates.css';
 import './teacherEasy.css';

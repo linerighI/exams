@@ -5,7 +5,7 @@ import { CircleHelp, GraduationCap } from 'lucide-react';
 import { api } from './api';
 import FocusWindow from './FocusWindow';
 import './comfort.css';
-export default function TeacherTour({ teacherId }: { teacherId: string }) {
+export default function TeacherTour({ teacherId,enabled=true }: { teacherId: string;enabled?:boolean }) {
   const [welcome, setWelcome] = useState(false);
   const tour = useRef<Driver | undefined>(undefined);
   const marker = `teacher-tour:${localStorage.getItem('school-scope') || 'development'}:${teacherId}`;
@@ -19,6 +19,7 @@ export default function TeacherTour({ teacherId }: { teacherId: string }) {
     }
   };
   useEffect(() => {
+    if(!enabled)return;
     let alive = true;
     const timer = setTimeout(() => {
       void api('/api/preferences/onboarding')
@@ -32,7 +33,7 @@ export default function TeacherTour({ teacherId }: { teacherId: string }) {
       clearTimeout(timer);
       tour.current?.destroy();
     };
-  }, [teacherId, marker]);
+  }, [teacherId, marker,enabled]);
   const start = () => {
     setWelcome(false);
     void remember();

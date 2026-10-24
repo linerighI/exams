@@ -20,7 +20,7 @@ export function poolGroups(questions: Question[]) {
 }
 export function defaultDelivery(questions: Question[]): Exam['delivery'] {
   if (questions.length < 2) return undefined;
-  return deliveryForCount(questions, Math.min(20, Math.max(1, Math.floor(questions.length / 2))));
+  return deliveryForCount(questions, Math.min(30, questions.length));
 }
 export function deliveryForCount(questions: Question[], count: number): Exam['delivery'] {
   if (!Number.isInteger(count) || count < 1 || count > Math.min(100, questions.length))

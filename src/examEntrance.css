@@ -1,0 +1,193 @@
+.exam-entry {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+  color: #edf2fa;
+  z-index: 100000;
+  overflow: hidden;
+  direction: rtl;
+  outline: none;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+}
+.exam-entry::backdrop {
+  background: transparent;
+}
+.exam-entry .entry-curtain {
+  position: absolute;
+  inset: 0;
+  background: #07090d;
+  will-change: transform;
+}
+.exam-entry .entry-center {
+  position: relative;
+  width: min(580px, calc(100% - 48px));
+  text-align: center;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
+.exam-entry .entry-identity {
+  position: relative;
+  height: 142px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  direction: ltr;
+  margin-bottom: 25px;
+}
+.exam-entry .entry-camera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  color: #a5bacf;
+  background: #07090d;
+  z-index: 3;
+}
+.exam-entry .entry-camera small {
+  font-size: 10px;
+  color: #8190a3;
+  margin-top: 22px;
+  direction: rtl;
+}
+.exam-entry .entry-camera-bracket {
+  position: absolute;
+  width: 110px;
+  height: 90px;
+  left: calc(50% - 55px);
+  top: 8px;
+  border: 1px solid #5a718d;
+  border-radius: 19px;
+}
+.exam-entry .entry-camera-scan {
+  position: absolute;
+  left: calc(50% - 47px);
+  top: 53px;
+  width: 94px;
+  height: 1px;
+  background: #9abde8;
+  box-shadow: 0 0 12px #94b9ed;
+  opacity: 0;
+}
+.exam-entry .entry-shield {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  color: #b8cfee;
+}
+.exam-entry .entry-shield .integrity-trace {
+  position: absolute;
+  inset: -13px;
+  width: 122px;
+  height: 122px;
+  pointer-events: none;
+}
+.exam-entry .integrity-trace circle {
+  stroke: #526d91;
+  fill: none;
+  stroke-width: 0.8;
+}
+.exam-entry .entry-wordmark {
+  display: flex;
+  font:
+    600 clamp(44px, 6vw, 62px)/1.1 Arial,
+    sans-serif;
+  letter-spacing: 4px;
+  color: #f3f6fc;
+}
+.exam-entry .entry-wordmark span {
+  display: inline-block;
+}
+.exam-entry .entry-kicker {
+  margin: 0 0 14px;
+  color: #6e86a3;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.exam-entry h1 {
+  font:
+    700 clamp(25px, 3vw, 34px)/1.5 Tajawal,
+    sans-serif;
+  margin: 0 0 12px;
+  color: #ecf2fa;
+}
+.exam-entry .entry-description {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #a3adbc;
+  margin: 0 auto 29px;
+}
+.exam-entry .entry-features {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.exam-entry .entry-feature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a3b6ce;
+  font-size: 11px;
+}
+.exam-entry .entry-feature svg {
+  color: #7193bd;
+}
+.exam-entry .entry-footer {
+  color: #6d7b90;
+  font-size: 10px;
+  margin: 24px 0 18px;
+}
+.exam-entry .entry-progress {
+  height: 1px;
+  background: #1d2735;
+  margin: auto;
+  width: 140px;
+  overflow: hidden;
+}
+.exam-entry .entry-progress span {
+  display: block;
+  height: 100%;
+  background: #96b7df;
+  transform-origin: right center;
+}
+.exam-entry .entry-load-status {
+  display: block;
+  color: #71849f;
+  font-size: 10px;
+  margin-top: 14px;
+}
+@media (max-width: 600px) {
+  .exam-entry .entry-features {
+    gap: 14px;
+  }
+  .exam-entry .entry-description {
+    font-size: 11px;
+  }
+  .exam-entry .entry-identity {
+    gap: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .exam-entry .entry-camera {
+    display: none;
+  }
+  .exam-entry .entry-curtain {
+    will-change: auto;
+  }
+}

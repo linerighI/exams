@@ -177,22 +177,22 @@ export default function ExamBankPicker({
           <div className="bank-selection-bar">
             <button
               className="secondary"
-              disabled={busy || !available.length || existing.length + available.length > 500}
+              disabled={busy || !available.length || existing.length + available.length > 1000}
               onClick={() => setSelected(available.map((q) => q.id))}
             >
-              تحديد المجموعة المعتمدة للسحب العشوائي
+              تحديد كل الأسئلة المعتمدة للمجموعة
             </button>
             <span>
               {available.length} معتمد · {visible.filter((q) => q.status !== 'approved').length}{' '}
               للمراجعة · {selected.length} محدد
             </span>
             <label>
-              عدد الأسئلة
+              عدد الأسئلة لإضافتها إلى المجموعة
               <input
                 aria-label="عدد أسئلة التجميع"
                 type="number"
                 min={1}
-                max={500 - existing.length}
+                max={1000 - existing.length}
                 value={count}
                 onChange={(e) => setCount(+e.target.value)}
               />
@@ -203,7 +203,7 @@ export default function ExamBankPicker({
                 busy ||
                 count < 1 ||
                 !Number.isInteger(count) ||
-                count > 500 - existing.length ||
+                count > 1000 - existing.length ||
                 available.length < count
               }
               onClick={() => setSelected(available.slice(0, count).map((q) => q.id))}
@@ -212,7 +212,7 @@ export default function ExamBankPicker({
             </button>
             <button
               className="primary"
-              disabled={busy || !selected.length || selected.length + existing.length > 500}
+              disabled={busy || !selected.length || selected.length + existing.length > 1000}
               onClick={() => void add()}
             >
               <MorphMark shape={busy ? 'working' : 'check'} size={16} />

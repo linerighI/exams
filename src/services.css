@@ -1,0 +1,210 @@
+.services-panel {
+  color: #294f7f;
+  max-width: 1140px;
+  margin: auto;
+}
+.services-heading {
+  padding: 12px 0 26px;
+}
+.services-heading h2 {
+  font-size: 30px;
+  margin: 8px 0;
+}
+.services-heading p,
+.service-layers p,
+.service-subject p {
+  color: #7286a2;
+  line-height: 1.9;
+}
+.services-eyebrow {
+  font-size: 12px;
+  color: #618cbd;
+}
+.service-layers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.service-layers article {
+  border: 1px solid #dce8f7;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #f0f6ff, #fff);
+  padding: 24px;
+}
+.service-layers article > span {
+  display: block;
+  margin-top: 14px;
+  color: #7a91ae;
+  font-size: 12px;
+}
+.service-layers h3 {
+  text-align: right;
+  font-size: 25px;
+  margin: 7px 0;
+}
+.service-layers h3 small,
+.service-subject h3 small {
+  color: #729bd0;
+  font-size: 17px;
+}
+.service-layers p {
+  font-size: 13px;
+  margin-bottom: 0;
+}
+.service-subject-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #dfebf8;
+  padding-bottom: 14px;
+}
+.service-subject-nav button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  padding: 12px 18px;
+  background: transparent;
+  color: #7290b3;
+}
+.service-subject-nav button[aria-selected='true'] {
+  background: #eaf2ff;
+  color: #2863b0;
+  border-color: #d5e5fb;
+}
+.service-subject-nav small {
+  font-size: 10px;
+}
+.service-subject {
+  padding: 28px 0;
+}
+.service-subject h3 {
+  font-size: 24px;
+  margin: 9px 0;
+}
+.service-math-path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 25px 0;
+}
+.service-math-path b {
+  display: block;
+  font-size: 29px;
+  color: #c5d9f1;
+  font-weight: 400;
+}
+.service-math-path strong {
+  display: block;
+  margin-top: 10px;
+}
+.service-math-path p {
+  font-size: 13px;
+}
+.service-review-note {
+  font-size: 12px;
+  max-width: 680px;
+}
+.service-tool-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+.math-service-diagram {
+  display: block;
+  width: 100%;
+  max-width: 650px;
+  height: auto;
+  margin: 20px auto;
+  border: 1px solid #deebfa;
+  border-radius: 16px;
+}
+.math-diagram-editor p {
+  color: #748eac;
+  line-height: 1.9;
+}
+.service-export {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid #e2ebf7;
+  margin-top: 20px;
+  padding-top: 20px;
+}
+.service-export img {
+  width: 200px;
+  border: 1px solid #dce8f7;
+  border-radius: 12px;
+}
+.service-export a {
+  padding: 12px;
+  border-radius: 12px;
+  text-decoration: none;
+}
+.service-quality {
+  background: #f4f8ff;
+  border: 1px solid #dce8f8;
+  border-radius: 15px;
+  padding: 14px;
+  margin: 12px 0;
+  color: #547aa8;
+  font-size: 12px;
+}
+.service-quality p {
+  margin: 7px 0;
+  line-height: 1.7;
+}
+.service-footer-layer {
+  font-size: 10px;
+  color: #668ab4;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.service-footer-group {
+  display: inline-flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.service-inline-badge {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 13px 16px;
+  background: #f0f6ff;
+  border: 1px solid #d9e7fa;
+  border-radius: 14px;
+  color: #527cac;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+@media (max-width: 720px) {
+  .service-layers,
+  .service-math-path,
+  .service-tool-fields {
+    grid-template-columns: 1fr;
+  }
+  .service-layers article {
+    padding: 18px;
+  }
+  .services-heading h2 {
+    font-size: 24px;
+  }
+  .service-subject-nav button {
+    padding: 10px;
+    font-size: 12px;
+  }
+  .service-footer-layer {
+    font-size: 9px;
+  }
+}
+.math-request-options,.math-atlas-tools{padding:18px;border:1px solid #dce7f6;background:#f6f9ff;border-radius:16px;margin:14px 0}.math-request-options small,.math-request-options p,.math-atlas-tools p{font-size:12px;line-height:1.9;color:#718bab}.math-atlas-tools h3{font-size:16px;margin:0 0 9px;color:#385f91}.math-atlas-tools>.secondary{margin:6px 0;max-width:100%;font-size:12px}.math-atlas-tools .file-button{display:flex}

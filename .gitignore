@@ -22,3 +22,7 @@ build/*.zip
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+.playwright-cli/
+output/playwright/
+onboarding-video/out/
+!tests/network-ipc.cjs

@@ -1,5 +1,5 @@
 import { useLayoutEffect, type RefObject } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import './appMotion.css';
 export function ZunisAtmosphere() {
   return (
@@ -110,7 +110,7 @@ export function useBrandMotion(ref: RefObject<HTMLElement | null>, scene: unknow
         const progress = el.querySelector('.integrity-progress > span');
         if (progress)
           timeline.fromTo(progress, { scaleX: 0 }, { scaleX: 1, duration: 2.7, ease: 'none' }, 0);
-        if (el.classList.contains('exam-integrity-intro'))
+        if (el.classList.contains('exam-integrity-intro') && !el.classList.contains('is-proctor-lock'))
           timeline.to(el, { opacity: 0, duration: 0.25 }, 2.7);
       },
       ref.current,

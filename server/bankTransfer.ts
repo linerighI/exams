@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import katex from 'katex';
+import katex from '../src/mathRenderer';
 import { createHash } from 'node:crypto';
 import { id, type Store } from './store';
 import { normalizeCropBox } from './cropBox';
@@ -43,6 +43,7 @@ const item = questionFields.extend({
   evidence: str,
   requiresImage: z.boolean().default(false),
   box: z.unknown().optional(),
+  atlasBox: z.unknown().optional(),
   svg: z.string().max(100000).nullable().optional(),
   image: z
     .string()
@@ -55,7 +56,7 @@ const envelope = z.object({
   version: z.literal(1),
   batchId: str.optional().default('bank'),
   book: metadata,
-  questions: z.array(z.unknown()).min(1).max(500),
+  questions: z.array(z.unknown()).min(1).max(1000),
 });
 const norm = (s: string) =>
   s
@@ -110,7 +111,7 @@ export function registerBankTransfer(
       .safeParse(body);
     if (!parsedInput.success)
       throw badInput(
-        'بنية ملف البنك غير صالحة. يلزم version:1 وبيانات book وعدد 1–500 سؤال. راجع: ' +
+        'بنية ملف البنك غير صالحة. يلزم version:1 وبيانات book وعدد 1–1000 سؤال. راجع: ' +
           [...new Set(parsedInput.error.issues.map((i) => i.path.join('.')))].join('، '),
       );
     const input = parsedInput.data;
@@ -191,7 +192,8 @@ export function registerBankTransfer(
         }
       }
       if (crop.warning) warnings.push(crop.warning);
-      const requiresImage = q.requiresImage || !!crop.box || !!q.svg;
+      if(q.atlasBox&&!image)warnings.push('أرفق لوحة الرسوم المشتركة لقص atlasBox وربطه بالسؤال قبل الاعتماد.');
+      const requiresImage = q.requiresImage || !!crop.box || !!q.svg || !!q.atlasBox;
       if (requiresImage && !image && !existing?.pdf)
         warnings.push('أرفق صورة أو الكتاب الأصلي لقص الرسم');
       if (requiresImage && !image && !crop.box) warnings.push('أرفق الرسم أو حدده قبل الاعتماد');

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { Flip } from 'gsap/Flip';
 import { prefersQuietMotion } from './appMotion';
 import './appMotion.css';

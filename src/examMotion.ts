@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 
 type Feedback = {
   questionId: string;

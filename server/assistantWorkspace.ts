@@ -363,9 +363,9 @@ export function registerAssistantWorkspace(app: any, store: Store, teacher: (r: 
                 q.difficulty === response.difficulty) &&
               (action !== 'approve' || q.status !== 'approved'),
         );
-        if (!qs.length || qs.length > 500)
+        if (!qs.length || qs.length > 1000)
           return {
-            reply: 'لا توجد أسئلة مطابقة، أو تجاوز التحديد 500 سؤال. حدد فصلًا أو مجموعة أصغر.',
+            reply: 'لا توجد أسئلة مطابقة، أو تجاوز التحديد 1000 سؤال. حدد فصلًا أو مجموعة أصغر.',
             cards,
           };
         if (action === 'approve' && qs.some((q) => q.requiresImage && !q.image))

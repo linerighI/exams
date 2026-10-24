@@ -617,6 +617,22 @@
   padding: 13px 0;
   border-bottom: 1px solid #edf1f6;
 }
+.import-samples .import-diagram-preview {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 230px;
+  object-fit: contain;
+  margin: 12px 0;
+  border: 1px solid #e0e9f7;
+  border-radius: 12px;
+  background: #fff;
+}
+.import-preview .import-samples {
+  max-height: 440px;
+  overflow-x: hidden;
+}
 .import-samples .math-text {
   display: block;
   font-size: 13px;

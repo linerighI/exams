@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import OrbToolWindow from './OrbToolWindow';
+import LiveRoomDock from './LiveRoomDock';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   ArrowUp,
@@ -48,7 +49,9 @@ export default function FloatingAssistant({
   useEffect(() => {
     overlayHost.className = 'teacher-orb-overlay';
     const place = () => {
-      const dialogs = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')];
+      const dialogs = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')].filter(
+        (dialog) => !dialog.classList.contains('has-orb-dock'),
+      );
       const parent = dialogs.at(-1) || document.body;
       if (overlayHost.parentElement !== parent) parent.append(overlayHost);
     };
@@ -273,6 +276,36 @@ export default function FloatingAssistant({
           .filter((c) => `${c.ar} ${c.id} ${c.aliases.join(' ')}`.includes(text.slice(1)))
           .slice(0, 5)
       : [];
+  const dockDragHandlers = {
+    onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0) return;
+      skipClick.current = false;
+      drag.current = {
+        x: event.clientX,
+        y: event.clientY,
+        left: position.x,
+        top: position.y,
+        moved: false,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => {
+      const start = drag.current;
+      if (!start) return;
+      const dx = event.clientX - start.x,
+        dy = event.clientY - start.y;
+      if (Math.hypot(dx, dy) > 5) start.moved = true;
+      if (start.moved) setPosition(clamp(start.left + dx, start.top + dy));
+    },
+    onPointerUp: () => {
+      skipClick.current = !!drag.current?.moved;
+      drag.current = undefined;
+    },
+    onPointerCancel: () => {
+      skipClick.current = true;
+      drag.current = undefined;
+    },
+  };
   return createPortal(
     <div
       className="floating-assistant"
@@ -582,6 +615,16 @@ export default function FloatingAssistant({
           </motion.section>
         )}
       </AnimatePresence>
+      <LiveRoomDock
+        position={position}
+        dragHandlers={dockDragHandlers}
+        consumeDrag={() => {
+          const moved = skipClick.current;
+          skipClick.current = false;
+          return moved;
+        }}
+        onOpen={() => setOpen(false)}
+      />
       <motion.button
         ref={ball}
         className={`assistant-orb ${open ? 'is-open' : ''} ${busy ? 'is-busy' : ''}`}
@@ -591,34 +634,7 @@ export default function FloatingAssistant({
         aria-expanded={open}
         title="المساعد · اسحب للتحريك"
         style={{ left: position.x, top: position.y }}
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          skipClick.current = false;
-          drag.current = {
-            x: event.clientX,
-            y: event.clientY,
-            left: position.x,
-            top: position.y,
-            moved: false,
-          };
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const start = drag.current;
-          if (!start) return;
-          const dx = event.clientX - start.x,
-            dy = event.clientY - start.y;
-          if (Math.hypot(dx, dy) > 5) start.moved = true;
-          if (start.moved) setPosition(clamp(start.left + dx, start.top + dy));
-        }}
-        onPointerUp={() => {
-          skipClick.current = !!drag.current?.moved;
-          drag.current = undefined;
-        }}
-        onPointerCancel={() => {
-          skipClick.current = true;
-          drag.current = undefined;
-        }}
+        {...dockDragHandlers}
         onClick={() => {
           if (skipClick.current) {
             skipClick.current = false;

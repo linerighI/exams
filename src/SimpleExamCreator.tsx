@@ -13,6 +13,7 @@ import MathText from './MathText';
 import BankWizard from './BankWizard';
 import FocusWindow from './FocusWindow';
 import { deliveryForCount } from './examDelivery';
+import ExamDeliverySettings from './ExamDeliverySettings';
 import type { Exam, Question } from './types';
 import './teacherEasy.css';
 
@@ -40,6 +41,7 @@ export default function SimpleExamCreator({
     geogebraAllowed: false,
     cameraRequired: false,
     appearance: undefined as Exam['appearance'],
+    shuffleQuestions: false,
     audio: undefined as Exam['audio'],
     opensAt: localTime(new Date()),
     closesAt: localTime(new Date(Date.now() + 86400000)),
@@ -52,7 +54,7 @@ export default function SimpleExamCreator({
     [source, setSource] = useState('manual'),
     [editing, setEditing] = useState<Question>();
   const [random, setRandom] = useState(false),
-    [count, setCount] = useState(5),
+    [count, setCount] = useState(30),
     [approved, setApproved] = useState(false);
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -117,7 +119,17 @@ export default function SimpleExamCreator({
     }
   };
   const save = async (publish: boolean) => {
-    const problems = examIssues({ ...form, questions }, publish, approved);
+    const problems = examIssues(
+      {
+        ...form,
+        questions,
+        delivery: random
+          ? deliveryForCount(questions, count) || { mode: 'random', count, quotas: [] }
+          : undefined,
+      },
+      publish,
+      approved,
+    );
     setIssues(problems);
     if (problems.length) {
       requestAnimationFrame(() =>
@@ -343,6 +355,33 @@ export default function SimpleExamCreator({
                 بنفسك.
               </p>
             )}
+            <div className="workspace-toolbar">
+              <span>
+                {pool.length} سؤالًا معتمدًا في البنك · {questions.length} في مجموعة الامتحان
+              </span>
+              <button
+                type="button"
+                className="secondary"
+                disabled={
+                  !pool.length ||
+                  pool.filter((q) => !questions.some((x) => x.bankId === q.id)).length +
+                    questions.length >
+                    1000
+                }
+                onClick={() => {
+                  setQuestions((old) => [
+                    ...old,
+                    ...pool
+                      .filter((q) => !old.some((x) => x.bankId === q.id))
+                      .map((q) => ({ ...q, id: crypto.randomUUID(), bankId: q.id })),
+                  ]);
+                  setRandom(true);
+                  setApproved(false);
+                }}
+              >
+                إضافة البنك كله كمجموعة سحب
+              </button>
+            </div>
             <div className="simple-bank-list">
               {pool.map((q) => (
                 <label className="simple-bank-question" key={q.id}>
@@ -395,34 +434,24 @@ export default function SimpleExamCreator({
             تحديث الأسئلة من البنك
           </button>
         )}
-        <label className="check-label">
-          <input
-            type="checkbox"
-            checked={random}
-            onChange={(e) => {
-              setRandom(e.target.checked);
+        <div data-exam-field="delivery">
+          <ExamDeliverySettings
+            showQuotas={false}
+            questions={questions}
+            delivery={
+              random
+                ? deliveryForCount(questions, count) || { mode: 'random', count, quotas: [] }
+                : undefined
+            }
+            shuffleQuestions={form.shuffleQuestions}
+            onShuffleChange={(v) => patch('shuffleQuestions', v)}
+            onChange={(v) => {
+              setRandom(!!v);
+              if (v) setCount(v.count);
               setApproved(false);
             }}
           />
-          نموذج عشوائي مختلف لكل طالب
-        </label>
-        {random && (
-          <label className="field">
-            عدد الأسئلة لكل طالب
-            <input
-              type="number"
-              min={1}
-              max={Math.min(100, questions.length)}
-              data-exam-field="delivery"
-              value={count}
-              onChange={(e) => {
-                setCount(Number(e.target.value));
-                setApproved(false);
-              }}
-            />
-            <small>يتوزع العدد تلقائيًا على الموضوعات والصعوبات بنسبة وجودها في المجموعة.</small>
-          </label>
-        )}
+        </div>
         {(['calculatorAllowed', 'geogebraAllowed', 'cameraRequired'] as const).map((key, i) => (
           <label className="check-label" key={key}>
             <input

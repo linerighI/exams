@@ -1,3 +1,4 @@
+import ProctorControl from './ProctorControl';
 import NoticeToast from './NoticeToast';
 import { useSceneMotion, useAppInteractions } from './appMotion';
 import { hasAnswer, manualQuestion } from './questionFormats';
@@ -64,6 +65,8 @@ import ManualGrading from './ManualGrading';
 import LiveLab, { openLiveLab } from './LiveLab';
 import StudentLiveSession from './StudentLiveSession';
 import { ZunisBrand, ZunisSplash } from './Zunis';
+import FirstLaunch,{AccountIntroduction} from './FirstLaunch';
+import {LANDING_KEY,ROLE_KEY,landingRequired,preferredRole,introductionRequired,rememberOnboarding} from './onboardingPolicy';
 import './quietWorkspace.css';
 import ExamFolders, { type ExamOrganization } from './ExamFolders';
 import { findSnapshot, saveSnapshot, type Snapshot } from './offline';
@@ -124,6 +127,11 @@ function Empty({
 export default function App() {
   useAppInteractions();
   const [session, setSession] = useState<Session>();
+  const [restoreComplete,setRestoreComplete]=useState(false);
+  const [firstLaunch,setFirstLaunch]=useState(()=>landingRequired(localStorage));
+  const [loginRole,setLoginRole]=useState(()=>preferredRole(localStorage));
+  const [introSession,setIntroSession]=useState<Session>();
+  const [accountReady,setAccountReady]=useState(false);
   const sessionGuard = useRef('');
   const [page, setPage] = useState('dashboard');
   const [simpleMode, setSimpleMode] = useState(false);
@@ -155,7 +163,14 @@ export default function App() {
   const [cameraCheck, setCameraCheck] = useState<{
     resolve: (value: boolean | undefined) => void;
   }>();
-  const [integrityIntro, setIntegrityIntro] = useState<{ done: () => void }>();
+  const [integrityIntro, setIntegrityIntro] = useState<{
+    done: () => void;
+    prepared: () => void;
+    ready: boolean;
+    title?: string;
+    calculatorAllowed?: boolean;
+    geogebraAllowed?: boolean;
+  }>();
   const [connection, setConnection] = useState(true);
   const [search, setSearch] = useState('');
   const [examCode, setExamCode] = useState('');
@@ -165,6 +180,7 @@ export default function App() {
     [exitPassword, setExitPassword] = useState(''),
     [exitError, setExitError] = useState('');
   const [exitBusy, setExitBusy] = useState(false);
+  useEffect(()=>{if(accountReady&&introSession&&(snapshot||attempts.some(a=>!a.submittedAt&&a.deadline>Date.now())))setIntroSession(undefined);},[accountReady,introSession,snapshot,attempts]);
   useEffect(() => {
     const navigate = (event: Event) => {
       const value = (event as CustomEvent).detail;
@@ -191,7 +207,7 @@ export default function App() {
         setPage('dashboard');
         const cached = await findSnapshot(saved.student.id, scope());
         if (cached && !cached.attempt.submittedAt) setSnapshot(cached);
-      } catch {}
+      } catch {} finally {setRestoreComplete(true);}
     };
     void restore();
   }, []);
@@ -227,6 +243,7 @@ export default function App() {
       setExams(examData);
       setAttempts(attemptData);
       setSchool(status.school);
+      setAccountReady(true);
       if (session.role === 'teacher') {
         const data = await api('/api/students');
         if (sessionGuard.current !== session.token) return;
@@ -291,6 +308,8 @@ export default function App() {
     setToken('');
     sessionGuard.current = '';
     setSession(undefined);
+    setIntroSession(undefined);
+    setAccountReady(false);
     setAttempts([]);
     setExams([]);
     setStudents([]);
@@ -309,10 +328,12 @@ export default function App() {
       if (cameraAvailable === undefined) return;
       await new Promise<void>((resolve) =>
         setIntegrityIntro({
-          done: () => {
-            setIntegrityIntro(undefined);
-            resolve();
-          },
+          prepared: resolve,
+          done: () => setIntegrityIntro(undefined),
+          ready: false,
+          title: exam?.title,
+          calculatorAllowed: exam?.calculatorAllowed,
+          geogebraAllowed: exam?.geogebraAllowed,
         }),
       );
       const result = await api('/api/attempts/start', 'POST', {
@@ -342,7 +363,15 @@ export default function App() {
       };
       await saveSnapshot(cached);
       setSnapshot(cached);
+      setIntegrityIntro((current) => current ? {
+        ...current,
+        ready: true,
+        title: result.exam.title,
+        calculatorAllowed: result.exam.calculatorAllowed,
+        geogebraAllowed: result.exam.geogebraAllowed,
+      } : current);
     } catch (e) {
+      setIntegrityIntro(undefined);
       notify((e as Error).message);
     } finally {
       setBusy(false);
@@ -651,6 +680,7 @@ export default function App() {
                     {teacher && (
                       <td>
                         <div className="table-actions">
+                          {(!a.submittedAt||a.proctorLock?.active)&&<ProctorControl attemptId={a.id} lock={a.proctorLock} name={a.studentName} onChanged={()=>void refresh()}/>}
                           {!!a.submittedAt &&
                             exams
                               .find((e) => e.id === a.examId)
@@ -730,9 +760,13 @@ export default function App() {
         }
       />
     );
+  if(!restoreComplete)return <div className="onboarding-restoring" role="status">نفتح مساحتك…</div>;
+  if(!session&&firstLaunch)return <FirstLaunch onChoose={role=>{rememberOnboarding(LANDING_KEY);rememberOnboarding(ROLE_KEY,role);sessionStorage.setItem('zunis-welcome','1');setLoginRole(role);setFirstLaunch(false);}}/>;
+  const hasActiveAttempt=!!snapshot||attempts.some(a=>!a.submittedAt&&a.deadline>Date.now());
   return (
     <>
-      <ZunisSplash />
+      {!introSession&&<ZunisSplash />}
+      {introSession&&accountReady&&!hasActiveAttempt&&<AccountIntroduction session={introSession} school={localStorage.getItem('school-scope')||'development'} onClose={()=>setIntroSession(undefined)}/>}
       {exitOpen && (
         <div className="modal-backdrop student-exit-overlay">
           <form
@@ -781,9 +815,12 @@ export default function App() {
       )}
       {!session ? (
         <Welcome
+          initialMode={loginRole}
           onLogin={(s) => {
             sessionGuard.current = s.token;
+            setAccountReady(false);
             setSession(s);
+            if(introductionRequired(localStorage,s,localStorage.getItem('school-scope')||'development'))setIntroSession(s);
             setPage(s.role === 'teacher' ? 'assistant' : 'dashboard');
           }}
           onHost={setHostInfo}
@@ -872,6 +909,7 @@ export default function App() {
                       <TeacherTour
                         key={session.teacherId || 'master'}
                         teacherId={session.teacherId || 'master'}
+                        enabled={!introSession}
                       />
                     )}
                     <AppUpdates background student={!teacher} notify={notify} />
@@ -1376,7 +1414,7 @@ export default function App() {
                     }}
                   />
                 )}
-                {integrityIntro && <ExamIntegrityIntro onDone={integrityIntro.done} />}
+                {integrityIntro && <ExamIntegrityIntro onDone={integrityIntro.done} onPrepared={integrityIntro.prepared} ready={integrityIntro.ready} title={integrityIntro.title} calculatorAllowed={integrityIntro.calculatorAllowed} geogebraAllowed={integrityIntro.geogebraAllowed} />}
                 <StudentLiveSession
                   key={session.token}
                   token={session.token}

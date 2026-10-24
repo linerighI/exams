@@ -12,6 +12,7 @@ import WebSocket from 'ws';
 import { randomBytes, X509Certificate } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import dgram from 'node:dgram';
+import { networkAdapters, discoverSchools, verifiedAlternative } from './networkDiscovery';
 import selfsigned from 'selfsigned';
 import type { createApp } from '../server/app';
 import { modelPattern, ollamaRequest } from '../server/ollama';
@@ -148,6 +149,9 @@ function secureRequest(
         void readJsonResponse(res).then(resolve, reject);
       },
     );
+    // Bound the TCP/TLS connect phase too: socket inactivity timeout alone starts too late for a stale Wi-Fi IP.
+    const deadline = setTimeout(() => req.destroy(Object.assign(new Error('تعذر الوصول إلى جهاز المعلم. تحقق من شبكة المدرسة'), { code: 'ETIMEDOUT' })), timeout);
+    req.once('close', () => clearTimeout(deadline));
     req.on('socket', (socket: any) =>
       socket.once('secureConnect', () => {
         const peer = socket.getPeerCertificate();
@@ -277,44 +281,26 @@ async function startHost() {
     .map((n) => n!.address);
   return { addresses, port, pairCode, fingerprint };
 }
-function discover(): Promise<any[]> {
-  return new Promise((resolve) => {
-    const socket = dgram.createSocket('udp4');
-    const results = new Map();
-    const timer = setTimeout(() => {
-      socket.close();
-      resolve([...results.values()]);
-    }, 2000);
-    socket.on('error', () => {
-      clearTimeout(timer);
-      socket.close();
-      resolve([]);
-    });
-    socket.on('message', (message, rinfo) => {
-      try {
-        const value = JSON.parse(message.toString());
-        if (value.port === port && typeof value.school === 'string') {
-          // Discovery metadata only deduplicates interfaces; pairing authenticates the certificate.
-          const key = typeof value.deviceId === 'string' ? value.deviceId : rinfo.address;
-          const existing = results.get(key);
-          if (!existing || existing.host === '127.0.0.1')
-            results.set(key, { ...value, host: rinfo.address });
-        }
-      } catch {}
-    });
-    socket.bind(0, () => {
-      socket.setBroadcast(true);
-      socket.send('ALSHEREQI_DISCOVER_V1', discoveryPort, '255.255.255.255');
-      for (const info of Object.values(networkInterfaces()).flat())
-        if (info?.family === 'IPv4' && !info.internal) {
-          const octets = info.address.split('.').map(Number);
-          const mask = info.netmask.split('.').map(Number);
-          const broadcast = octets.map((v, i) => v | (~mask[i] & 255)).join('.');
-          socket.send('ALSHEREQI_DISCOVER_V1', discoveryPort, broadcast);
-        }
-      socket.send('ALSHEREQI_DISCOVER_V1', discoveryPort, '127.0.0.1');
-    });
-  });
+let preferredAddress = '';
+try { preferredAddress = JSON.parse(readFileSync(join(dataPath(), 'network-preferences.json'), 'utf8')).preferredAddress || ''; } catch {}
+let discoveryPending: ReturnType<typeof discoverSchools> | undefined;
+function discover() {
+  return discoveryPending ||= discoverSchools(port, networkAdapters(), preferredAddress).finally(() => { discoveryPending = undefined; });
+}
+let recoveryPending: Promise<boolean> | undefined;
+function recoverTeacher(): Promise<boolean> {
+  if (server || !target || target.host === '127.0.0.1') return Promise.resolve(false);
+  if (recoveryPending) return recoveryPending;
+  const previous = target;
+  recoveryPending = (async () => {
+    const host = await verifiedAlternative(previous, await discover(), (address, pin) => secureRequest(address, pin, '/api/status', 'GET', undefined, '', 1500));
+    if (!host || target !== previous) return false;
+    target = { ...previous, host };
+    persistTarget(); connectEvents();
+    win.webContents.send('server-event', { type: 'network-recovered', host });
+    return true;
+  })().finally(() => { recoveryPending = undefined; });
+  return recoveryPending;
 }
 const onlyTeacher = () => {
   if (!server || role !== 'teacher' || target?.host !== '127.0.0.1')
@@ -455,6 +441,15 @@ async function start() {
     return nativeCall('print-pdf',html,choice.filePath);
   });
   handle('discover', discover);
+  const networkState = () => ({ adapters: networkAdapters(), preferredAddress, hosting: !!server, host: target?.host, pairingCode: server ? pairCode : undefined, port });
+  handle('network-state', networkState);
+  handle('network-preferences', (value: unknown) => {
+    if (typeof value !== 'string' || (value !== '' && !networkAdapters().some(adapter => adapter.address === value))) throw Error('هذه الشبكة غير متاحة الآن. حدّث القائمة ثم اختر شبكة متصلة.');
+    preferredAddress = value;
+    mkdirSync(dataPath(), { recursive: true });
+    writeFileSync(join(dataPath(), 'network-preferences.json'), JSON.stringify({ preferredAddress }));
+    return networkState();
+  });
   handle('connection-state', async () => {
     if (!target) return { connected: false, local: false };
     try {
@@ -475,6 +470,7 @@ async function start() {
         local: Boolean(server && target.host === '127.0.0.1'),
       };
     } catch {
+      if (await recoverTeacher()) return { connected: true, host: target.host, fingerprint: target.fingerprint, local: false };
       return { connected: false, host: target.host, local: false };
     }
   });
@@ -584,8 +580,13 @@ async function start() {
       );
       token = fresh.token;
     }
-    const result = await secureRequest(target.host, target.fingerprint, path, method, body, token,
-      path === '/api/students/roster/preview' && input?.source === 'gemini' ? 30 * 60 * 1000 : 190000);
+    const timeout = path === '/api/students/roster/preview' && input?.source === 'gemini' ? 30 * 60 * 1000 : role === 'student' ? 10000 : 190000;
+    const result = await secureRequest(target.host, target.fingerprint, path, method, body, token, timeout).catch(async error => {
+      // Never replay writes here: students' existing revision queue owns answer retries.
+      if (method === 'GET' && ['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ECONNRESET', 'ETIMEDOUT'].includes(error.code) && await recoverTeacher())
+        return secureRequest(target!.host, target!.fingerprint, path, method, body, token, timeout);
+      throw error;
+    });
     if (path === '/api/login') {
       token = result.token;
       role = result.role;

@@ -1,5 +1,7 @@
 import type { Question } from './types';
 import { questionProblem, kindOf } from './questionFormats';
+import { subjectService } from './serviceCatalog';
+import { mathQuestionIssues } from './mathQuality';
 export type ExamIssue = { path: (string | number)[]; message: string };
 export const examFieldNames: Record<string, string> = {
   title: 'اسم الامتحان',
@@ -45,7 +47,21 @@ export function issuesFromError(error: unknown): ExamIssue[] {
     .sort((a, b) => b[1].length - a[1].length)
     .find(([, label]) => message.includes(label))?.[0];
   if (question) return [{ path: ['questions', Number(question[1]) - 1, field || 'text'], message }];
-  return [{ path: [field || (/توزيع|نماذج|مجموعة|عدد أسئلة/.test(message) ? 'delivery' : /موعد|إتاحة|فترة|إغلاق/.test(message) ? 'closesAt' : /بنك|سؤال|أسئلة/.test(message) ? 'questions' : 'title')], message }];
+  return [
+    {
+      path: [
+        field ||
+          (/توزيع|نماذج|مجموعة|عدد أسئلة/.test(message)
+            ? 'delivery'
+            : /موعد|إتاحة|فترة|إغلاق/.test(message)
+              ? 'closesAt'
+              : /بنك|سؤال|أسئلة/.test(message)
+                ? 'questions'
+                : 'title'),
+      ],
+      message,
+    },
+  ];
 }
 export function validationMessage(
   path: (string | number)[],
@@ -120,6 +136,31 @@ export function examIssues(
         message: `السؤال ${i + 1}: وزن الدرجة يجب أن يكون أكبر من صفر وحتى 100.`,
       });
   });
+  if (form.delivery) {
+    const d = form.delivery;
+    if (
+      !Number.isInteger(d.count) ||
+      d.count < 1 ||
+      d.count > 100 ||
+      d.count > form.questions.length
+    )
+      add('delivery', 'حدد عدد أسئلة الطالب من 1 إلى حجم المجموعة، بحد أقصى 100.');
+    if (d.quotas?.reduce((n: number, g: any) => n + g.count, 0) !== d.count)
+      add('delivery', 'مجموع توزيع الموضوعات يجب أن يساوي عدد أسئلة الطالب.');
+  } else if (form.questions.length > 100)
+    add('delivery', 'اختر السحب من المجموعة أو قلل الأسئلة إلى 100 في الوضع الثابت.');
   if (publish && !approved) add('approved', 'أكد مراجعة الأسئلة والإجابات قبل النشر.');
+  if (publish && subjectService(form.subject || '') === 'math')
+    form.questions.forEach((q: Question, index: number) => {
+      for (const issue of mathQuestionIssues(q))
+        issues.push({
+          path: [
+            'questions',
+            index,
+            ...issue.field.split('.').map((p) => (/^\d+$/.test(p) ? Number(p) : p)),
+          ],
+          message: `السؤال ${index + 1}: ${issue.message}`,
+        });
+    });
   return issues;
 }

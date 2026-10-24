@@ -9,6 +9,12 @@ export const appearanceSchema = z
     cardStyle: z.enum(['soft', 'outlined']),
     fontSize: z.enum(['normal', 'large']),
     welcome: z.string().trim().max(220),
+    referenceImage: z
+      .string()
+      .max(3_000_000)
+      .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/)
+      .optional(),
+    imageCaption: z.string().trim().max(120).optional(),
   })
   .refine(appearanceReadable, 'اختر ألوانًا أوضح للنص؛ جرّب إحدى اللوحات الجاهزة');
 const audioData = z

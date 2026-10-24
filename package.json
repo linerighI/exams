@@ -1,9 +1,10 @@
 {
   "name": "alshereqi-exams",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "video:studio": "npm --prefix onboarding-video run dev",
     "dev": "concurrently -k \"node scripts/dev-server.cjs\" \"vite --host 127.0.0.1\"",
     "desktop": "node scripts/desktop.cjs",
     "build": "node scripts/build-desktop.cjs",
@@ -49,6 +50,8 @@
     "@fastify/websocket": "^11.0.0",
     "@fontsource/tajawal": "^5.2.0",
     "@reduxjs/toolkit": "^2.13.0",
+    "@remotion/fonts": "4.0.537",
+    "@remotion/player": "4.0.537",
     "better-sqlite3": "^12.0.0",
     "csv-parse": "^7.0.3",
     "driver.js": "1.10.1",
@@ -64,6 +67,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "remotion": "4.0.537",
     "selfsigned": "^5.5.0",
     "undici": "^7.30.0",
     "ws": "^8.18.0",

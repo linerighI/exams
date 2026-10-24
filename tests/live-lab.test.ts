@@ -130,6 +130,12 @@ test('live lab scopes devices and ephemeral camera frames, expires leases, enfor
         .statusCode,
       429,
     );
+    assert.equal((await call('/api/attempts/'+attempt.id+'/proctor-lock','PUT',{active:true},teacher)).statusCode,200);
+    assert.equal((await call('/api/lab/heartbeat','POST',heartbeat,token)).json().cameraRequested,true);
+    advance += 1100;
+    assert.equal((await call('/api/lab/devices/'+heartbeat.clientId+'/frame','POST',{image},token)).statusCode,200);
+    assert.equal((await call('/api/lab','GET',undefined,teacher)).json().devices[0].proctorLock.active,true);
+    await call('/api/attempts/'+attempt.id+'/proctor-lock','PUT',{active:false},teacher);
     advance += 7000;
     assert.deepEqual((await call('/api/lab/frames', 'GET', undefined, teacher)).json().frames, []);
     await call('/api/lab/heartbeat', 'POST', heartbeat, token);

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useQuietMotion } from './appMotion';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 gsap.registerPlugin(MorphSVGPlugin);
 const paths = {

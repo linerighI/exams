@@ -76,13 +76,12 @@ try {
     });
   });
   await page.goto(`${base}/.data/${basename(harness)}/index.html`);
-  await page.getByText('استيراد JSON بمساعدة ChatGPT أو Gemini', { exact: true }).click();
-  await page.getByLabel('قائمة الطلاب JSON').fill(
+  await page.getByLabel('طريقة استيراد الطلاب').selectOption('json');
+  await page.getByLabel('بيانات الطلاب JSON').fill(
     JSON.stringify({
       students: [{ name: 'سارة أحمد', grade: 'العاشر', section: 'أ', id: '001' }],
     }),
   );
-  await page.getByRole('button', { name: 'استخدام JSON للمعاينة', exact: true }).click();
   await page.getByRole('button', { name: 'معاينة القائمة', exact: true }).click();
   await page.getByRole('cell', { name: 'سارة أحمد', exact: true }).waitFor();
   await page.screenshot({ path: 'test-results/readiness-json-import.png', fullPage: true });
@@ -151,6 +150,7 @@ try {
   await call(`/api/exams/${exam.id}/publish`, 'POST', {}, assigned);
   const session = await call('/api/login', 'POST', { role: 'student', code: students[0].code });
   await page.addInitScript((s) => {
+    localStorage.setItem('school-first-launch:v1', 'seen');
     sessionStorage.setItem('student-session', JSON.stringify(s));
     sessionStorage.setItem('school-token', s.token);
   }, session);
@@ -180,6 +180,19 @@ try {
   await page
     .getByRole('button', { name: 'المتابعة دون كاميرا إن سمح المعلم', exact: true })
     .click();
+  await page.getByRole('dialog', { name: 'Zunis · تذكير بالنزاهة', exact: true }).waitFor();
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('.exam-question');
+    return (
+      !!panel &&
+      Number(getComputedStyle(panel).opacity) < 0.1 &&
+      !!document.querySelector('.exam-entry[open]')
+    );
+  });
+  await page.locator('.exam-entry').waitFor({ state: 'detached' });
+  await page.waitForFunction(
+    () => Number(getComputedStyle(document.querySelector('.exam-question')!).opacity) > 0.99,
+  );
   await page.getByRole('heading', { name: 'ما ناتج جمع 2 و3؟' }).waitFor();
   const orbColor = () =>
     page

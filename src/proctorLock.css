@@ -1,0 +1,171 @@
+.exam-integrity-intro.is-proctor-lock {
+  border: 0;
+  margin: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  box-sizing: border-box;
+  outline: none;
+  background: #0d080d;
+  overflow: hidden;
+}
+.is-proctor-lock::backdrop {
+  background: #0d080d;
+}
+.is-proctor-lock .integrity-emblem {
+  color: #f58d95;
+  border-color: #ab3e5266;
+  background: #7b20301f;
+  box-shadow: 0 0 75px #bd304324;
+}
+.is-proctor-lock .integrity-brand,
+.is-proctor-lock h1 {
+  color: #f28a94;
+}
+.is-proctor-lock .zunis-lightline {
+  background: #e46777;
+}
+.is-proctor-lock .zunis-sweep {
+  background: linear-gradient(transparent, #bc425520, transparent);
+}
+.is-proctor-lock .zunis-corner {
+  border-color: #b9576880;
+}
+.is-proctor-lock .zunis-cinema-grid {
+  opacity: 0.24;
+}
+.is-proctor-lock p {
+  color: #d9bec6;
+}
+.is-proctor-lock small {
+  color: #a58d99;
+}
+.proctor-lock-clock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #75354660;
+  background: #43192344;
+  color: #dfb3bf;
+  padding: 12px 20px;
+  border-radius: 14px;
+  margin-top: 25px;
+  font-size: 13px;
+}
+.proctor-lock-clock strong {
+  font-size: 21px;
+  letter-spacing: 1px;
+  color: #ff9da6;
+  font-variant-numeric: tabular-nums;
+}
+.is-proctor-lock .proctor-lock-offline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 19px;
+}
+.proctor-control {
+  position: relative;
+  display: inline-block;
+}
+.proctor-control > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px;
+  color: #6b86aa;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dbe6f6;
+  border-radius: 10px;
+  background: #fff;
+}
+.proctor-control > summary::-webkit-details-marker {
+  display: none;
+}
+.proctor-control.is-locked > summary {
+  background: #fff0f2;
+  color: #bd4055;
+  border-color: #efbac4;
+}
+.proctor-control-menu {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  top: calc(100% + 5px);
+  width: 235px;
+  padding: 13px;
+  background: #fff;
+  border: 1px solid #dae5f6;
+  border-radius: 14px;
+  box-shadow: 0 15px 45px #26466e29;
+  z-index: 20;
+  text-align: right;
+}
+.proctor-control-menu p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #8193ac;
+  margin: 0 0 10px;
+}
+.proctor-control-menu button {
+  display: flex;
+  width: 100%;
+  gap: 9px;
+  justify-content: center;
+  font-size: 12px;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid #efc6cf;
+  background: #fff1f4;
+  color: #b23f55;
+  box-shadow: none;
+}
+.proctor-control-menu button.is-unlock {
+  background: #edf6ff;
+  border-color: #cddff5;
+  color: #3d6f9f;
+}
+.proctor-control-menu [role='alert'] {
+  color: #b23f55;
+  margin-top: 9px;
+}
+.lab-camera-grid article {
+  overflow: visible;
+}
+.lab-camera-grid article footer {
+  flex-wrap: wrap;
+}
+.lab-camera-grid .proctor-control {
+  margin-inline-start: auto;
+}
+
+.exam-integrity-intro.is-proctor-lock h1,
+.exam-integrity-intro.is-proctor-lock .integrity-brand {
+  color: #f28a94;
+}
+.exam-integrity-intro.is-proctor-lock .integrity-emblem {
+  color: #f58d95;
+  border-color: #ab3e5266;
+  background: #7b20301f;
+  box-shadow: 0 0 75px #bd304324;
+}
+.exam-integrity-intro.is-proctor-lock .integrity-trace circle {
+  stroke: #e87989;
+}
+.exam-integrity-intro.is-proctor-lock .zunis-lightline {
+  opacity: 0.12;
+  top: 72%;
+}
+.proctor-control-menu small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.7;
+  color: #8096b1;
+  margin-top: 9px;
+}
+.exam-integrity-intro.is-proctor-lock .zunis-lightline {
+  display: none;
+}

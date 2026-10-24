@@ -32,17 +32,19 @@ export default function Welcome({
   onLogin,
   onHost,
   onResume,
+  initialMode='teacher',
 }: {
   onLogin: (s: Session) => void;
   onHost: (s: any) => void;
   notify: (s: string) => void;
   onResume: (s: Session, c: Snapshot) => void;
+  initialMode?: 'teacher'|'student';
 }) {
   const [qrOpen, setQrOpen] = useState(false);
-  const [mode, setMode] = useState<'teacher' | 'student'>('teacher');
+  const [mode, setMode] = useState<'teacher' | 'student'>(initialMode);
   const [school, setSchool] = useState('مدرسة محمد الشريقي');
   const [setup, setSetup] = useState(false);
-  const [ready, setReady] = useState(!window.desktop);
+  const [ready, setReady] = useState(!window.desktop||initialMode==='student');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('admin');
   const [teacherName, setTeacherName] = useState('المعلم المسؤول');

@@ -11,7 +11,9 @@ import {
   UploadCloud,
   Loader2,
 } from 'lucide-react';
-import { api, fileBase64 } from './api';
+import { api, fileBase64, download } from './api';
+import { mathSourceGuide, mathAtlasGuide, type MathSourceMode } from './mathPromptGuide';
+import { attachDiagramAtlas, diagramSheet } from './diagramAtlas';
 import { bankPrompt, pictureInstruction, providers, type BankMeta } from './bankExchange';
 import MathText from './MathText';
 import PromptOrbEditor from './PromptOrbEditor';
@@ -19,6 +21,8 @@ import { svgToPng } from './svgDiagram';
 import QuestionTypeSelection from './QuestionTypeSelection';
 import { questionKinds, type QuestionKind } from './questionFormats';
 import { questionTypeGuide } from './questionTypeGuide';
+import { subjectService, subjectServiceGuide, subjectServices } from './serviceCatalog';
+import './services.css';
 export default function BankWizard({
   books,
   onImported,
@@ -44,10 +48,11 @@ export default function BankWizard({
     [done, setDone] = useState<any>();
   const [customPrompt, setCustomPrompt] = useState<string>();
   const [includePictures, setIncludePictures] = useState(true);
+  const [mathMode, setMathMode] = useState<MathSourceMode>('book-values');
   const [types, setTypes] = useState<QuestionKind[]>(questionKinds.map((k) => k[0]));
   const promptBase =
-    customPrompt ?? bankPrompt(meta, count, range, difficulty, includePictures, types);
-  const prompt = `${promptBase}\n\n[خيار الرسوم للمعلم]\n${pictureInstruction(includePictures)}\n\n[الأنواع الملزمة لهذا الطلب]\n${questionTypeGuide(types)}`;
+    customPrompt ?? bankPrompt(meta, count, range, difficulty, includePictures, types, mathMode);
+  const prompt = `${promptBase}\n\n[خيار الرسوم للمعلم]\n${pictureInstruction(includePictures)}\n\n[الأنواع الملزمة لهذا الطلب]\n${questionTypeGuide(types)}\n\n[خدمة المادة الحالية؛ تعليمات اللغة هنا لها الأولوية على أي طلب محفوظ سابق]\n${subjectServiceGuide(subjectService(meta.subject))}\n\n${subjectService(meta.subject) === 'math' ? '[اختيار المعلم النهائي للرياضيات؛ له الأولوية على أي طلب محفوظ سابق]\n' + mathSourceGuide(mathMode) + (includePictures ? '\n' + mathAtlasGuide : '') : ''}`;
   useEffect(() => {
     void api('/api/bank/prompt')
       .then((r) => {
@@ -113,6 +118,11 @@ export default function BankWizard({
         >
           {step === 0 && (
             <div className="exchange-setup">
+              <div className="service-inline-badge">
+                <Sparkles size={17} />
+                {subjectServices.find((s) => s.id === subjectService(meta.subject))!.name} 1 · بحسب
+                المادة المدخلة
+              </div>
               <label className="check-label picture-choice">
                 <input
                   type="checkbox"
@@ -124,6 +134,31 @@ export default function BankWizard({
                 />
                 تضمين صور ورسوم وأسئلة تعتمد على الشكل (موصى به للرياضيات والفيزياء)
               </label>
+              {subjectService(meta.subject) === 'math' && (
+                <section className="math-request-options">
+                  <label className="field">
+                    طريقة بناء أسئلة الرياضيات
+                    <select
+                      aria-label="طريقة أسئلة الرياضيات"
+                      value={mathMode}
+                      onChange={(e) => {
+                        setMathMode(e.target.value as MathSourceMode);
+                        setCopied(false);
+                      }}
+                    >
+                      <option value="book-values">نفس سؤال الكتاب، مع تغيير القيم فقط</option>
+                      <option value="concepts">أسئلة جديدة على مفاهيم الكتاب</option>
+                    </select>
+                  </label>
+                  <small>
+                    يُطلب من المساعد إعادة الحل والتحقق من المعطيات والمفتاح والرسم. تظل مراجعتك
+                    مطلوبة قبل الاعتماد.
+                  </small>
+                  {includePictures && (
+                    <p>رسوم SVG لكل سؤال، مع خيار لوحة رسوم واحدة لقص الصور وربطها تلقائيًا.</p>
+                  )}
+                </section>
+              )}
               <p className="info-note">
                 يمكنك إنشاء بنك فارغ وكتابة أسئلتك بنفسك، أو إعداد طلب للذكاء الاصطناعي أدناه.
               </p>
@@ -263,6 +298,10 @@ export default function BankWizard({
                 <ol className="exchange-instructions">
                   <li>الصق الطلب وارفع كتابك على الموقع بنفسك.</li>
                   <li>اطلب البنك كاملًا ونزّل JSON والرسوم والـ PDF المتاح.</li>
+                  <li>
+                    أرفق لوحة الصور مع JSON إذا سلّم المساعد لوحة مشتركة؛ أو استورد SVG المضمّن
+                    تلقائيًا.
+                  </li>
                   <li>ارجع هنا للاستيراد. يمكن للتطبيق إنشاء PDF إن لم ينتجه الموقع.</li>
                 </ol>
                 <button className="text-button" onClick={() => setStep(2)}>
@@ -341,7 +380,7 @@ export default function BankWizard({
                 <label className="exchange-drop">
                   <FileJson size={28} />
                   <strong>اختر ملف JSON</strong>
-                  <small>حتى 8 ميجابايت · 500 سؤال في الملف</small>
+                  <small>حتى 8 ميجابايت · 1000 سؤال في الملف</small>
                   <input
                     aria-label="ملف JSON للبنك"
                     type="file"
@@ -430,6 +469,54 @@ export default function BankWizard({
                     }}
                   />
                 </label>
+                <section className="math-atlas-tools">
+                  <h3>لوحة الرسوم المشتركة</h3>
+                  <p>
+                    استورد JSON أولًا. إذا أرفق المساعد صورة واحدة، نربط كل جزء بسؤاله عبر atlasBox.
+                    الرسوم داخل svg تُرفق تلقائيًا دون هذه الخطوة.
+                  </p>
+                  <label className="secondary file-button">
+                    إرفاق لوحة PNG / JPG
+                    <input
+                      aria-label="لوحة رسوم الأسئلة"
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      disabled={!data || busy}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (file)
+                          void run(async () => {
+                            const result = await attachDiagramAtlas(data, file);
+                            setData(result.data);
+                            setPreview(undefined);
+                            notify(
+                              'أُرفق ' +
+                                result.count +
+                                ' رسمًا بأسئلته؛ راجع المطابقة في المعاينة.',
+                            );
+                          });
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={!data || busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const sheet = diagramSheet(
+                          data.questions || [],
+                          data.book?.title || 'رسوم الأسئلة',
+                        );
+                        download('bank-diagrams.svg', sheet.svg);
+                        notify('حُفظت لوحة تضم ' + sheet.count + ' رسمًا، قابلة للتكبير.');
+                      })
+                    }
+                  >
+                    حفظ الرسوم في لوحة SVG واحدة
+                  </button>
+                </section>
                 <small>تُحفظ الأسئلة كمسودات للمراجعة والاعتماد.</small>
                 {done && (
                   <div className="import-done" role="status">

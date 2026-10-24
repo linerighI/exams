@@ -1,7 +1,9 @@
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { useQuietMotion } from './appMotion';
 import { motion, LayoutGroup } from 'motion/react';
-import { useId, useRef, useLayoutEffect } from 'react';
+import { useId, useRef, useLayoutEffect, useState } from 'react';
+import { fileBase64 } from './api';
+import ExamImage from './ExamImage';
 import { Palette } from 'lucide-react';
 import {
   defaultAppearance,
@@ -20,6 +22,7 @@ export default function ExamAppearanceEditor({
   const a = { ...defaultAppearance, ...value },
     id = useId();
   const quiet = useQuietMotion();
+  const [imageError, setImageError] = useState('');
   const preview = useRef<HTMLDivElement>(null),
     first = useRef(true);
   useLayoutEffect(() => {
@@ -60,7 +63,7 @@ export default function ExamAppearanceEditor({
     <details className="exam-personalization">
       <summary>
         <Palette size={19} />
-        مظهر امتحان الطالب <span>ألوان وخط ورسالة ترحيب</span>
+        مظهر امتحان الطالب <span>ألوان وخط وصورة مرجعية</span>
       </summary>
       <div className="appearance-editor">
         <div>
@@ -137,6 +140,75 @@ export default function ExamAppearanceEditor({
               onChange={(e) => patch({ welcome: e.target.value })}
             />
           </label>
+          <section className="exam-image-upload">
+            <label>
+              صورة مرجعية للامتحان كله
+              <input
+                aria-label="إرفاق صورة للامتحان"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  setImageError('');
+                  if (
+                    !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
+                    file.size > 2 * 1024 * 1024
+                  ) {
+                    setImageError('اختر PNG أو JPG أو WebP حتى 2 ميغابايت.');
+                    return;
+                  }
+                  try {
+                    const data = await fileBase64(file);
+                    await new Promise<void>((resolve, reject) => {
+                      const image = new Image();
+                      image.onload = () =>
+                        image.width * image.height <= 24000000
+                          ? resolve()
+                          : reject(Error('اختر صورة أصغر من 24 مليون بكسل.'));
+                      image.onerror = () => reject(Error('تعذر قراءة الصورة.'));
+                      image.src = data;
+                    });
+                    patch({ referenceImage: data });
+                  } catch (error) {
+                    setImageError((error as Error).message);
+                  }
+                }}
+              />
+            </label>
+            <small>
+              تظهر لجميع الطلاب طوال الامتحان، ويمكنهم فتحها وتكبيرها دون مغادرة الامتحان.
+            </small>
+            {imageError && (
+              <p role="alert" className="error-note">
+                {imageError}
+              </p>
+            )}
+            {a.referenceImage && (
+              <>
+                <ExamImage
+                  src={a.referenceImage}
+                  label={a.imageCaption || 'الصورة المرجعية للامتحان'}
+                />
+                <label>
+                  عنوان الصورة
+                  <input
+                    maxLength={120}
+                    value={a.imageCaption || ''}
+                    onChange={(e) => patch({ imageCaption: e.target.value })}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => patch({ referenceImage: undefined, imageCaption: undefined })}
+                >
+                  إزالة الصورة
+                </button>
+              </>
+            )}
+          </section>
           {!appearanceReadable(a) && (
             <p className="error-note" role="alert">
               الألوان منخفضة التباين. اختر هوية أغمق وخلفية أفتح أو استخدم إحدى اللوحات الجاهزة.

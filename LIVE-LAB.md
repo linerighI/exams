@@ -1,6 +1,8 @@
 # Live classroom
 
-The teacher can open **غرفة المتابعة المباشرة** from the dashboard orb, from a student's camera action, or from the large bottom-right notification. The notification appears while attempts are active or student devices are online, with a slow blue/red glow. Reduced-motion preferences disable the glow. The workspace is temporary, has a close button at the top right, and keeps the existing blue/white style.
+The teacher opens **غرفة المتابعة المباشرة** from the compact room control attached to the blue assistant orb, from the dashboard, or from a student's camera action. The former separate bottom-right notification is removed. Drag either the orb or its attached room label to move both; Alt + arrow keys on the orb provide keyboard movement. The saved position stays within the viewport after resizing.
+
+The room label slides out of the orb when an exam is active or devices are online. GSAP expands the monitoring window from the orb and minimizes it back, keeping the native dialog mounted until the closing animation completes. Focus returns to the orb. A short, finite Remotion activity trace accompanies the label. A subtle, noninteractive blue edge glow indicates unsubmitted exams before their deadline; it fades away while monitoring is open and returns on close. Reduced motion removes the travel/pulse effects; background tabs pause the glow. Closing monitoring retains the existing watch/camera shutdown behavior.
 
 Its right navigation has four sections:
 
@@ -24,3 +26,5 @@ Validation:
 - `npm run test:desktop:lab`: synthetic camera in actual WebView2, frame upload through the native bridge, teacher retrieval and stop cleanup. Fake-camera switches are honored only inside the existing test-mode guard; production launches cannot enable them.
 
 Real classroom camera quality, firewall behavior and aggregate load still need a multi-PC check on the school's network. Synthetic tests do not measure that deployment's performance.
+
+- `node --import tsx tests/live-room-dock-ui.ts`: combined launcher, shared drag, native window transitions, focus restoration, glow visibility, watch cleanup, assistant minimize, mobile bounds, reduced motion and GSAP cleanup under React Strict Mode.

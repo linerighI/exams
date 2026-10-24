@@ -1,0 +1,109 @@
+.orb-room-chip {
+  position: fixed;
+  z-index: 95;
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid #d8e7fa;
+  border-radius: 17px;
+  background: linear-gradient(115deg, #ffffffed, #eaf3ffeb);
+  box-shadow: 0 5px 20px #4676aa17;
+  color: #547dab;
+  direction: rtl;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  text-align: right;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.orb-room-chip:active {
+  cursor: grabbing;
+}
+.orb-room-chip:focus-visible {
+  outline: 2px solid #78a4de;
+  outline-offset: 3px;
+}
+.orb-room-chip-label {
+  min-width: 0;
+  flex: 1;
+}
+.orb-room-chip-label strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font:
+    700 11px/1.5 Tajawal,
+    sans-serif;
+  white-space: nowrap;
+}
+.orb-room-chip-label i {
+  width: 5px;
+  height: 5px;
+  background: #6da8df;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.orb-room-chip-label small {
+  display: block;
+  font:
+    10px/1.6 Tajawal,
+    sans-serif;
+  color: #8a9fb9;
+  white-space: nowrap;
+}
+.orb-room-chip-signal {
+  position: absolute;
+  left: 8px;
+  bottom: 4px;
+  opacity: 0.2;
+  pointer-events: none;
+}
+.orb-room-chip > svg {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.orb-room-chip.is-room-open {
+  visibility: hidden;
+  pointer-events: none;
+}
+.live-room-edge {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none !important;
+  border-radius: 10px;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 1px #79b9ff55,
+    inset 0 0 22px 2px #5aabf133;
+  background:
+    radial-gradient(ellipse at 0% 50%, #65adf125, transparent 8%),
+    radial-gradient(ellipse at 100% 50%, #65adf125, transparent 8%),
+    linear-gradient(0deg, #83bcf51a, transparent 4%, transparent 96%, #83bcf51a);
+  will-change: opacity;
+}
+.live-room-edge[data-active='false'] {
+  will-change: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-room-edge {
+    will-change: auto;
+  }
+  .orb-room-chip {
+    animation: none;
+  }
+}
+@media (max-width: 450px) {
+  .orb-room-chip-label strong {
+    font-size: 10px;
+  }
+  .orb-room-chip-label small {
+    font-size: 9px;
+  }
+}
+.orb-room-chip {
+  transition: none !important;
+}

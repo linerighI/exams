@@ -87,7 +87,7 @@ function Harness(){const [teacher,setTeacher]=useState('one'),[camera,setCamera]
     const started = Date.now();
     await page.getByRole('button', { name: 'ابدأ تذكير النزاهة', exact: true }).click();
     await page.getByRole('dialog', { name: 'Zunis · تذكير بالنزاهة', exact: true }).waitFor();
-    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.exam-integrity-intro')).opacity)>.99);
+    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.exam-entry')).opacity)>.99);
     await page.screenshot({ path: 'test-results/exam-integrity-ui.png' });
     await page.getByRole('status').filter({ hasText: 'intro done' }).waitFor();
     assert.ok(Date.now() - started >= 2900);

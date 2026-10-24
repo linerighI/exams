@@ -41,6 +41,7 @@ export const questionFields = z.object({
   points: z.number().positive().max(100).optional(),
   explanation: z.string().max(3000).default(''),
   page: z.number().int().positive().default(1),
+  requiresImage: z.boolean().optional(),
   image: z
     .string()
     .max(3_000_000)

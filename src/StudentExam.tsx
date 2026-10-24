@@ -1,5 +1,7 @@
 import { useExamMotion, useQuestionMotion, useSceneMotion } from './appMotion';
 import AudioPlayer from './AudioPlayer';
+import ProctorLockScreen from './ProctorLockScreen';
+import ExamImage from './ExamImage';
 import { useExamFeedback, useExamConfirmationMotion } from './examMotion';
 import { memo, useEffect, useRef, useState } from 'react';
 import {
@@ -60,7 +62,8 @@ export default function StudentExam({
   const [loginCode, setLoginCode] = useState('');
   const [authNeeded, setAuthNeeded] = useState(false);
   const remaining = Math.max(0, Math.ceil((view.attempt.deadline - (now + view.offset)) / 1000));
-  const frozen = remaining === 0 || view.submitPending || !!view.attempt.submittedAt;
+  const proctorLocked=!!view.attempt.proctorLock?.active;
+  const frozen = proctorLocked || remaining === 0 || view.submitPending || !!view.attempt.submittedAt;
   const q = view.questions[index];
   const appearance = { ...defaultAppearance, ...view.exam.appearance };
   const answered = view.questions.filter((item) => hasAnswer(item, view.answers[item.id])).length;
@@ -99,7 +102,7 @@ export default function StudentExam({
   const sync = async () => {
     if (
       syncBusy.current ||
-      (current.current.attempt.submittedAt && !Object.keys(current.current.pending).length)
+      (current.current.attempt.submittedAt && !current.current.attempt.proctorLock?.active && !Object.keys(current.current.pending).length)
     )
       return;
     syncBusy.current = true;
@@ -107,10 +110,17 @@ export default function StudentExam({
       await diskQueue.current;
       const data = current.current;
       const pending = Object.values(data.pending);
-      if (!pending.length && !data.submitPending) {
+      {
         const remote = await api(`/api/attempts/${data.attempt.id}/status`);
         if (remote.attempt.examId !== data.attempt.examId)
           throw Error('تعذر مطابقة الامتحان. أبلغ المعلم.');
+        if(remote.attempt.proctorLock?.active || current.current.attempt.proctorLock?.active){
+          const previous=current.current.attempt;
+          if(JSON.stringify(previous.proctorLock)!==JSON.stringify(remote.attempt.proctorLock)||previous.submittedAt!==remote.attempt.submittedAt||previous.deadline!==remote.attempt.deadline)
+            await persist({...current.current,attempt:{...current.current.attempt,...remote.attempt},offset:remote.serverNow-Date.now()});
+          setOnline(true);setAuthNeeded(false);
+          if(remote.attempt.proctorLock?.active)return;
+        }
         if (remote.attempt.submittedAt) {
           await persist({
             ...current.current,
@@ -261,6 +271,7 @@ export default function StudentExam({
           : indicatorTone === 'red'
             ? `${missing.length} أسئلة غير مجابة`
             : 'الامتحان جارٍ';
+  if (proctorLocked) return <ProctorLockScreen remaining={remaining} online={online} />;
   if (finished)
     return (
       <div className="submitted card student-exam-receipt" ref={scene} role="status">
@@ -294,6 +305,7 @@ export default function StudentExam({
             <span className="eyebrow">جلسة الامتحان</span>
             <h1>{view.exam.title}</h1>
             <p>{appearance.welcome}</p>
+            {appearance.referenceImage&&<ExamImage src={appearance.referenceImage} label={appearance.imageCaption||'الصورة المرجعية للامتحان'}/>}
             <div className="exam-live-indicators" aria-live="polite">
               <span className={online?'':'is-offline'}>{online?<Wifi size={14}/>:<WifiOff size={14}/>} {online?'متصل بجهاز المعلم':'بانتظار عودة الاتصال'}</span>
               <span className={localSaveState==='error'?'is-offline':''}><HardDrive size={14}/>{localSaveState==='error'?'تعذر الحفظ؛ أبلغ المعلم':localSaveState==='saving'?'جارٍ الحفظ محليًا':'تقدمك محفوظ على الجهاز'}</span>
@@ -373,7 +385,7 @@ export default function StudentExam({
               <h2>
                 <MathText text={q.text} />
               </h2>
-              {q.image && <img className="exam-image" src={q.image} alt="صورة السؤال" />}
+              {q.image && <ExamImage src={q.image} label="صورة السؤال" />}
               {q.audio && (
                 <div className="student-audio" key={q.id}>
                   <strong>استمع إلى السؤال</strong>

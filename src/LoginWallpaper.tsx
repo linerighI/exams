@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 export default function LoginWallpaper() {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {

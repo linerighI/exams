@@ -41,6 +41,8 @@ import MathText, { FormulaEditor } from './MathText';
 import AudioAttachment from './AudioAttachment';
 import AudioPlayer from './AudioPlayer';
 import GeometryEditor from './GeometryEditor';
+import MathDiagramEditor from './MathDiagramEditor';
+import {mathQuestionIssues} from './mathQuality';
 import QuestionResponse from './QuestionResponse';
 import KeywordGradingEditor from './KeywordGradingEditor';
 import { fileBase64 } from './api';
@@ -75,6 +77,7 @@ export default function ExamQuestionStudio({
     [palette, setPalette] = useState(false),
     [preview, setPreview] = useState(false),
     [geometry, setGeometry] = useState(false),
+    [mathDrawing,setMathDrawing]=useState(false),
     [drop, setDrop] = useState(false),
     [deleted, setDeleted] = useState<{ q: Question; index: number }>(),
     [samples, setSamples] = useState<Record<string, Answer>>({});
@@ -132,7 +135,7 @@ export default function ExamQuestionStudio({
     setPalette(false);
   };
   const add = (kind: QuestionKind) => {
-    if (questions.length >= 500) return notify('الحد الأقصى للمجموعة ٥٠٠ سؤال');
+    if (questions.length >= 1000) return notify('الحد الأقصى للمجموعة ١٠٠٠ سؤال');
     const next = createQuestion(kind);
     onChange([...questions, next]);
     select(next);
@@ -378,8 +381,8 @@ export default function ExamQuestionStudio({
                         className="text-button"
                         aria-label="نسخ السؤال"
                         onClick={() => {
-                          if (questions.length >= 500)
-                            return notify('الحد الأقصى للمجموعة ٥٠٠ سؤال');
+                          if (questions.length >= 1000)
+                            return notify('الحد الأقصى للمجموعة ١٠٠٠ سؤال');
                           const copy = { ...structuredClone(q), id: crypto.randomUUID() };
                           const next = [...questions];
                           next.splice(index + 1, 0, copy);
@@ -439,6 +442,7 @@ export default function ExamQuestionStudio({
                       </figure>
                     )}
                     <div className="qs-media-tools">
+                      <label className="check"><input type="checkbox" checked={!!q.requiresImage} onChange={e=>patch({requiresImage:e.target.checked})}/>الرسم ضروري لحل السؤال</label>
                       <label className="secondary small qs-upload">
                         <ImagePlus size={16} />
                         إرفاق صورة
@@ -463,7 +467,9 @@ export default function ExamQuestionStudio({
                         <Shapes size={16} />
                         رسم هندسي
                       </button>
+                      <button className="text-button" onClick={()=>setMathDrawing(true)}><Shapes size={16}/>رسم رياضي من المعطيات</button>
                     </div>
+                    <details className="service-quality"><summary>خدمة الرياضيات 1 · فحص الصياغة والخيارات</summary><p>هذا فحص للعرض والتكافؤ العددي فقط. صحة الحل ومعنى الوحدات والرسوم تحتاج مراجعتك.</p>{mathQuestionIssues(q).map((issue,i)=><p key={i}>{issue.message}</p>)}<small>استخدم الأقواس الرياضية للكسور والأسس، وأرفق الرسم إذا كان ضروريًا لحل السؤال.</small></details>
                     <details className="qs-audio-editor">
                       <summary>
                         {q.audio ? 'صوت مرفق · تشغيل أو تعديل' : 'إضافة صوت للسؤال'}
@@ -581,6 +587,7 @@ export default function ExamQuestionStudio({
           </aside>
         )}
       </div>
+      {mathDrawing&&q&&<MathDiagramEditor onClose={()=>setMathDrawing(false)} onSave={image=>patch({image,geometryId:undefined,requiresImage:true})}/>}
       {geometry && q && (
         <GeometryEditor
           notify={notify}

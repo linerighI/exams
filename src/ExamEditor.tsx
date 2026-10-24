@@ -31,6 +31,7 @@ export default function ExamEditor({
     () =>
       initial || {
         delivery: undefined as Exam['delivery'],
+        shuffleQuestions: false,
         calculatorAllowed: false,
         geogebraAllowed: false,
         appearance: undefined as Exam['appearance'],
@@ -295,11 +296,11 @@ export default function ExamEditor({
                 />
               </label>
               <label className="field">
-                عدد الأسئلة المضافة
+                عدد الأسئلة لكل طالب
                 <input
                   type="number"
                   min={1}
-                  max={500}
+                  max={1000}
                   value={form.delivery?.count || form.questions.length}
                   readOnly
                 />
@@ -373,6 +374,8 @@ export default function ExamEditor({
               <ExamDeliverySettings
                 questions={form.questions}
                 delivery={form.delivery}
+                shuffleQuestions={!!form.shuffleQuestions}
+                onShuffleChange={(value)=>update('shuffleQuestions',value)}
                 onChange={(value) => {
                   update('delivery', value);
                   setReviewPool(false);

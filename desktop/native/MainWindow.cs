@@ -27,7 +27,7 @@ internal sealed class MainWindow : Form
     private readonly SemaphoreSlim writer = new(1, 1);
     private readonly SemaphoreSlim dialogs = new(1, 1);
     private readonly HashSet<string> commands = new(StringComparer.Ordinal)
-    { "host", "discover", "pair", "connection-state", "connect-teacher", "student-session", "request", "backup-save", "backup-read", "backup-folder", "restart-app", "export-csv", "spreadsheet-save", "model-download", "ollama-download-page", "ai-provider-page", "bank-pdf", "report-pdf", "teacher-resource", "speech-status", "speech-transcribe", "speech-synthesize", "update-state", "update-check", "update-download", "update-cancel", "update-install" };
+    { "host", "discover", "network-state", "network-preferences", "pair", "connection-state", "connect-teacher", "student-session", "request", "backup-save", "backup-read", "backup-folder", "restart-app", "export-csv", "spreadsheet-save", "model-download", "ollama-download-page", "ai-provider-page", "bank-pdf", "report-pdf", "teacher-resource", "speech-status", "speech-transcribe", "speech-synthesize", "update-state", "update-check", "update-download", "update-cancel", "update-install" };
     private Process? backend;
     private ProcessJob? job;
     private CoreWebView2Environment? environment;
@@ -67,8 +67,19 @@ internal sealed class MainWindow : Form
             }
         }
         Controls.Add(view);
-        startupPanel.Controls.Add(startupStatus);
-        startupPanel.Controls.Add(new ProgressBar { Dock = DockStyle.Bottom, Height = 4, Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 35 });
+        startupPanel.BackColor = Color.FromArgb(8, 11, 16);
+        startupStatus.ForeColor = Color.FromArgb(137, 158, 184);
+        startupStatus.Font = new Font("Segoe UI", 11);
+        var startupLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5 };
+        startupLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
+        startupLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        startupLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        startupLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        startupLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
+        startupLayout.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "Zunis", TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.FromArgb(235, 243, 251), Font = new Font("Segoe UI", 40, FontStyle.Bold) }, 0, 1);
+        startupLayout.Controls.Add(new Label { Dock = DockStyle.Fill, Text = "حماية مساحة المدرسة", TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.FromArgb(99, 120, 146), Font = new Font("Segoe UI", 11) }, 0, 2);
+        startupLayout.Controls.Add(startupStatus, 0, 3);
+        startupPanel.Controls.Add(startupLayout);
         Controls.Add(startupPanel);
         startupPanel.BringToFront();
         if (testMode && Environment.GetEnvironmentVariable("SCHOOL_HEADLESS_TEST") == "1") { Opacity = 0; ShowInTaskbar = false; }
@@ -130,13 +141,21 @@ internal sealed class MainWindow : Form
             };
             core.WebMessageReceived += OnWebMessage;
             await core.AddScriptToExecuteOnDocumentCreatedAsync(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "bridge.js")));
+            // Show the local loading artwork while the existing backend starts; no second process or artificial wait.
+            core.NavigationCompleted += (_, e) => {
+                if (e.IsSuccess && view.Source?.AbsolutePath == "/boot.html") startupPanel.Visible = false;
+            };
+            if (File.Exists(Path.Combine(root, "dist", "boot.html"))) core.Navigate(Origin + "/boot.html");
             StartupStatus("بدء خدمة التطبيق", "جارٍ بدء خدمة التطبيق واستعادة الاتصال المحفوظ…");
             StartBackend();
             if (!await WaitForBackendReady()) { Close(); return; }
             if (closing) return;
             StartupStatus("فتح الواجهة", "جارٍ فتح مساحة المدرسة…");
+            ulong appNavigationId = 0;
+            core.NavigationStarting += (_, e) => { if (e.Uri == Origin + "/index.html") appNavigationId = e.NavigationId; };
             core.NavigationCompleted += (_, e) => {
-                if (closing) return;
+                if (closing || e.NavigationId != appNavigationId) return;
+                if (view.Source?.AbsolutePath != "/index.html") return;
                 if (e.IsSuccess) {
                     startupCompleted = true;
                     if (studentMode && !testMode) { lockdown ??= new StudentLockdown(this); lockdown.Enable(); }
@@ -162,6 +181,8 @@ internal sealed class MainWindow : Form
     private void StartupStatus(string stage, string message) {
         startupStage = stage;
         startupStatus.Text = message;
+        if (view.CoreWebView2 is { } core && view.Source?.AbsolutePath == "/boot.html")
+            _ = core.ExecuteScriptAsync("window.dispatchEvent(new CustomEvent('school-startup-status',{detail:" + JsonSerializer.Serialize(message) + "}));");
         Log("Startup stage: " + stage);
     }
     private async Task<bool> WaitForBackendReady() {

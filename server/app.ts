@@ -1,5 +1,8 @@
 import {applyPendingRestore,createSnapshotBackups} from './snapshotBackups';
 import {registerTeacherQr} from './teacherQr';
+import {registerServices} from './services';
+import {subjectService} from '../src/serviceCatalog';
+import {mathQuestionIssues} from '../src/mathQuality';
 import { studentCode } from './studentCodes';
 import { normalizeStudentCode } from '../src/studentCode';
 import Fastify from 'fastify';
@@ -54,7 +57,7 @@ const examInput = z.object({
   cameraRequired: z.boolean(),
   opensAt: z.string(),
   closesAt: z.string(),
-  questions: z.array(questionSchema).max(500),
+  questions: z.array(questionSchema).max(1000),
   delivery: z
     .object({
       mode: z.literal('random'),
@@ -71,6 +74,7 @@ const examInput = z.object({
         .max(500),
     })
     .optional(),
+  shuffleQuestions: z.boolean().optional(),
   calculatorAllowed: z.boolean().default(false),
   geogebraAllowed: z.boolean().default(false),
   appearance: appearanceSchema.optional(),
@@ -146,6 +150,7 @@ export async function createApp(options: {
     return session;
   };
   const teacher = (req: any) => auth(req, 'teacher');
+  registerServices(app,auth,teacher);
   const verifyTeacherQr = registerTeacherQr(app,tenancy,teacher);
   registerDeletion(app,store,teacher,studentId=>[...sessions.values()].some(s=>s.role==='student' && s.teacherId===store.tenantId() && s.student?.id===studentId),(grade,section)=>tenancy.checkGrade(store.tenantId(),grade,section),()=>new Set(tenancy.accounts().flatMap(a=>tenancy.forTeacher(a.id).all('students').map(s=>s.code))));
   registerReports(app, store, teacher, () => tenancy.accounts().map(accountView));
@@ -821,6 +826,10 @@ export async function createApp(options: {
     teacher(req);
     const exam: Exam = store.get('exams', (req.params as any).id);
     if (!exam) throw fail('الامتحان غير موجود', 404);
+    if(subjectService(exam.subject)==='math'){
+      const issues=exam.questions.flatMap((q,index)=>mathQuestionIssues(q).map(issue=>({path:['questions',index,...issue.field.split('.').map(p=>/^\d+$/.test(p)?Number(p):p)],message:`السؤال ${index+1}: ${issue.message}`})));
+      if(issues.length)throw Object.assign(fail(issues[0].message),{issues});
+    }
     if (
       !exam.questions.length ||
       new Set(exam.questions.map((q) => q.id)).size !== exam.questions.length ||
@@ -830,18 +839,7 @@ export async function createApp(options: {
     if (!exam.delivery && exam.questions.length > 100)
       throw fail('الامتحان الثابت يقبل 100 سؤال كحد أقصى؛ فعّل السحب العشوائي للمجموعات الأكبر');
     if (exam.delivery) {
-      const capacity = deliveryCapacity(exam);
-      const students = store
-        .all('students')
-        .filter(
-          (s) =>
-            gradeKey(s.grade) === gradeKey(exam.grade) &&
-            (!exam.section || sectionKey(s.section) === sectionKey(exam.section)),
-        );
-      if (capacity < BigInt(Math.max(2, students.length)))
-        throw fail(
-          'مجموعة الأسئلة لا توفر نماذج مختلفة كافية لطلاب الصف. أضف أسئلة أو عدّل التوزيع قبل النشر',
-        );
+      deliveryCapacity(exam); // Validate quotas; repeated sets across students are allowed.
       for (const [questionIndex,q] of exam.questions.entries()) {
         if (!q.bankId) continue; // Manually authored questions are reviewed in the exam editor.
         const bank = store.get('bank_questions', q.bankId);
@@ -1004,12 +1002,27 @@ export async function createApp(options: {
   });
   app.get('/api/attempts/:id/status',async(req)=>{
     const {attempt}=ownAttempt(req,(req.params as any).id);
-    const {id,examId,deadline,submittedAt,status}=attempt;
-    return {attempt:{id,examId,deadline,submittedAt,status},serverNow:Date.now()};
+    const {id,examId,deadline,submittedAt,status,proctorLock}=attempt;
+    return {attempt:{id,examId,deadline,submittedAt,status,proctorLock:proctorLock||null},serverNow:Date.now()};
+  });
+  app.put('/api/attempts/:id/proctor-lock', async(req)=>{
+    teacher(req);
+    const {attempt}=ownAttempt(req,(req.params as any).id);
+    const {active}=z.object({active:z.boolean()}).strict().parse(req.body);
+    if(active&&attempt.submittedAt)throw fail('انتهت المحاولة؛ لا يمكن حظر امتحان تم تسليمه.',409);
+    if(!!attempt.proctorLock?.active!==active){
+      const now=Date.now();
+      attempt.proctorLock=active?{active:true,lockedAt:now}:{...attempt.proctorLock!,active:false,unlockedAt:now};
+      store.put('attempts',attempt);
+      store.audit('Zunis: '+(active?'إظهار تحذير الغش وقفل الإجابة':'إزالة تحذير الغش وإعادة الإجابة')+' للمحاولة '+attempt.id+' — يستمر الوقت');
+      broadcast({type:'attempts'});
+    }
+    return attempt;
   });
   app.put('/api/attempts/:id/answers', async (req) => {
     const { attempt, session, exam } = ownAttempt(req, (req.params as any).id);
     if (session.role !== 'student') throw fail('هذه العملية للطالب', 403);
+    if(attempt.proctorLock?.active)throw fail('Zunis: أوقف المراقب الإجابة. انتظر السماح بالمتابعة.',423);
     const data = z
       .object({
         answers: z
@@ -1043,6 +1056,7 @@ export async function createApp(options: {
   app.post('/api/attempts/:id/submit', async (req) => {
     const { attempt, session, exam } = ownAttempt(req, (req.params as any).id);
     if (session.role !== 'student') throw fail('هذه العملية للطالب', 403);
+    if(attempt.proctorLock?.active)throw fail('Zunis: أوقف المراقب الإجابة. انتظر السماح بالمتابعة.',423);
     if (!attempt.submittedAt) {
       attempt.submittedAt = Date.now();
       attempt.status = 'submitted';

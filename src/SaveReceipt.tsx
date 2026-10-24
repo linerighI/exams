@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import MorphMark from './MorphMark';
 import { useQuietMotion } from './appMotion';
 import './appMotion.css';

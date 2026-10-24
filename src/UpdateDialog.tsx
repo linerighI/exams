@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import { runGenieEffect, type GenieEffectControls } from '@adi1816/genie-effect';
 import '@adi1816/genie-effect/styles.css';
 import { X, Download } from 'lucide-react';

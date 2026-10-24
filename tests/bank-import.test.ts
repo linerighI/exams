@@ -90,6 +90,8 @@ test('external bank batches import, crop, assemble, export, and restore with zer
     const again = (await call('/api/bank/import/preview', 'POST', { data }, teacher)).json();
     assert.equal(again.accepted.length, 0);
     assert.equal(server.store.all('books').length, 1);
+    const large = await call('/api/bank/import/preview','POST',{data:{...data,batchId:'large-550',questions:Array.from({length:550},(_,i)=>({...q,id:'large-'+i,text:'سؤال كبير '+i}))}},teacher);
+    assert.equal(large.statusCode,200,large.body);
     const next = {
       ...data,
       batchId: 'batch-02',
@@ -112,7 +114,7 @@ test('external bank batches import, crop, assemble, export, and restore with zer
         await call(
           '/api/bank/import/preview',
           'POST',
-          { data: { ...data, questions: Array(501).fill(q) } },
+          { data: { ...data, questions: Array(1001).fill(q) } },
           teacher,
         )
       ).statusCode,

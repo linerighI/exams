@@ -103,7 +103,7 @@ const { launch, freePort } = require('./webview2-driver.cjs');
     assert.match(app.diagnostics(),/Camera permission requested: Allow/);
     await page.getByRole('button',{name:'متابعة إلى الامتحان',exact:true}).click();
     await page.getByRole('dialog',{name:'Zunis · تذكير بالنزاهة',exact:true}).waitFor();
-    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.exam-integrity-intro')).opacity)>.99);
+    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.exam-entry')).opacity)>.99);
     await page.screenshot({path:'test-results/exam-integrity-native.png'});
     await page.locator('.exam-question').waitFor();
     const teacher = (

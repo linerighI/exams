@@ -16,6 +16,8 @@ import { questionQualityGuide } from '../src/questionQuality';
 import { questionSchema, questionFields, refineQuestion } from './questionSchema';
 import { questionOptionsDistinct } from '../src/questionFormats';
 import { questionTypeGuide } from '../src/questionTypeGuide';
+import {subjectService,subjectServiceGuide} from '../src/serviceCatalog';
+import {mathQuestionIssues} from '../src/mathQuality';
 const string = z
   .string()
   .trim()
@@ -69,6 +71,9 @@ export function registerLibrary(
     candidate.parse(q);
     if (!questionOptionsDistinct(q, normalize))
       throw Object.assign(new Error('الخيارات متكررة'), { statusCode: 400 });
+    if(subjectService(store.get('books',q.bookId)?.subject||'')==='math'){
+      const issue=mathQuestionIssues(q)[0];if(issue)throw Object.assign(new Error(issue.message),{statusCode:400});
+    }
   });
   const running = new Map<string, AbortController>();
   const owners = new Map<string, string>();
@@ -83,6 +88,7 @@ export function registerLibrary(
     teacher(req);
     const prompt = string.parse(req.body.prompt);
     const local = polynomialGraph(prompt);
+    if(local)return {...local,origin:'local'};
     const config = store.getSetting('config');
     try {
       let status;
@@ -111,7 +117,7 @@ export function registerLibrary(
         'حلل السؤال أولًا: إذا لم يحتج رسمًا أو لم تكفِ المعطيات فأعد objects فارغة. خلاف ذلك أنشئ وصفًا هندسيًا منظمًا من المعطيات فقط؛ ضع النقاط قبل العناصر التي تستخدمها. للدوال كثيرة الحدود استخدم type:function وcoefficients بالترتيب من الحد الثابت ثم معامل x ثم x^2؛ معاملات حتى ست خانات عشرية ودرجة حتى ستة. لا تختلق إحداثيات أو أطوالًا ولا تكشف الحل. لا تكتب شيفرة.',
         prompt,
         z.toJSONSchema(constructionSchema),
-        AbortSignal.timeout(local ? 20000 : 60000),
+        AbortSignal.timeout(60000),
       );
       const raw = result.message.content
         .trim()
@@ -126,7 +132,6 @@ export function registerLibrary(
       geometryCommands(construction);
       return { ...construction, origin: 'ai' };
     } catch (error) {
-      if (local) return { ...local, origin: 'local' };
       const message = (error as Error).message;
       if ((error as any).statusCode) throw error;
       // Only provider adapters' safe, localized messages are shown; never expose schema dumps or raw replies.
@@ -214,7 +219,7 @@ export function registerLibrary(
   app.post('/api/bank/selection', async (req: any) => {
     teacher(req);
     const { ids } = z
-      .object({ ids: z.array(z.string().min(1).max(100)).min(1).max(500) })
+      .object({ ids: z.array(z.string().min(1).max(100)).min(1).max(1000) })
       .parse(req.body);
     if (new Set(ids).size !== ids.length)
       throw Object.assign(new Error('اختيار مكرر'), { statusCode: 400 });
@@ -245,7 +250,7 @@ export function registerLibrary(
   };
   const makeDraft = (input: any) => {
     const b = book(input.bookId);
-    const questions = select(b.id, 500, input.chapter, input.difficulty);
+    const questions = select(b.id, 1000, input.chapter, input.difficulty);
     if (questions.length < input.count)
       throw Error(`المتاح ${questions.length} سؤالًا معتمدًا فقط؛ راجع البنك أو ولّد المزيد`);
     const exam = {
@@ -317,7 +322,7 @@ export function registerLibrary(
                 '\n' +
                 questionQualityGuide +
                 '\n' +
-                questionTypeGuide(),
+                questionTypeGuide()+'\n'+subjectServiceGuide(subjectService(b.subject)),
               `حلل صور الصفحات ${from} إلى ${to}. استبعد الغلاف والفهرس وحقوق النشر. صنف الفصل والدرس. أنشئ حتى ${requested} أسئلة متنوعة من الأنواع المناسبة للدروس، وفق عقد kind المرفق، وليست جميعها اختيارًا من متعدد. أرفق تفسيرًا ودليلًا من الصفحة ورقم صفحة PDF. حدد requiresImage=true فقط إذا احتاج السؤال الرسم. عندها أعد box=[left,top,right,bottom] بإحداثيات نسبية بين 0 و1، حيث left<right وtop<bottom، يشمل الرسم وتسمياته دون الإجابة. عندما لا يحتاج السؤال صورة اجعل box=null؛ لا تستخدم [0,0,0,0]. لا تولد سؤالًا يحتاج رسمًا مفقودًا. الصفحات المستبعدة يدويًا: ${JSON.stringify(b.pages.filter((p: any) => p.override === false).map((p: any) => p.page))}.`,
               z.toJSONSchema(output),
               AbortSignal.any([controller.signal, AbortSignal.timeout(180000)]),
@@ -558,6 +563,9 @@ export function registerLibrary(
       })
       .parse(req.body);
     if (!questionOptionsDistinct(update, normalize)) throw Error('الخيارات متكررة');
+    if(update.status==='approved'&&subjectService(book(q.bookId).subject)==='math'){
+      const issue=mathQuestionIssues(update)[0];if(issue)throw Object.assign(new Error(issue.message),{statusCode:400});
+    }
     const requiresImage = update.requiresImage ?? q.requiresImage;
     if (update.svg) update.svg = safeSvg(update.svg);
     if (update.status === 'approved' && requiresImage && !update.image)

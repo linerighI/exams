@@ -19,6 +19,7 @@ export type Question = {
   explanation: string;
   page: number;
   image?: string;
+  requiresImage?: boolean;
   difficulty?: string;
   bankId?: string;
   geometryId?: string;
@@ -53,6 +54,7 @@ export type Exam = {
     count: number;
     quotas: { chapter: string; difficulty: string; count: number }[];
   };
+  shuffleQuestions?: boolean;
   calculatorAllowed?: boolean;
   geogebraAllowed?: boolean;
   appearance?: import('./examAppearance').ExamAppearance;
@@ -75,6 +77,7 @@ export type Attempt = {
   revisions: Record<string, number>;
   score: number | null;
   status: string;
+  proctorLock?: { active: boolean; lockedAt: number; unlockedAt?: number };
   cameraExempt: boolean;
   cameraAvailable: boolean;
   assignedQuestions?: Question[];
@@ -126,6 +129,8 @@ export interface DesktopAPI {
   cancelUpdate: () => Promise<import('../desktop/appUpdater').UpdateState>;
   installUpdate: () => Promise<import('../desktop/appUpdater').UpdateState>;
   studentSession: () => Promise<Session | null>;
+  networkState: () => Promise<NetworkState>;
+  networkPreferences: (preferredAddress: string) => Promise<NetworkState>;
   connectionState: () => Promise<TeacherConnection>;
   connectTeacher: (host: string, code: string) => Promise<TeacherConnection>;
   request: (path: string, method?: string, body?: unknown) => Promise<any>;
@@ -159,3 +164,5 @@ declare global {
     desktop?: DesktopAPI;
   }
 }
+
+export type NetworkState = { adapters: {name:string;address:string;netmask:string}[]; preferredAddress:string;hosting:boolean;host?:string;pairingCode?:string;port:number };

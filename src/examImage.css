@@ -1,0 +1,130 @@
+.exam-reference-image {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #dbe7f7;
+  background: #fff;
+  border-radius: 13px;
+  padding: 8px;
+  box-shadow: none;
+  color: #476f9e;
+  max-width: 100%;
+  margin: 13px 0;
+}
+.exam-reference-image > img {
+  width: 70px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.exam-reference-image > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  padding-inline-end: 8px;
+}
+.exam-image-dialog {
+  outline: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: min(1100px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  overflow: visible;
+  color: #365b89;
+  direction: rtl;
+}
+.exam-image-dialog::backdrop {
+  background: #172e51b8;
+}
+.exam-image-sheet {
+  border: 1px solid #e0eafb;
+  background: #f7faff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 28px 90px #10244066;
+}
+.exam-image-sheet > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 17px;
+  border-bottom: 1px solid #e0eafb;
+  background: white;
+}
+.exam-image-sheet button {
+  padding: 8px;
+  border: 1px solid #dce7f5;
+  border-radius: 10px;
+  background: white;
+  color: #537eaf;
+  box-shadow: none;
+  display: inline-flex;
+}
+.exam-image-sheet button:focus-visible {
+  outline: 3px solid #8fb3e4;
+  outline-offset: 2px;
+}
+.exam-image-stage {
+  height: min(65dvh, calc(100dvh - 180px), 700px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  background: #eaf0f8;
+}
+.exam-image-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  transform-origin: center;
+}
+.exam-image-sheet > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 17px;
+  font-size: 12px;
+}
+.exam-image-sheet > footer > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  direction: ltr;
+}
+.exam-image-sheet output {
+  min-width: 45px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.exam-image-upload {
+  border-top: 1px solid #e1eaf7;
+  margin-top: 20px;
+  padding-top: 15px;
+}
+.exam-image-upload > label {
+  font-weight: 700;
+}
+.exam-image-upload small {
+  display: block;
+  color: #7891b1;
+  line-height: 1.8;
+  margin: 8px 0;
+}
+.exam-image-upload input {
+  max-width: 100%;
+}
+@media (max-width: 550px) {
+  .exam-image-sheet > footer {
+    flex-direction: column;
+  }
+  .exam-reference-image > span {
+    font-size: 11px;
+  }
+}

@@ -135,7 +135,9 @@ export function registerLiveLab(
     return {
       serverNow: Date.now(),
       devices: [...room().devices.values()].map((device) => {
-        const attempt = active(device),
+        const liveAttempt = active(device),
+          lockedAttempt = device.attemptId && store.get('attempts',device.attemptId),
+          attempt = liveAttempt || (lockedAttempt?.proctorLock?.active && lockedAttempt.studentId===device.studentId && allowedGrade(device.grade,device.section) ? lockedAttempt : undefined),
           exam = attempt && store.get('exams', attempt.examId);
         return {
           id: device.id,
@@ -158,6 +160,7 @@ export function registerLiveLab(
           total: attempt?.questionCount || exam?.delivery?.count || exam?.questions.length || 0,
           deadline: attempt?.deadline,
           status: attempt?.status,
+          proctorLock: attempt?.proctorLock,
         };
       }),
     };

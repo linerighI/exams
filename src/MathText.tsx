@@ -1,4 +1,4 @@
-import katex from 'katex';
+import katex from './mathRenderer';
 import 'katex/dist/katex.min.css';
 import { mathSegments } from './mathNotation';
 import { textDirection } from './textDirection';

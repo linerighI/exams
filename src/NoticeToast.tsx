@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { gsap } from 'gsap';
+import { gsap } from './animato';
 import MorphMark from './MorphMark';
 import { useQuietMotion } from './appMotion';
 import './appMotion.css';

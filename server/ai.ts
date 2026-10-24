@@ -1,3 +1,4 @@
+import {mathSourceGuide} from '../src/mathPromptGuide';
 import { questionSchema, questionFields, refineQuestion } from './questionSchema';
 import { questionOptionsDistinct } from '../src/questionFormats';
 import { questionTypeGuide } from '../src/questionTypeGuide';
@@ -9,6 +10,7 @@ import { openaiGenerate } from './openai';
 import { lessonPages, lessonExcerpt } from '../src/sourceContent';
 import type { Question, Source } from '../src/types';
 import { questionQualityGuide } from '../src/questionQuality';
+import {subjectService,subjectServiceGuide} from '../src/serviceCatalog';
 const item = questionFields
   .extend({
     id: z.string().default('candidate'),
@@ -74,7 +76,7 @@ export async function generate(
       '\n' +
       questionQualityGuide +
       '\n' +
-      questionTypeGuide();
+      questionTypeGuide()+'\n'+subjectServiceGuide(subjectService(source.name))+(subjectService(source.name)==='math'?'\n'+mathSourceGuide():'');
     const prompt = `أنشئ ${n} أسئلة ${cloud && difficulty === 'مختلط' ? 'بصعوبة موزعة بين سهل ومتوسط وصعب' : `بصعوبة ${level}`}. لا تكرر: ${questions
       .slice(-20)
       .map((q) => q.text.slice(0, 80))

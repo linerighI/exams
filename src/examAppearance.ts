@@ -4,6 +4,8 @@ export type ExamAppearance = {
   cardStyle: 'soft' | 'outlined';
   fontSize: 'normal' | 'large';
   welcome: string;
+  referenceImage?: string;
+  imageCaption?: string;
 };
 export const defaultAppearance: ExamAppearance = {
   accent: '#2863b0',
