@@ -1,0 +1,11 @@
+{
+  "name": "سكول سينك — يومك الدراسي",
+  "short_name": "سكول سينك",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fd",
+  "theme_color": "#407bea",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
