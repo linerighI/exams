@@ -4,6 +4,8 @@ import {
   BookOpen,
   CalendarDays,
   CheckCheck,
+  Eye,
+  EyeOff,
   GraduationCap,
   Megaphone,
   Plus,
@@ -33,6 +35,8 @@ export function Staff({
   onSectionChange?: (section: string) => void;
 }) {
   const [tool, setTool] = useState(initialTool === 'attendance' ? '' : initialTool);
+  const [accountRole, setAccountRole] = useState<'teacher' | 'student' | 'parent' | 'admin'>('teacher');
+  const [passVisible, setPassVisible] = useState(false);
   const [lessonId, setLessonId] = useState(initialLessonId);
   const [marks, setMarks] = useState<Record<string, string>>({});
   const [studentId, setStudentId] = useState(data.student?.id || '');
@@ -72,7 +76,11 @@ export function Staff({
     if (tool === 'student') url = '/students';
     if (tool === 'account') {
       url = '/accounts';
-      body = { ...f, studentId, section: f.section || undefined };
+      body = {
+        ...f,
+        studentId: accountRole === 'student' ? studentId : undefined,
+        section: f.section || undefined,
+      };
     }
     if (tool === 'family') {
       url = '/family-access';
@@ -339,7 +347,7 @@ export function Staff({
       {tool && (
         <Sheet title={titles[tool] || tr('Update attendance incident')} onClose={() => setTool('')}>
           <form onSubmit={submit} className="form-stack">
-            {['note', 'grade', 'guardian', 'account', 'family'].includes(tool) && (
+            {['note', 'grade', 'guardian', 'family'].includes(tool) && (
               <label>
                 {tr('Student')}
                 <select value={studentId} onChange={(e) => setStudentId(e.target.value)} required>
@@ -418,40 +426,86 @@ export function Staff({
             {tool === 'account' && (
               <>
                 <label>
+                  {tr('Role')}
+                  <select
+                    name="role"
+                    value={accountRole}
+                    onChange={(e) =>
+                      setAccountRole(e.target.value as 'teacher' | 'student' | 'parent' | 'admin')
+                    }
+                  >
+                    <option value="teacher">{tr('Teacher')}</option>
+                    <option value="admin">{tr('Administrator')}</option>
+                    <option value="parent">{tr('Guardian')}</option>
+                    <option value="student">{tr('Student')}</option>
+                  </select>
+                </label>
+                {accountRole === 'student' && (
+                  <label>
+                    {tr('Student')}
+                    <select
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      required
+                    >
+                      {data.students.length ? (
+                        data.students.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} · {s.section}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">لا يوجد طلاب مسجلون حالياً</option>
+                      )}
+                    </select>
+                  </label>
+                )}
+                <label>
                   {tr('Full name')}
                   <input name="name" required maxLength={180} />
                 </label>
                 <label>
                   {tr('Email')}
-                  <input name="email" type="email" required />
+                  <input name="email" type="email" required dir="ltr" />
                 </label>
                 <label>
                   {tr('Initial password')}
-                  <input
-                    name="password"
-                    type="password"
-                    minLength={12}
-                    autoComplete="new-password"
-                    required
-                  />
-                </label>
-                <label>
-                  {tr('Role')}
-                  <select name="role">
-                    <option value="parent">{tr('Guardian')}</option>
-                    <option value="teacher">{tr('Teacher')}</option>
-                    <option value="student">{tr('Student')}</option>
-                    <option value="admin">{tr('Administrator')}</option>
-                  </select>
-                </label>
-                <label>
-                  {tr('Assigned class (required for teachers)')}
-                  <input name="section" placeholder="8A" />
+                  <span className="password-input">
+                    <input
+                      name="password"
+                      type={passVisible ? 'text' : 'password'}
+                      minLength={12}
+                      autoComplete="new-password"
+                      required
+                      dir="ltr"
+                    />
+                    <button
+                      type="button"
+                      className="password-visibility"
+                      aria-label={passVisible ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                      onClick={() => setPassVisible(!passVisible)}
+                    >
+                      {passVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </span>
                 </label>
                 <p className="form-help">
-                  {tr(
-                    'For a student account, the selected enrolled student is linked. Verify identity before securely sharing credentials. Guardian links are added separately.',
-                  )}
+                  استخدم كلمة مرور أولية من ١٢ حرفاً على الأقل.
+                </p>
+                {accountRole === 'teacher' && (
+                  <label>
+                    {tr('Assigned class (required for teachers)')}
+                    <input name="section" placeholder="8A" required />
+                  </label>
+                )}
+                <p className="form-help">
+                  {accountRole === 'teacher'
+                    ? 'المعلم يتولى تدريس شعبة محددة ومتابعة حضورها وعلاماتها ولا يحتاج لاختيار طالب.'
+                    : accountRole === 'admin'
+                      ? 'حساب الإدارة يمنح صلاحيات كاملة لإدارة المدرسة دون الحاجة لاختيار طالب.'
+                      : accountRole === 'student'
+                        ? 'يرتبط حساب الطالب بالطالب المحدد لمتابعة واجباته وحصصه.'
+                        : 'حساب ولي الأمر يتيح له متابعة أبنائه.'}
                 </p>
               </>
             )}
