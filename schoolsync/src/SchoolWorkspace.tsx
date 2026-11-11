@@ -16,6 +16,8 @@ import type { Language } from './i18n';
 import { Empty, Section, initials } from './ui';
 import { tr } from './translations';
 import { minutes, schoolNow } from './screens';
+import { AdminGuide } from './AdminGuide';
+
 export function SchoolDashboard({
   data,
   lang,
@@ -60,8 +62,8 @@ export function SchoolDashboard({
         <p>
           {admin
             ? ar
-              ? 'نظرة على المدرسة، ثم الخطوة التي تحتاج اهتمامك.'
-              : 'Your school at a glance. Then, what needs your attention.'
+              ? 'نظرة شاملة وسريعة على مدرستك وإدارتها بكل سهولة.'
+              : 'Your school at a glance with clear, simplified management.'
             : ar
               ? 'حصصك وطلابك ومهامك، في مساحة مخصصة لك.'
               : 'Your lessons, students, and teaching tasks, together.'}
@@ -89,7 +91,7 @@ export function SchoolDashboard({
         <button onClick={() => go('classes')}>
           <Users size={18} />
           <strong>{data.students.length}</strong>
-          <small>{ar ? 'طلاب ضمن صلاحياتك' : 'Accessible students'}</small>
+          <small>{ar ? 'الطلاب المسجلين' : 'Enrolled students'}</small>
         </button>
         <button onClick={() => go('classes')}>
           <GraduationCap size={18} />
@@ -102,35 +104,67 @@ export function SchoolDashboard({
           <small>{ar ? 'حصص اليوم' : 'Lessons today'}</small>
         </button>
       </div>
-      <Section title={ar ? 'من أين تبدأ؟' : 'Where would you like to start?'} />
+
+      {admin && <AdminGuide data={data} lang={lang} onAction={action} />}
+
+      <Section title={admin ? (ar ? 'إجراءات سريعة' : 'Quick Actions') : (ar ? 'من أين تبدأ؟' : 'Where would you like to start?')} />
       <div className="school-actions" data-reveal>
         {[
-          {
-            id: 'attendance',
-            label: ar ? 'تسجيل الحضور' : 'Take attendance',
-            detail: ar ? 'سجّل حالة كل طالب في حصتك.' : 'Record each student in your lesson.',
-            icon: CheckCheck,
-          },
-          {
-            id: 'homework',
-            label: ar ? 'إسناد واجب' : 'Assign homework',
-            detail: ar ? 'تعليمات واضحة، ومتابعة أسهل.' : 'Clear instructions. Easier follow-up.',
-            icon: BookOpen,
-          },
-          {
-            id: 'grade',
-            label: ar ? 'إدارة العلامات' : 'Manage grades',
-            detail: ar
-              ? 'سجّل العلامات وانشر المعتمد منها.'
-              : 'Record grades and publish approved results.',
-            icon: GraduationCap,
-          },
-          {
-            id: 'note',
-            label: ar ? 'ملاحظة لولي الأمر' : 'Share a parent note',
-            detail: ar ? 'شارك ملاحظة تخص طالباً.' : 'Share an observation about a student.',
-            icon: MessageCircle,
-          },
+          ...(admin
+            ? [
+                {
+                  id: 'student',
+                  label: ar ? 'تسجيل طالب' : 'Enroll student',
+                  detail: ar ? 'إضافة طالب وتعيين شعبته.' : 'Add student & section.',
+                  icon: Users,
+                },
+                {
+                  id: 'account',
+                  label: ar ? 'إضافة معلّم' : 'Add teacher',
+                  detail: ar ? 'حساب جديد وتحديد الشعبة.' : 'New teacher account.',
+                  icon: GraduationCap,
+                },
+                {
+                  id: 'family',
+                  label: ar ? 'دخول العائلة' : 'Family access',
+                  detail: ar ? 'رموز الدخول للأولياء.' : 'Family credentials.',
+                  icon: ShieldCheck,
+                },
+                {
+                  id: 'lesson',
+                  label: ar ? 'جدولة حصة' : 'Schedule lesson',
+                  detail: ar ? 'إضافة حصة للجدول.' : 'Add timetable lesson.',
+                  icon: CalendarDays,
+                },
+              ]
+            : [
+                {
+                  id: 'attendance',
+                  label: ar ? 'تسجيل الحضور' : 'Take attendance',
+                  detail: ar ? 'سجّل حالة كل طالب في حصتك.' : 'Record each student in your lesson.',
+                  icon: CheckCheck,
+                },
+                {
+                  id: 'homework',
+                  label: ar ? 'إسناد واجب' : 'Assign homework',
+                  detail: ar ? 'تعليمات واضحة، ومتابعة أسهل.' : 'Clear instructions. Easier follow-up.',
+                  icon: BookOpen,
+                },
+                {
+                  id: 'grade',
+                  label: ar ? 'إدارة العلامات' : 'Manage grades',
+                  detail: ar
+                    ? 'سجّل العلامات وانشر المعتمد منها.'
+                    : 'Record grades and publish approved results.',
+                  icon: GraduationCap,
+                },
+                {
+                  id: 'note',
+                  label: ar ? 'ملاحظة لولي الأمر' : 'Share a parent note',
+                  detail: ar ? 'شارك ملاحظة تخص طالباً.' : 'Share an observation about a student.',
+                  icon: MessageCircle,
+                },
+              ]),
         ].map((x) => (
           <button key={x.id} onClick={() => action(x.id)}>
             <span className="subject-icon blue">

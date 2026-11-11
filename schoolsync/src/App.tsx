@@ -37,7 +37,7 @@ import Login, { type LoginRequest } from './Login';
 import { FamilyChooser } from './FamilyChooser';
 import { GradesScreen, AttendanceScreen } from './Progress';
 import { Navigation } from './Navigation';
-import { usePressFeedback } from './animation';
+import { usePressFeedback, useReveal } from './animation';
 import { Companion } from './Companion';
 import { Setup } from './Setup';
 import { SchoolDashboard, SchoolClasses, SchoolTimetable } from './SchoolWorkspace';
@@ -69,6 +69,7 @@ export default function App() {
   const shell = useRef<HTMLDivElement>(null);
   usePressFeedback(shell, `${auth}-${familyWelcome}`);
   const main = useRef<HTMLElement>(null);
+  useReveal(main, `${auth}-${tab}-${child}-${staffTool}-${switching}`);
   const requestNumber = useRef(0);
   const t = words[lang];
   setLanguage(lang);

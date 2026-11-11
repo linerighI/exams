@@ -146,8 +146,12 @@ export function Home(props: ScreenProps) {
                   ? tr('Ready for a\ngood day?')
                   : lang === 'ar'
                     ? family
-                      ? 'يومه.\nبانسجام.'
-                      : 'يومك.\nبانسجام.'
+                      ? lessons.length && now >= minutes(end)
+                        ? 'اكتمل اليوم الدراسي'
+                        : 'يوم دراسي منظم'
+                      : lessons.length && now >= minutes(end)
+                        ? 'اكتمل يومك الدراسي'
+                        : 'يوم دراسي منظم'
                     : tr('Your day.\nIn sync.')}
             </h2>
             <p>
@@ -155,9 +159,13 @@ export function Home(props: ScreenProps) {
                 ? `${active.start} – ${active.end} · ${active.room}`
                 : next
                   ? lang === 'ar'
-                    ? `${next.subject} تبدأ ${next.start}`
+                    ? `${next.subject} تبدأ الساعة ${next.start}`
                     : `${next.subject} starts at ${next.start}`
-                  : tr('Every little step counts.')}
+                  : lang === 'ar'
+                    ? family
+                      ? 'يمكنك متابعة الواجبات والعلامات وسجل الحضور.'
+                      : 'راجع واجباتك واستعد للغد بكل هدوء.'
+                    : tr('Every little step counts.')}
             </p>
             <button
               className="round-link"
@@ -221,7 +229,9 @@ export function Home(props: ScreenProps) {
           <p>
             {family || staff
               ? lang === 'ar'
-                ? `${pending.length} واجبات بانتظار تسليم الطالب`
+                ? pending.length
+                  ? `${pending.length} واجبات بانتظار تسليم الطالب`
+                  : 'لا توجد واجبات متأخرة · الكل منجز'
                 : `${pending.length} assignments to do`
               : tr('Small sessions. Big things.')}
           </p>
