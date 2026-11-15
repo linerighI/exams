@@ -1,7 +1,7 @@
 /**
  * Prism-card credentials panel for Unified Student/Family (National ID) and Staff (Email) logins.
  */
-import { ArrowLeft, BookOpen, Eye, EyeOff, GraduationCap, Loader2, ShieldCheck, UsersRound } from 'lucide-react';
+import { ArrowLeft, BookOpen, Eye, EyeOff, GraduationCap, Loader2 } from 'lucide-react';
 import type { Language } from './i18n';
 import type { LoginRequest } from './Login';
 
@@ -127,21 +127,6 @@ export function LoginCredentialsStep({
         </button>
       </form>
 
-      {portal === 'family' && (
-        <div className="family-login-note prism-inline-note">
-          <UsersRound size={17} />
-          <p>
-            {ar ? (
-              <>
-                كلمة المرور التلقائية: أول ٥ أرقام من الرقم الوطني متبوعةً بـ <bdi dir="ltr">@Alshereqi.Edu</bdi>
-              </>
-            ) : (
-              'Default password: first 5 digits of the National ID + @Alshereqi.Edu.'
-            )}
-          </p>
-        </div>
-      )}
-
       {demo && (
         <div className="entry-demo prism-demo-box">
           <span className="eyebrow">{ar ? 'جرّبها ببيانات تجريبية' : 'EXPLORE DEMO DATA'}</span>
@@ -184,10 +169,6 @@ export function LoginCredentialsStep({
           src="./branding/ministry-jordan.png"
           alt={ar ? 'وزارة التربية والتعليم الأردنية' : 'Jordan Ministry of Education'}
         />
-        <p className="entry-foot">
-          <ShieldCheck size={12} />
-          {ar ? 'تواصل أقرب. وخصوصية تستحق الثقة.' : 'Closer connections. Thoughtfully protected.'}
-        </p>
       </div>
     </div>
   );

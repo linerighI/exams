@@ -1,16 +1,14 @@
 /**
- * Orb-centered Prism Studio login screen inspired by the sister Exams application.
- * Displays real-time server & cloud-tunnel health through the interactive Orb color/speed
- * and opens the Server & Cloud Link dialog when tapped.
+ * Minimal Orb-centered Prism Studio login screen.
+ * Centers the interactive live-status Orb in the ambient stage with zero text clutter,
+ * opening the Server & Cloud Link dialog when the Orb is tapped.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Globe, School, Wifi } from 'lucide-react';
 import { gsap, quietMotion, usePressFeedback } from './animation';
 import { getCustomServerBase, probeServer, type ServerProbeResult } from './api';
 import { OrbConnectionDialog } from './components/OrbConnectionDialog';
 import type { Language } from './i18n';
 import { LoginCredentialsStep } from './LoginCredentialsStep';
-import { getLoginStoryCopy } from './loginStory';
 import { Orb } from './Orb';
 import { Brand } from './ui';
 
@@ -18,7 +16,7 @@ export type LoginRequest =
   | { portal: 'family'; nationalId: string; password: string }
   | { portal: 'staff'; email: string; password: string };
 
-/** Redesigned 1-step Prism Studio login flow revolving around the interactive status Orb. */
+/** Clean Orb-first Prism login flow with real-time server & cloud-tunnel status. */
 export default function Login({
   demo, busy, error, schoolName: initialSchool, signIn, onServerChanged, lang, setLang,
 }: {
@@ -123,16 +121,15 @@ export default function Login({
   };
 
   const customServer = getCustomServerBase();
-  const story = getLoginStoryCopy(portal, lang);
   const orbText = busy || probing
-    ? (ar ? 'جارٍ الاتصال بالخادم…' : 'Connecting…')
+    ? (ar ? 'جارٍ الاتصال…' : 'Connecting…')
     : orbTone === 'green'
-      ? (ar ? 'تم الاتصال بخادم المدرسة بأمان' : 'Connected safely')
+      ? (ar ? 'متصل بالخادم' : 'Connected')
       : serverOnline
         ? customServer
-          ? (ar ? 'نفق سحابي نشط · اضغط للتعديل' : 'Cloud link active · Tap to edit')
-          : (ar ? 'خادم المدرسة متصل · اضغط للرابط السحابي' : 'School server ready · Tap for link')
-        : (ar ? 'الخادم غير متصل · اضغط للربط' : 'Server offline · Tap to link');
+          ? (ar ? 'سحابي متصل' : 'Cloud active')
+          : (ar ? 'متصل' : 'Online')
+        : (ar ? 'غير متصل · اضغط للربط' : 'Offline · Tap to link');
 
   return (
     <div className="entry-screen prism-login welcome-studio" ref={root}>
@@ -147,46 +144,23 @@ export default function Login({
       </div>
       <div className="welcome-frame">
         <div className="login-layout">
-          <section className="login-story" aria-label={ar ? 'حالة الخادم ودليل الدخول' : 'Server status and guide'}>
-            <div className="prism-story-head">
-              <div className="prism-story-brand">
-                <span className="prism-wordmark" dir="ltr">schoolsync.</span>
-                <span className="prism-school">{schoolTitle}</span>
-              </div>
-              <button
-                type="button"
-                className={`prism-orb-trigger connection-orb-button is-${orbTone}`}
-                aria-label={ar ? 'حالة الاتصال بالخادم — اضغط للإعداد' : 'Server connection status — tap to configure'}
-                onClick={() => setConnectOpen(true)}
-              >
-                <Orb size={132} tone={orbTone} speed={busy || probing ? 1.15 : 0.44} />
-                <span className="orb-connection-label" aria-live="polite"><i />{orbText}</span>
-              </button>
-            </div>
-            <div className="prism-caption">
-              <span className="prism-story-label">{story.eyebrow}</span>
-              <h1>{story.headline}</h1>
-            </div>
-            <ol className="prism-guide">
-              {story.steps.map(([title, desc], idx) => (
-                <li key={title}>
-                  <span className="prism-step-number" aria-hidden="true">{idx + 1}</span>
-                  <div><strong>{title}</strong><p>{desc}</p></div>
-                </li>
-              ))}
-            </ol>
-            <button type="button" className="prism-network-note" onClick={() => setConnectOpen(true)}>
-              {customServer ? <Globe size={15} /> : <Wifi size={15} />}
-              <span>
-                {customServer
-                  ? (ar ? `متصل عبر الرابط السحابي: ${customServer}` : `Connected via cloud URL: ${customServer}`)
-                  : (ar ? 'اضغط هنا أو على الكرة لربط الهاتف بخادم المدرسة من أي شبكة' : 'Tap here or the Orb to connect via cloud tunnel from any network')}
-              </span>
+          <section className="login-story prism-orb-stage" aria-label={ar ? 'حالة الاتصال بالخادم' : 'Server connection'}>
+            <div className="prism-orb-halo" aria-hidden="true" />
+            <button
+              type="button"
+              className={`prism-orb-trigger connection-orb-button is-${orbTone}`}
+              aria-label={ar ? 'حالة الاتصال بالخادم — اضغط للإعداد' : 'Server connection status — tap to configure'}
+              onClick={() => setConnectOpen(true)}
+            >
+              <Orb size={168} tone={orbTone} speed={busy || probing ? 1.15 : 0.44} />
+              <span className="orb-connection-label" aria-live="polite"><i />{orbText}</span>
             </button>
           </section>
           <section className="card login-card">
-            <div className="login-card-icon" aria-hidden="true"><School size={26} /></div>
-            <h2>{ar ? 'أهلاً بك من جديد' : 'Welcome back'}</h2>
+            <div className="prism-card-head">
+              <span className="prism-school">{schoolTitle}</span>
+              <h2>{ar ? 'تسجيل الدخول' : 'Sign in'}</h2>
+            </div>
             <LoginCredentialsStep
               portal={portal} onSelectPortal={handlePortalSwitch} username={username} setUsername={setUsername}
               password={password} setPassword={setPassword} visible={visible} setVisible={setVisible}
