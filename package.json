@@ -8,6 +8,10 @@
     "schoolsync:build": "tsc -p schoolsync/tsconfig.json && vite build --config schoolsync/vite.config.ts",
     "schoolsync:test": "node --test schoolsync/tests/*.test.cjs",
     "schoolsync:start": "node schoolsync/server/app.cjs --setup",
+    "schoolsync:lan": "node schoolsync/server/app.cjs --lan",
+    "schoolsync:cloud": "node schoolsync/server/app.cjs --cloud",
+    "schoolsync:ngrok": "node schoolsync/server/app.cjs --cloud --ngrok",
+    "schoolsync:inject": "node schoolsync/database.js",
     "video:studio": "npm --prefix onboarding-video run dev",
     "dev": "concurrently -k \"node scripts/dev-server.cjs\" \"vite --host 127.0.0.1\"",
     "desktop": "node scripts/desktop.cjs",
@@ -51,6 +55,8 @@
   },
   "dependencies": {
     "@adi1816/genie-effect": "0.1.2",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "@fastify/websocket": "^11.0.0",
     "@fontsource/tajawal": "^5.2.0",
     "@reduxjs/toolkit": "^2.13.0",
@@ -78,6 +84,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "@types/better-sqlite3": "^7.6.0",
     "@types/katex": "^0.16.8",
     "@types/node": "^24.0.0",

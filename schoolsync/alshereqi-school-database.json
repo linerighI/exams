@@ -1,0 +1,3243 @@
+{
+  "version": 1,
+  "exportedAt": "2026-11-15T18:34:51.198Z",
+  "school": {
+    "name": "مدرسة محمد الشريقي",
+    "principalName": "عمر عياصرة",
+    "timezone": "Asia/Amman",
+    "start_time": "07:45",
+    "end_time": "13:30",
+    "period_minutes": 45,
+    "break_minutes": 5,
+    "period_count": 7,
+    "workdays": "0,1,2,3,4",
+    "duty_notes": ""
+  },
+  "classes": [
+    {
+      "name": "الثامن أ",
+      "gradeLevel": "الصف الثامن",
+      "location": "مدرسة محمد الشريقي",
+      "room": "الثامن أ",
+      "sortOrder": 1
+    },
+    {
+      "name": "الثامن ب",
+      "gradeLevel": "الصف الثامن",
+      "location": "مدرسة محمد الشريقي",
+      "room": "الثامن ب",
+      "sortOrder": 2
+    },
+    {
+      "name": "التاسع أ",
+      "gradeLevel": "الصف التاسع",
+      "location": "مدرسة محمد الشريقي",
+      "room": "التاسع أ",
+      "sortOrder": 3
+    },
+    {
+      "name": "التاسع ب",
+      "gradeLevel": "الصف التاسع",
+      "location": "مدرسة محمد الشريقي",
+      "room": "التاسع ب",
+      "sortOrder": 4
+    },
+    {
+      "name": "العاشر أ",
+      "gradeLevel": "الصف العاشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "العاشر أ",
+      "sortOrder": 5
+    },
+    {
+      "name": "العاشر ب",
+      "gradeLevel": "الصف العاشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "العاشر ب",
+      "sortOrder": 6
+    },
+    {
+      "name": "العاشر ج",
+      "gradeLevel": "الصف العاشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "العاشر ج",
+      "sortOrder": 7
+    },
+    {
+      "name": "عاشر د",
+      "gradeLevel": "الصف العاشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "عاشر د",
+      "sortOrder": 8
+    },
+    {
+      "name": "حادي عشر ( أ )",
+      "gradeLevel": "الصف الحادي عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "حادي عشر ( أ )",
+      "sortOrder": 9
+    },
+    {
+      "name": "الحادي عشر ب",
+      "gradeLevel": "الصف الحادي عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "الحادي عشر ب",
+      "sortOrder": 10
+    },
+    {
+      "name": "الحادي عشر ج",
+      "gradeLevel": "الصف الحادي عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "الحادي عشر ج",
+      "sortOrder": 11
+    },
+    {
+      "name": "ثاني عشر اعمال",
+      "gradeLevel": "الصف الثاني عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "ثاني عشر اعمال",
+      "sortOrder": 12
+    },
+    {
+      "name": "ثاني عشر تكنولوجيا",
+      "gradeLevel": "الصف الثاني عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "ثاني عشر تكنولوجيا",
+      "sortOrder": 13
+    },
+    {
+      "name": "ثاني عشر صحي",
+      "gradeLevel": "الصف الثاني عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "ثاني عشر صحي",
+      "sortOrder": 14
+    },
+    {
+      "name": "ثاني عشر لغات",
+      "gradeLevel": "الصف الثاني عشر",
+      "location": "مدرسة محمد الشريقي",
+      "room": "ثاني عشر لغات",
+      "sortOrder": 15
+    }
+  ],
+  "subjects": [
+    {
+      "name": "اللغة العربية",
+      "description": "المنهاج الأساسي",
+      "color": "blue"
+    },
+    {
+      "name": "اللغة الإنجليزية",
+      "description": "مهارات اللغة الثانية",
+      "color": "peach"
+    },
+    {
+      "name": "الرياضيات",
+      "description": "الجبر والهندسة",
+      "color": "mint"
+    },
+    {
+      "name": "العلوم",
+      "description": "الفيزياء والكيمياء والأحياء",
+      "color": "lilac"
+    },
+    {
+      "name": "التربية الإسلامية",
+      "description": "الدراسات الدينية",
+      "color": "blue"
+    },
+    {
+      "name": "التاريخ",
+      "description": "الدراسات الاجتماعية",
+      "color": "yellow"
+    },
+    {
+      "name": "الفنون والتصميم",
+      "description": "التربية الفنية",
+      "color": "pink"
+    },
+    {
+      "name": "الحاسوب",
+      "description": "تكنولوجيا المعلومات",
+      "color": "mint"
+    }
+  ],
+  "teachers": [
+    {
+      "name": "احمد خوالدة",
+      "email": "ahmad.khawaldeh@alshereqi.edu.jo",
+      "classes": [
+        "ثاني عشر لغات"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "احمد فليفل",
+      "email": "ahmad.flaifel@alshereqi.edu.jo",
+      "classes": [
+        "ثاني عشر صحي"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "خالد المستريحي",
+      "email": "khalid.almustarihi@alshereqi.edu.jo",
+      "classes": [
+        "الثامن أ"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "طارق ناصر",
+      "email": "tareq.nasser@alshereqi.edu.jo",
+      "classes": [
+        "العاشر ج"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "علاء العنابي",
+      "email": "alaa.alanabi@alshereqi.edu.jo",
+      "classes": [
+        "الحادي عشر ب"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "عمر السلامات",
+      "email": "omar.alsalamat@alshereqi.edu.jo",
+      "classes": [
+        "التاسع أ"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "ليث صالح",
+      "email": "laith.saleh@alshereqi.edu.jo",
+      "classes": [
+        "الثامن ب"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "محمد خضور",
+      "email": "mohammad.khadour@alshereqi.edu.jo",
+      "classes": [
+        "الحادي عشر ج"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "محمد قطاش",
+      "email": "mohammad.qatash@alshereqi.edu.jo",
+      "classes": [
+        "ثاني عشر تكنولوجيا"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "محمد مبيضين",
+      "email": "mohammad.mubaideen@alshereqi.edu.jo",
+      "classes": [
+        "العاشر ب"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "محمود النعيمات",
+      "email": "mahmoud.alnaimat@alshereqi.edu.jo",
+      "classes": [
+        "حادي عشر ( أ )"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "معن خضر",
+      "email": "maan.khader@alshereqi.edu.jo",
+      "classes": [
+        "العاشر أ"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "مهند بني عامر",
+      "email": "muhannad.baniamer@alshereqi.edu.jo",
+      "classes": [
+        "التاسع ب"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "موسى أبو الرب",
+      "email": "mousa.abualrub@alshereqi.edu.jo",
+      "classes": [
+        "عاشر د"
+      ],
+      "subjects": []
+    },
+    {
+      "name": "يوسف جعافرة",
+      "email": "yousef.jaafreh@alshereqi.edu.jo",
+      "classes": [
+        "ثاني عشر اعمال"
+      ],
+      "subjects": []
+    }
+  ],
+  "parents": [],
+  "students": [
+    {
+      "name": "آدم فرسان جميل الزغير",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "آف",
+      "color": "yellow",
+      "guardianEmails": [],
+      "studentEmail": "2000457.8b2f3203@student.alshereqi.local"
+    },
+    {
+      "name": "احمد محمد عزت الجريدي",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد هاشم محمد محمد",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "اه",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد يوسف عبد الله الخوالده",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "اي",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم محمد امين ابو حجر",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "ايفان ضياء الدين هشام الخماش",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "اض",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ثمين فادي عبد الفتاح جابر",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "ثف",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "دانيال خليل احمد ابو لبن",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "دخ",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان محمود عرسان ابو ساره",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "رم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "زيد خميس عبد الرحيم ابو شريحه",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "زخ",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن قيس شاكر اللحام",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن ماهر حسين شنك",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالله احمد فيصل الفيصل",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي هاني حسني الخواجا",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "عه",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر زيد هاشم عزام",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "عز",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمران جعفر عوض كريشان",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "عج",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "فارس حمزه فارس السكر",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "فح",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "كرم محمد مخلد ابو هديب",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "كم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "مؤيد رائد فوزي فوزي",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مر",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "مالك خالد سالم المراعيه",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مخ",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد مازن محمد ابو جميعان",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد ماهر محمود الكايد",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد وليد خالد الزعبي",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مو",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "معتز محمد شاهر الخلايله",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "معتز محمد علي طشطوش",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "نمر محمد عبد الناصر صوفان",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "نم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "يامن احمد محمد ابو زينه",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "يا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "يامن محمد بسام الجمل",
+      "section": "التاسع أ",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "اسيد قاسم عمر نمروطي",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "اق",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "امير منصور محمد الكايد",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "امين عامر صالح مقدادي",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "اع",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "اياد ابراهيم فضل البنا",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "باسل محمد سري سليمان",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "بم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "حبيب الرحمن خالد يوسف حبش",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "حا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسن رائد حسن حسن",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "حر",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "خالد هاشم موسى الزعبي",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "خه",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "رامز طارق حسين الطوره",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "رط",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان فراس عبد الحميد مرعي",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "رف",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله خالد محمد الشوبكي",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالعزيز وليد عبدالفتاح حمدان",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عو",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبيده خليل محمد حسن أبو زينة",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عخ",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي احمد سيد المكاوى",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي محمد علي الشرعه",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر امجد يوسف عبدالله",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر محمد شاهر السكر",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "كنان اشرف كمال عبدربه",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "كا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "ماجد محمد نايف السكر",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد ايمن عوض ناصر",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد فادى محمد البس",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "مف",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "مصطفى موسى احمد الفريحات",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "مهند وائل يوسف عابورة",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "مو",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ميار سامي احمد خير حجاز",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "مس",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "يحيى زكريا عزت ابو العسل",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "يز",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "يزيد رشاد احمد منصور",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "ير",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف أمجد عزالدين العجلوني",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "يأ",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف اسلام صابر سعيد",
+      "section": "التاسع ب",
+      "guardianPhone": "",
+      "initials": "يا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم محمد عفيف ابو اصبيح",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "امجد محمد نايف السكر",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "امير خلدون عبدالوهاب السكر",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "اخ",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "امير رامي محمود ابوقلبين",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "ار",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "جواد جابر عبده غانم",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "جج",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "جواد ليث زياد عبنده",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "جل",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه رائد سعدى التميمي",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "حر",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه ناصر عيد ابونجمه",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "حن",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "خالد صهيب احمد ابو جلمه",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "خص",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "خليل طارق حسين الحصان",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "خط",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "راشد لورانس مطيع الحرباوي",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "رل",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "زياد ليث زياد عبنده",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "زل",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "سعيد سامح سعيد الجبارين",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "سس",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "طلال عبد اللطيف عمر الذهبي",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "طع",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن شاهر محي الدين شكوكاني",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عدنان ايمن مصطفى الجرجاوي",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي احمد سعدي العاني",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر طارق حسين الحصان",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "عط",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "فارس عبد الله خطاب خطاب",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "فع",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ليث صلاح الدين احمد جبارة",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "لص",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "مؤيد محمد حسن ابو هديب",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد ايهاب قائد الحمادي",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد ايهاب مصطفى سمرين",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد سمير عكاش",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "مس",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمود محمد ابراهيم المدانات",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم محمد احمد الماضي",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "هم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "يزيد علي سامي ذيب",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "يع",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ينال سامح سعيد الجبارين",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "يس",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف صبري محمود هياجنة",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "يص",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف علي زهير عميره",
+      "section": "الثامن أ",
+      "guardianPhone": "",
+      "initials": "يع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "آدم احمد موسى",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "آا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ابراهيم احمد جوده مصطفى",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ابراهيم زيد فاضل ابو هديب",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "از",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد وليد عبد الفتاح حمدان",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "او",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم محمد عودة ابو هديب",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "امير محمد محسن ازيوت",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسن محمد حسن عبد الدين",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "حم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "زيد رشاد احمد منصور",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "زر",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "زيد مراد يوسف أبو هديب",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "زم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "سالم حسام عواد السكر",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "سح",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "صخر علاء سمير السكر",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "صع",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عادل نعيم عادل فليفل",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "عن",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عامر هيثم موسى ناصر",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "عه",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله رائد محمد الكايد",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عصام رامي عصام السيد الشيش",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "عر",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي محمد عودة ابو هديب",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "فزاع مراد احمد محيسن",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "فم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "فهد حمزه فارس السكر",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "فح",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "قيس احمد منير اسعد",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "قا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "لؤي فادي عبد العزيز السمره",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "لف",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "ليث محمد عمر ابوعوض",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "لم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "مجد خالد محمد الحاج ياسين",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "مخ",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد امجد غازى الجبالي",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد طارق محمد غازي",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "مط",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد محمود عوض هزايمه",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد معتصم المصري",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "مراد شاكر نديم ابوشمسيه",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "مش",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم وسام القاسم",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "هو",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "ينال محمد امين ابو حجر",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ينال محمد محمود الغول",
+      "section": "الثامن ب",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ابراهيم رشيد عبد الغفار بكر",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "ار",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "اسامه كامل نهار الحنيطي",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "اك",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "امير عدنان احمد العساف",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "اع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "اوس منير سالم الدويكات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "بلال احمد رسمي موسى",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "با",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "تيمور زياد فهد النعيمات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "تز",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه عبد الخالق سعيد الدويكات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "حع",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه محمد ابراهيم ميطان",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "حم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "خالد رائد عبد القادر صالح",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "خر",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "راشد محمد رضا محمد عبد المالك الموصلي",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "رم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ركان رافت محمود عيسى",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "رر",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "سالم عمر سالم ابو العدس",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "سع",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "سليمان رائد عوني السعافين",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "سر",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "سيف فرسان فواز خرفان",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "سف",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "صقر موفق عبد الله النعيمات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "صم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله محمود اسعد خالد جرى",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن حسام فضل ابوصاع",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "عح",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عروه منور سالم الدويكات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "علاء سعيد طلعت العوضي",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "عس",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمرو بكر مسعد المصري",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "عب",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "كرم اسلام صابر سعيد",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "كا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "كنان نواف رجا المراعيه",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "كن",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ماهر هشام عبد القادر بركات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "مه",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد خالد سعيد الدويكات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "مخ",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد عماد صالح المهيرات",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "يامن حسن صبري احمد خليل",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "يح",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف محمد عبد الرحيم علي",
+      "section": "الحادي عشر ب",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "ابراهيم احمد ابراهيم الطيب",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد امجد عز الدين العجلوني",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد حسان ماجد عبدالخالق",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "اح",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم خليل ابراهيم دراغمه",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "اخ",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "تيم الله مراد علي المناصرة",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "تا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزة باسل تيسير كرزون",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "حب",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه محمد ابراهيم المدانات",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "حم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "زيد غسان هاشم الفرج",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "زغ",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "زين العابدين بلال علي الشقاحين",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "زا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "سند صالح عبدالكريم النعيمات",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "سص",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "صفوان علي سامي ذيب",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "صع",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "صهيب محمد خليل الصلاحات",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "صم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن احمد السيد قصد شحاته الانصاري",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن عدي وجيه تايه",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله رشيد نظمي مشه",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله عمر علي السرحان",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالله موفق محمد شكور",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي احمد علي عبد الله",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر عبدالله عبداللطيف البنا",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "عع",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "فايز عبدالناصر فواز العامر",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "فع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "فيصل محمد رضوان الخراط",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "فم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد احمد فايز خضر",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد طارق محمد الدليمي",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "مط",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد عماد محمد المومني",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد لؤي ابراهيم عقلة",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "مل",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم عطيه محمد البدارنه",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "هع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف ايمن عبدالعزيز ابراهيم السيد",
+      "section": "الحادي عشر ج",
+      "guardianPhone": "",
+      "initials": "يا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "آدم علاء شاهر عساف",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "آع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم سامي حجازي حجازي",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "اس",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "رجائي عطاالله محمد القراله",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "رع",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان رائد جعفر الذهبي",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "رر",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "سامي صادق خليل عثمان",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "سص",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "سلطان احمد محمد الدبوبي",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "سا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن محمد عبد الرحمن النجادي",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالخالق عبدالله اسماعيل ساير",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "عع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالله يوسف صالح عويضة",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "عي",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي فراس علي سمور",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "عف",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر رامي محمود ابو قلبين",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "عر",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "فيصل محمد عبد الحافظ الزيود",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "فم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "كرم الله ماهر عزمي مصطيف",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "كا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ليث معتز نعيم جابر",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "لم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد علاء محمد مازن الصديقي",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد مراد يوسف ابوهديب",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمود فايز احمد طهبوب",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "مف",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم باسل حسام حمدان",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "هب",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم خالد هاشم نجار",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "هخ",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "يونس سامي يونس الطراونه",
+      "section": "العاشر أ",
+      "guardianPhone": "",
+      "initials": "يس",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد ضياء محمد ابو كشك",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "اض",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد مجدي مظهر عصفور",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم احمد ابراهيم الطيب",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "اركان محمود علي السرحان",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "جمال الدين محمد جمال محمد",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "جا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "حارث عمار عبد الكريم عوده",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "حع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "راشد محمد عزت الجريدي",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "رم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "رامي محمد نعمان الزعبي",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "رم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان سامي احمد خير حجاز",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "رس",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان محمد عبدالوحيد مصبح",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "رم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "زيد سامر عبدالقادر صالح",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "زس",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "زيد سامي محمود الكايد",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "زس",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "سند منير سالم الدويكات",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "سم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ضياء احمد نواف عطوه",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "ضا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عامر محمد كمال الحوراني",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله محمد امين محمد الدويكات",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عزمي صبري عزمي الخواجا",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "عص",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "علي انس علي الخلايلة",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر ضياء محمد ابو كشك",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "عض",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "قيس ظاهر علي المهيرات",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "قظ",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد حسام محمد ابراهيم",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "مح",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد يوسف علي المخاضري",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "مي",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف عبد ربه عيد الزيود",
+      "section": "العاشر ب",
+      "guardianPhone": "",
+      "initials": "يع",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "بندر سامر عبد اللطيف السكر",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "بس",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسام بشار رشيد توبه",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "حب",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسن محمود ابراهيم الطويل",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "حم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسين محمود ابراهيم الطويل",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "حم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان جمال عثمان خندقجي",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "رج",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان محمد عبدالوحيد القرعان",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "رم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن سليمان عبد الرحيم الدويكات",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله يوسف خالد القرعان",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر ثائر عيسى السكر",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "عث",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد صبري محمود هياجنة",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "مص",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد عثمان مرزوق رجا الشراب",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد مصطفى سمير الكعيكاتي",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "مصطفى ادهم خميس القيسي",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "معاذ بشير محمد الخلايله",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "مب",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "مهند حمزة موسى البقور",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "مح",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "وسام انور صبري الجندي",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "وا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف فهد محمد الزعبي",
+      "section": "العاشر ج",
+      "guardianPhone": "",
+      "initials": "يف",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد سامر عبد القادر جابر",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "اس",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "الحارث صالح فهد الدويكات",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "اص",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "بهاء عبد السلام توفيق السكر",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "بع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "راشد فراس جهاد عطيه",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "رف",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "راكان اياد احمد ابو عابد",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "را",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان نضال عبدالمعطي السكر",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "رن",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "سيف الدين احمد نمر شحاده",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "سا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "سيف الدين مراد علي المناصره",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "سا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "شامخ شادى يونس السكر",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "شش",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "شامخ ماجد حميد العنزي",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "شم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عاصم يوسف محمد حمدان",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "عي",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن احمد عبد الرحمن نصر الله",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن انور شفيق عليان",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن فيصل محمد بركات",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالمعين منير بديع خضر",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "كرم شادي محمود الفندي",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "كش",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد بشار خالد ابو هديب",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "مب",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد هشام احمد حامد",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "مه",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمود خالد حكمت ابو شنب",
+      "section": "ثاني عشر اعمال",
+      "guardianPhone": "",
+      "initials": "مخ",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد بشار محمد الخلايله",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "اب",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد هاني علي الدويكات",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "اه",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "اسامة محمد احمد عودة الله",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "اسيد شادي محمد مصطفى",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "اش",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسن ربيع حسن النجادات",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "حر",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزة سامر حلمي القاضي التميمي",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "حس",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزة مدحت حمزة عبد الوهاب",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "حم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه يزل نبيل صقر",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "حي",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "خالد مهند توفيق السعدي",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "خم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "راغب طارق عطاالله الفاصد",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "رط",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "رضوان ياسين رضوان السخني",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "ري",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان وائل سليمان المصري",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "رو",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "سامر صبحي يوسف ابو جباره",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "سص",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن وائل محمد حسين",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن حسين شلقامي فؤاد حسن",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عح",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن عبدالله عبدالرحمن الصالح",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عع",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن محمد هشام الجابر",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن وجيه محمدطالب حسونه",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عو",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالعزيز صالح جميل السيد",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عص",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالله حسام جميل القاسم",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "عح",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "قصي باسل حسام حمدان",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "قب",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد احمد منصور فليفل",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد سعيد محمد نصر",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "مس",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "مصطفى احمد مصطفى ابو طير",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "وليد عبد الله احمد عبد الخالق",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "وع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف وليد يوسف بندق",
+      "section": "ثاني عشر تكنولوجيا",
+      "guardianPhone": "",
+      "initials": "يو",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد حيدر خضير عامري",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "اح",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد سمير محمد الخطيب",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "اس",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد هاني حسني الخواجا",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "اه",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "حذيفه فادي مصطفى الدبابسه",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "حف",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "سري محمد سري سليمان",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "سم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالله مجدي مظهر عصفور",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالملك احسان علي فليح",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "قصي نزار سليمان العيسوي",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "قن",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد شريف صبري محمد",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "مش",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد هيثم محمد اسماعيل",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "مه",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمود طه محمود عبدالعال",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "مط",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ميلاد لؤي يوسف الدراغمه",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "مل",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "نادر ابراهيم نادر زعتر",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "نا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاني خالد هاني الناجي",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "هخ",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "يزن قطب محمد متولي",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "يق",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف رامي محمد الفيومي",
+      "section": "ثاني عشر صحي",
+      "guardianPhone": "",
+      "initials": "ير",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "أحمد محمد جميل صلاح",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "أم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ابراهيم سمير الدين عطا سلمان",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "اس",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ابراهيم فزاع علي الفزاع",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "اف",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد بسام عبد الحافظ الدويكات",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "اب",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد فراس احمد البخيت",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "اف",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم اسامه محمد الهرش",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "امجد اديب عبدالله سيف فارع",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "بكر باسم خالد ابوهديب",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "بب",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "جاد أحمد يوسف زيادة",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "جأ",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "حسين طارق حسين الحصان",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "حط",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "ريان عماد احمد لافي",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "رع",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "سعيد اسامه محمد سعيد الطباع",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "سا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "صلاح الدين سمير الدين عطا سلمان",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "صا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "طلال رائد طه عفانه",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "طر",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الكريم احمد عبد الكريم حبوش",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الكريم عبد الغني هيثم بايزيد",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عز الدين هاشم كليب الزعبي",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "فيصل احمد فيصل الفيصل",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "فا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "كامل محمد كامل الدراعين",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "كم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد احمد عوده ابو هديب",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد صلاح الدين توفيق اشنينه",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "مص",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد عبد الناصر جمال الحجاوي",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "مفيد خالد عبد الله السناوي",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "مخ",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم عبد الفتاح موسى دلكي",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "هع",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "هاشم عماد عناد النوايسة",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "هع",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "وتين معتصم محمد علي النمرى",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "وم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "يزن محمود رياض جابر",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "يزيد حاتم مفيد حمدان",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "يح",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف سامي موسى أبوهلال",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "يس",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف محمد زيدان ابو رميله",
+      "section": "ثاني عشر لغات",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد بلال أحمد المومني",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "اب",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد عبدالناصر فواز العامر",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "اع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "اسامة شريف عزمي التميمي",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "اش",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "امير غالب طايع الزيود",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "اغ",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "اياس طلعت محمد المكسور",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "اط",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "جاد محمد سالم ابو دراز",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "جم",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "حمزه اياد محمد النمور",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "حا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "زين الدين توفيق توفيق الدليمي",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "زا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الرحمن ابراهيم فهد الدويكات",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الفتاح وسام عبد الفتاح سالم",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبد الله احمد عبد الحافظ الدويكات",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالرحمن ابراهيم نادر زعتر",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عا",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "عزت زكريا عزت ابو العسل",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عز",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر خميس عبد الرحيم ابو شريحه",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عخ",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمرو محمد مصعب / الابراهيم",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "عم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "غسان طارق محفوظ ياسين",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "غط",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "ليث محمد صالح حمدان",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "لم",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "مؤيد رغيد محمد سعيد عوض",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "مر",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "مؤيد عبد الله عبد المحسن ابو هديب",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد احمد محمد احمد علي بلح",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد رسول رائد فهد الدويكات",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "مر",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد عمرو جاد محمد محمود البرديسي",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "مع",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد مؤيد علي العلاونه",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد وائل محمد حسين",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "مو",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "يحيى محمد عوده ابو هديب",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "يم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "ينال وائل عادل العتوم",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "يو",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "يوسف غالب طايع الزيود",
+      "section": "حادي عشر ( أ )",
+      "guardianPhone": "",
+      "initials": "يغ",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "احمد مراد احمد ابو سل",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "ادم محمد سالم ابو دراز",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "الياس محمود عوض هزايمه",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "ام",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "اوس انس مالك نعواش",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "اا",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "باسل بشار محمد المحيسن",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "بب",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "خليل محمد خليل درباس",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "خم",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "راشد غازي غالب النعيمات",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "رغ",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "راشد يوسف صالح الوريكات",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "ري",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "زين الدين احمد زين الدين حسين",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "زا",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "صالح محمود عارف السكر",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "صم",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "صلاح معتصم محمد صلاح الدين رطروط",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "صم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "صهيب بشار محمد الخلايله",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "صب",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "عبدالله عماد ربحي القواسمة",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "عع",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "عمر عزت خالد عرباسي",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "عع",
+      "color": "lilac",
+      "guardianEmails": []
+    },
+    {
+      "name": "مأمون معتصم لطفي المصري",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "pink",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد ابراهيم عزت ابو العسل",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "yellow",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد محمود عزت ابوالعسل",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "مم",
+      "color": "blue",
+      "guardianEmails": []
+    },
+    {
+      "name": "محمد ياسين رضوان السخني",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "مي",
+      "color": "peach",
+      "guardianEmails": []
+    },
+    {
+      "name": "مسلم ايدم موسى ترك",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "ما",
+      "color": "mint",
+      "guardianEmails": []
+    },
+    {
+      "name": "معتز غالب ابراهيم الكردي",
+      "section": "عاشر د",
+      "guardianPhone": "",
+      "initials": "مغ",
+      "color": "lilac",
+      "guardianEmails": []
+    }
+  ],
+  "lessons": [],
+  "homework": [],
+  "announcements": [
+    {
+      "title": "Hj",
+      "content": "Vh"
+    }
+  ]
+}

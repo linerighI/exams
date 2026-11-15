@@ -229,11 +229,16 @@ test('timetable changes persist and reject teacher, room, or class overlaps', as
     'New room',
   );
 });
-test('notes, messaging, and notification read state persist across authorized accounts', async () => {
+test('notes, notification read state persist, and two-way messaging is disabled', async () => {
   const teacher = await login('emma');
   assert.equal(
-    (await request(teacher, '/api/notes', { studentId: 'alex', content: 'Great progress today' }))
-      .statusCode,
+    (
+      await request(teacher, '/api/notes', {
+        studentId: 'alex',
+        content: 'Great progress today',
+        category: 'behavior',
+      })
+    ).statusCode,
     200,
   );
   const parent = await login('sarah');
@@ -246,41 +251,27 @@ test('notes, messaging, and notification read state persist across authorized ac
     (
       await request(parent, '/api/messages', {
         recipientId: 'teacher-demo',
-        content: 'Thank you for sharing!',
+        content: 'Direct messaging should be disabled',
       })
     ).statusCode,
-    200,
-  );
-  assert.ok(
-    (await request(teacher, '/api/state'))
-      .json()
-      .messages.some((m) => m.content === 'Thank you for sharing!'),
-  );
-  assert.equal(
-    (
-      await request(parent, '/api/messages', {
-        recipientId: 'student-sibling',
-        content: 'Not an authorized channel',
-      })
-    ).statusCode,
-    403,
+    410,
   );
   await request(parent, '/api/notifications/read', {});
   assert.ok((await request(parent, '/api/state')).json().notifications.every((n) => n.read === 1));
 });
 test('malformed input and cross-origin mutations are rejected', async () => {
-  const c = await login();
+  const teacher = await login('emma');
   assert.equal(
-    (await request(c, '/api/messages', { recipientId: 'teacher-demo', content: ' ' })).statusCode,
+    (await request(teacher, '/api/notes', { studentId: 'alex', content: ' ' })).statusCode,
     400,
   );
   assert.equal(
     (
       await app.inject({
         method: 'POST',
-        url: '/api/messages',
-        headers: { cookie: c, origin: 'https://unrelated.example' },
-        payload: { recipientId: 'teacher-demo', content: 'Injected' },
+        url: '/api/notes',
+        headers: { cookie: teacher, origin: 'https://unrelated.example' },
+        payload: { studentId: 'alex', content: 'Injected' },
       })
     ).statusCode,
     403,

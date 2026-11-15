@@ -32,6 +32,7 @@ export function Motion({ children, identity }: { children: ReactNode; identity: 
       y: -5,
       duration: 0.13,
       ease: 'power2.in',
+      force3D: true,
       onComplete: () => setShown(identity),
     });
     return () => {
@@ -49,19 +50,27 @@ function Scene({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       if (quietMotion()) return;
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out', force3D: true } });
       tl.fromTo(
         root.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.22, clearProps: 'opacity' },
+        { opacity: 0, willChange: 'transform, opacity' },
+        { opacity: 1, duration: 0.22, clearProps: 'opacity,willChange' },
         0,
       );
-      const nodes = root.current?.querySelectorAll('[data-reveal]');
-      if (nodes?.length)
+      const allNodes = root.current?.querySelectorAll('[data-reveal],[data-stagger]');
+      const nodes = allNodes?.length ? Array.from(allNodes).slice(0, 14) : [];
+      if (nodes.length)
         tl.fromTo(
           nodes,
-          { y: 16, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5, stagger: 0.045, clearProps: 'transform,opacity' },
+          { y: 14, scale: 0.985, opacity: 0 },
+          {
+            y: 0,
+            scale: 1,
+            opacity: 1,
+            duration: 0.44,
+            stagger: { each: 0.036, from: 'start' },
+            clearProps: 'transform,opacity',
+          },
           0.02,
         );
     }, root);
@@ -171,7 +180,7 @@ export function Sheet({
   return (
     <dialog
       ref={ref}
-      className="sheet"
+      className="sheet t-sheet-enter"
       aria-labelledby={titleId}
       onClick={(e) => {
         if (e.target !== e.currentTarget) return;
@@ -193,7 +202,7 @@ export function Sheet({
         </button>
       </div>
       {error && (
-        <div className="error-banner sheet-error" role="alert">
+        <div className="error-banner sheet-error t-shake" role="alert">
           {error}
         </div>
       )}
@@ -221,7 +230,9 @@ export function BooksArt() {
 }
 export const initials = (name: string) =>
   name
-    .split(' ')
-    .map((s) => s[0])
+    .trim()
+    .split(/\s+/)
+    .map((s) => s[0] || '')
     .slice(0, 2)
-    .join('');
+    .join('')
+    .toUpperCase();

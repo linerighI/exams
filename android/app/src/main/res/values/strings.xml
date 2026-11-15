@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">مدرسة محمد الشريقي</string>
+    <string name="title_activity_main">مدرسة محمد الشريقي</string>
+    <string name="package_name">jo.edu.alshereqi.schoolsync</string>
+    <string name="custom_url_scheme">jo.edu.alshereqi.schoolsync</string>
+</resources>

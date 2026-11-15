@@ -107,7 +107,7 @@ export function Setup({
           </label>
         </div>
         {error && (
-          <div className="entry-error" role="alert">
+          <div className="entry-error t-shake" role="alert">
             {error}
           </div>
         )}

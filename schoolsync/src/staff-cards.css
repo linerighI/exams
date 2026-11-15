@@ -1,0 +1,237 @@
+/* Student roster cards, 1-tap attendance switches, Student Profile, and Alert cards. */
+
+.student-cards-grid,
+.cards-list,
+.teachers-list,
+.alerts-list,
+.periods-stack,
+.today-periods-list,
+.timeline-cards {
+  display: grid;
+  gap: 11px;
+}
+
+.student-roster-card,
+.surface-card,
+.active-class-card,
+.period-slot-card,
+.teacher-row-card,
+.alert-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 15px;
+  box-shadow: var(--shadow);
+  text-align: start;
+}
+
+.student-roster-card {
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.student-roster-card.is-absent {
+  border-color: #ef44444d;
+  background: color-mix(in srgb, var(--surface) 92%, #fee2e2);
+}
+
+.student-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-card-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.student-card-identity h3 {
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 0;
+}
+
+.student-card-identity small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7c94b5;
+  font-size: 12px;
+}
+
+.dot-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.dot-indicator.green { background: #10b981; }
+.dot-indicator.red { background: #ef4444; }
+
+.att-toggle {
+  flex-shrink: 0;
+  width: 58px;
+  height: 32px;
+  border-radius: 999px;
+  border: 0;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.22s ease;
+}
+
+.att-toggle.on { background: #10b981; justify-content: flex-start; }
+.att-toggle.off { background: #94a3b8; justify-content: flex-end; }
+
+.att-knob {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  color: #0f172a;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px #00000024;
+}
+
+.student-card-foot {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-quick-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: #4672b4;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.mini-icon-btn.muted { color: #9cb0c9; }
+.last-absence-label { font-size: 12px; color: #7c94b5; }
+
+.student-hero-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.student-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.student-hero-row h1 { font-size: 22px; margin: 0 0 4px; }
+
+.phone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f1ff;
+  color: #2f5fa7;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.quick-att-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.quick-att-btn {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.quick-att-btn.present.active { background: #10b981; color: #fff; border-color: #10b981; }
+.quick-att-btn.absent.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+.quick-att-btn.late.active { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+
+.slot-lesson-pill,
+.period-row-card,
+.teacher-row-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.slot-lesson-pill {
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  margin-top: 8px;
+}
+
+.alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.alert-card.unread { border-color: #60a5fa; }
+.alert-card.urgent { border-color: #ef444466; }
+
+.alert-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.alert-icon.blue { background: #e8f1ff; color: #2f5fa7; }
+.alert-icon.rose { background: #fee2e2; color: #b91c1c; }
+.alert-icon.amber { background: #fef3c7; color: #b45309; }
+.alert-icon.mint { background: #d1fae5; color: #047857; }
+
+.subject-tile {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  gap: 4px;
+}

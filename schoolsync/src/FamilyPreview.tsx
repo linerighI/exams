@@ -1,14 +1,21 @@
+/**
+ * Explicit read-only Family Preview sheet for teachers and school administrators.
+ */
 import { useState } from 'react';
 import { ArrowRight, Eye, ShieldCheck } from 'lucide-react';
-import type { State } from './types';
+import { AttendanceScreen, GradesScreen } from './Progress';
+import { TodayScreen } from './family/TodayScreen';
+import { ScheduleScreen } from './family/ScheduleScreen';
+import { HomeworkScreen } from './family/HomeworkScreen';
 import type { Language } from './i18n';
-import { Home, HomeworkScreen, Schedule } from './screens';
-import { GradesScreen, AttendanceScreen } from './Progress';
-import { Empty, Motion } from './ui';
+import type { State } from './types';
+import { Motion } from './ui';
+
 export function FamilyPreview({ data, lang }: { data: State; lang: Language }) {
   const [view, setView] = useState('today');
   const [homeworkId, setHomeworkId] = useState('');
   const ar = lang === 'ar';
+
   const props = {
     data,
     lang,
@@ -23,7 +30,9 @@ export function FamilyPreview({ data, lang }: { data: State; lang: Language }) {
     openNotice: () => setView('notices'),
     openCompanion: () => setView('schedule'),
   };
+
   const work = data.homework.find((h) => h.id === homeworkId);
+
   return (
     <section className="staff-family-preview">
       <div className="preview-mode-banner">
@@ -32,8 +41,8 @@ export function FamilyPreview({ data, lang }: { data: State; lang: Language }) {
           <strong>{ar ? 'معاينة للقراءة فقط' : 'Read-only family preview'}</strong>
           <small>
             {ar
-              ? 'أنت ما زلت داخل حساب المدرسة. هذه المعاينة لا تغيّر دورك أو صلاحياتك.'
-              : 'You are still using your staff account. Previewing does not change your role or permissions.'}
+              ? 'أنت داخل حساب المدرسة. هذه المعاينة لا تغيّر دورك أو صلاحياتك.'
+              : 'You are still in your staff account. Previewing is read-only.'}
           </small>
         </span>
       </div>
@@ -44,8 +53,8 @@ export function FamilyPreview({ data, lang }: { data: State; lang: Language }) {
         </button>
       )}
       <Motion identity={`preview-${view}-${data.student?.id}`}>
-        {view === 'today' && <Home {...props} />}
-        {view === 'schedule' && <Schedule {...props} />}
+        {view === 'today' && <TodayScreen {...props} />}
+        {view === 'schedule' && <ScheduleScreen data={data} lang={lang} openLesson={() => {}} />}
         {view === 'homework' && <HomeworkScreen {...props} />}
         {view === 'grades' && <GradesScreen data={data} lang={lang} />}
         {view === 'attendance' && <AttendanceScreen data={data} lang={lang} />}
@@ -54,22 +63,10 @@ export function FamilyPreview({ data, lang }: { data: State; lang: Language }) {
             <h2>{work.title}</h2>
             <p>{work.description}</p>
             <strong>{ar ? 'ما تم تسليمه' : 'Submitted work'}</strong>
-            <p className="pre-wrap">
-              {work.submission || (ar ? 'لم يسلّم الطالب إجابته بعد.' : 'No submission yet.')}
-            </p>
+            <p className="pre-wrap">{work.submission || (ar ? 'لم يسلّم الطالب إجابته بعد.' : 'No submission yet.')}</p>
           </article>
         )}
-        {view === 'inbox' && (
-          <Empty
-            title={ar ? 'المحادثات الخاصة غير معروضة' : 'Private conversations are not previewed'}
-            detail={
-              ar
-                ? 'استخدم رسائل حسابك المدرسي للتواصل مع العائلة.'
-                : 'Use your staff inbox to contact the family.'
-            }
-          />
-        )}{' '}
-        {view === 'notices' &&
+        {(view === 'notices' || view === 'alerts') &&
           data.announcements.map((n) => (
             <article className="journal-note" key={n.id}>
               <h3>{n.title}</h3>
@@ -86,9 +83,7 @@ export function FamilyPreview({ data, lang }: { data: State; lang: Language }) {
       </Motion>
       <p className="preview-footer">
         <ShieldCheck size={13} />
-        {ar
-          ? 'السجلات المسموح لك برؤيتها فقط. لا توجد أدوات تعديل داخل المعاينة.'
-          : 'Only records you are authorized to view. Editing tools are outside this preview.'}
+        {ar ? 'معاينة قراءة فقط لبيانات الطالب.' : 'Read-only preview of authorized student records.'}
       </p>
     </section>
   );

@@ -1,395 +1,204 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Eye,
-  EyeOff,
-  GraduationCap,
-  HeartHandshake,
-  LockKeyhole,
-  ShieldCheck,
-  UsersRound,
-} from 'lucide-react';
-import { Brand, Motion } from './ui';
-import type { Language } from './i18n';
-import { Portrait } from './Portrait';
+/**
+ * Orb-centered Prism Studio login screen inspired by the sister Exams application.
+ * Displays real-time server & cloud-tunnel health through the interactive Orb color/speed
+ * and opens the Server & Cloud Link dialog when tapped.
+ */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Globe, School, Wifi } from 'lucide-react';
 import { gsap, quietMotion, usePressFeedback } from './animation';
+import { getCustomServerBase, probeServer, type ServerProbeResult } from './api';
+import { OrbConnectionDialog } from './components/OrbConnectionDialog';
+import type { Language } from './i18n';
+import { LoginCredentialsStep } from './LoginCredentialsStep';
+import { getLoginStoryCopy } from './loginStory';
+import { Orb } from './Orb';
+import { Brand } from './ui';
+
 export type LoginRequest =
   | { portal: 'family'; nationalId: string; password: string }
   | { portal: 'staff'; email: string; password: string };
+
+/** Redesigned 1-step Prism Studio login flow revolving around the interactive status Orb. */
 export default function Login({
-  demo,
-  busy,
-  error,
-  signIn,
-  lang,
-  setLang,
+  demo, busy, error, schoolName: initialSchool, signIn, onServerChanged, lang, setLang,
 }: {
   demo: boolean;
   busy: boolean;
   error: string;
+  schoolName?: string;
   signIn: (input: LoginRequest) => Promise<void>;
+  onServerChanged: () => Promise<void>;
   lang: Language;
   setLang: (lang: Language) => void;
 }) {
   const [portal, setPortal] = useState<'family' | 'staff'>(
     new URLSearchParams(location.search).get('portal') === 'school' ? 'staff' : 'family',
   );
-  const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [schoolTitle, setSchoolTitle] = useState(initialSchool || 'مدرسة محمد الشريقي الثانوية للبنين');
+  const [serverOnline, setServerOnline] = useState(true);
+  const [orbTone, setOrbTone] = useState<'blue' | 'green' | 'red'>('blue');
+  const [probing, setProbing] = useState(false);
+
   const root = useRef<HTMLDivElement>(null);
-  const cards = useRef<HTMLDivElement>(null);
+  const wallpaper = useRef<HTMLDivElement>(null);
+  const greenTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const ar = lang === 'ar';
   usePressFeedback(root);
-  useLayoutEffect(() => {
-    if (!cards.current) return;
+
+  useEffect(() => {
+    if (initialSchool) setSchoolTitle(initialSchool);
+  }, [initialSchool]);
+
+  const flashGreen = useCallback(() => {
+    clearTimeout(greenTimer.current);
+    setOrbTone('green');
+    greenTimer.current = setTimeout(() => setOrbTone('blue'), 2200);
+  }, []);
+
+  const checkServer = useCallback(async () => {
+    setProbing(true);
+    try {
+      const info = await probeServer();
+      setServerOnline(true);
+      setSchoolTitle(info.schoolName);
+      setOrbTone((prev) => (prev === 'red' ? 'green' : prev));
+    } catch {
+      setServerOnline(false);
+      setOrbTone('red');
+    } finally {
+      setProbing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkServer();
+    const timer = setInterval(() => void checkServer(), 15000);
+    const onFocus = () => void checkServer();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearTimeout(greenTimer.current);
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [checkServer]);
+
+  useEffect(() => {
+    if (error && !serverOnline) setOrbTone('red');
+  }, [error, serverOnline]);
+
+  useEffect(() => {
+    if (!wallpaper.current || quietMotion()) return;
     const ctx = gsap.context(() => {
-      for (const card of cards.current!.querySelectorAll<HTMLButtonElement>('button')) {
-        const active = card.dataset.portal === portal;
-        gsap.to(card, {
-          y: active ? -6 : 4,
-          scale: active ? 1 : 0.96,
-          opacity: active ? 1 : 0.64,
-          duration: quietMotion() ? 0 : 0.48,
-          ease: 'power3.out',
-          overwrite: 'auto',
-        });
-      }
-    }, cards);
+      const blobs = wallpaper.current!.querySelectorAll('i');
+      gsap.to(blobs, {
+        y: (i: number) => (i % 2 ? -22 : 18),
+        x: (i: number) => (i % 2 ? 12 : -10),
+        rotation: (i: number) => (i % 2 ? 4 : -4),
+        duration: 11, stagger: 0.7, repeat: -1, yoyo: true, ease: 'sine.inOut',
+      });
+    }, wallpaper);
     return () => ctx.revert();
-  }, [portal, step]);
-  const choose = (value: 'family' | 'staff') => {
-    setPortal(value);
+  }, []);
+
+  const handlePortalSwitch = (next: 'family' | 'staff') => {
+    setPortal(next);
     setUsername('');
     setPassword('');
   };
+
+  const handleSignIn = async (req: LoginRequest) => {
+    if (!error) setOrbTone('green');
+    await signIn(req);
+  };
+
+  const handleConnected = async (info: ServerProbeResult) => {
+    setServerOnline(true);
+    setSchoolTitle(info.schoolName);
+    flashGreen();
+    await onServerChanged();
+  };
+
+  const customServer = getCustomServerBase();
+  const story = getLoginStoryCopy(portal, lang);
+  const orbText = busy || probing
+    ? (ar ? 'جارٍ الاتصال بالخادم…' : 'Connecting…')
+    : orbTone === 'green'
+      ? (ar ? 'تم الاتصال بخادم المدرسة بأمان' : 'Connected safely')
+      : serverOnline
+        ? customServer
+          ? (ar ? 'نفق سحابي نشط · اضغط للتعديل' : 'Cloud link active · Tap to edit')
+          : (ar ? 'خادم المدرسة متصل · اضغط للرابط السحابي' : 'School server ready · Tap for link')
+        : (ar ? 'الخادم غير متصل · اضغط للربط' : 'Server offline · Tap to link');
+
   return (
-    <div className="entry-screen" ref={root}>
-      <header className="entry-header">
+    <div className="entry-screen prism-login welcome-studio" ref={root}>
+      <div className="prism-wallpaper" ref={wallpaper} aria-hidden="true">
+        <i /><i /><i /><i /><i />
+      </div>
+      <div className="prism-topbar">
         <Brand />
-        <button className="text-button" onClick={() => setLang(ar ? 'en' : 'ar')}>
+        <button type="button" className="text-button" onClick={() => setLang(ar ? 'en' : 'ar')}>
           {ar ? 'English' : 'العربية'}
         </button>
-      </header>
-      <div
-        className="entry-progress"
-        aria-label={ar ? `الخطوة ${step + 1} من ٢` : `Step ${step + 1} of 2`}
-      >
-        <span className="entry-step">
-          <i className="done" />
-          <i className={step === 1 ? 'done' : ''} />
-        </span>
-        <span>{ar ? 'مساحة واحدة، وروابط أقرب' : 'One place. Closer connections.'}</span>
-        {step === 1 ? (
-          <button
-            className="entry-back"
-            aria-label={ar ? 'العودة لاختيار الحساب' : 'Back to account type'}
-            onClick={() => setStep(0)}
-          >
-            <ArrowRight size={18} />
-          </button>
-        ) : (
-          <span className="entry-badge">
-            <ShieldCheck size={15} />
-          </span>
-        )}
       </div>
-      <Motion identity={`login-${step}`}>
-        {step === 0 ? (
-          <>
-            <div className="entry-intro" data-reveal>
-              <span className="eyebrow">
-                {ar ? 'أهلاً بك في سكول سينك' : 'WELCOME TO SCHOOLSYNC'}
+      <div className="welcome-frame">
+        <div className="login-layout">
+          <section className="login-story" aria-label={ar ? 'حالة الخادم ودليل الدخول' : 'Server status and guide'}>
+            <div className="prism-story-head">
+              <div className="prism-story-brand">
+                <span className="prism-wordmark" dir="ltr">schoolsync.</span>
+                <span className="prism-school">{schoolTitle}</span>
+              </div>
+              <button
+                type="button"
+                className={`prism-orb-trigger connection-orb-button is-${orbTone}`}
+                aria-label={ar ? 'حالة الاتصال بالخادم — اضغط للإعداد' : 'Server connection status — tap to configure'}
+                onClick={() => setConnectOpen(true)}
+              >
+                <Orb size={132} tone={orbTone} speed={busy || probing ? 1.15 : 0.44} />
+                <span className="orb-connection-label" aria-live="polite"><i />{orbText}</span>
+              </button>
+            </div>
+            <div className="prism-caption">
+              <span className="prism-story-label">{story.eyebrow}</span>
+              <h1>{story.headline}</h1>
+            </div>
+            <ol className="prism-guide">
+              {story.steps.map(([title, desc], idx) => (
+                <li key={title}>
+                  <span className="prism-step-number" aria-hidden="true">{idx + 1}</span>
+                  <div><strong>{title}</strong><p>{desc}</p></div>
+                </li>
+              ))}
+            </ol>
+            <button type="button" className="prism-network-note" onClick={() => setConnectOpen(true)}>
+              {customServer ? <Globe size={15} /> : <Wifi size={15} />}
+              <span>
+                {customServer
+                  ? (ar ? `متصل عبر الرابط السحابي: ${customServer}` : `Connected via cloud URL: ${customServer}`)
+                  : (ar ? 'اضغط هنا أو على الكرة لربط الهاتف بخادم المدرسة من أي شبكة' : 'Tap here or the Orb to connect via cloud tunnel from any network')}
               </span>
-              <h1>
-                {ar ? (
-                  <>
-                    من سيستخدم
-                    <br />
-                    هذه المساحة<span>؟</span>
-                  </>
-                ) : (
-                  <>
-                    Who’s joining
-                    <br />
-                    the school day<span>?</span>
-                  </>
-                )}
-              </h1>
-              <p>
-                {ar
-                  ? 'اختر مساحتك. صُمّمت التفاصيل لتناسب يومك.'
-                  : 'Choose your space. Every detail is made for your day.'}
-              </p>
-            </div>
-            <div className="portal-options" ref={cards} data-reveal>
-              <button
-                className={`portal-option ${portal === 'family' ? 'selected' : ''}`}
-                data-portal="family"
-                aria-pressed={portal === 'family'}
-                onClick={() => choose('family')}
-              >
-                <span className="portal-selection">
-                  {portal === 'family' ? <Check size={13} /> : <UsersRound size={14} />}
-                </span>
-                <span className="portal-card-label">{ar ? 'العائلة أولاً' : 'FAMILY FIRST'}</span>
-                <Portrait variant={1} adult />
-                <div className="portal-card-copy">
-                  <h2>{ar ? 'ولي أمر' : 'Parent or guardian'}</h2>
-                  <p>{ar ? 'قريب من يومهم، أينما كنت.' : 'A little closer to their day.'}</p>
-                </div>
-              </button>
-              <button
-                className={`portal-option staff-option ${portal === 'staff' ? 'selected' : ''}`}
-                data-portal="staff"
-                aria-pressed={portal === 'staff'}
-                onClick={() => choose('staff')}
-              >
-                <span className="portal-selection">
-                  {portal === 'staff' ? <Check size={13} /> : <GraduationCap size={15} />}
-                </span>
-                <span className="portal-card-label">{ar ? 'نصنع فرقاً' : 'MAKE A DIFFERENCE'}</span>
-                <Portrait variant={0} adult />
-                <div className="portal-card-copy">
-                  <h2>{ar ? 'معلم أو إدارة' : 'Teachers & school'}</h2>
-                  <p>{ar ? 'وقت أكثر لما يستحق الاهتمام.' : 'More room for what matters.'}</p>
-                </div>
-              </button>
-            </div>
-            <div className="entry-selection-copy" data-reveal>
-              <span className="entry-selection-dot" />
-              {portal === 'family'
-                ? ar
-                  ? 'كل أبنائك في حساب عائلي واحد.'
-                  : 'Your children, together in one family account.'
-                : ar
-                  ? 'أدوات مدرستك، ومنظور العائلة أيضاً.'
-                  : 'School tools, with the family perspective included.'}
-            </div>
-            <button className="primary entry-continue" onClick={() => setStep(1)} data-reveal>
-              {ar ? 'متابعة' : 'Continue'}
-              <ArrowLeft size={19} />
             </button>
-            <p className="entry-foot" data-reveal>
-              <LockKeyhole size={12} />
-              {ar
-                ? 'تواصل أقرب. وخصوصية تستحق الثقة.'
-                : 'Closer connections. Thoughtfully protected.'}
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="entry-intro credentials-intro" data-reveal>
-              <span className="entry-portal-pill">
-                {portal === 'family' ? <HeartHandshake size={15} /> : <GraduationCap size={16} />}
-                {portal === 'family'
-                  ? ar
-                    ? 'مساحة العائلة'
-                    : 'FAMILY SPACE'
-                  : ar
-                    ? 'مساحة المدرسة'
-                    : 'SCHOOL SPACE'}
-              </span>
-              <h1>
-                {portal === 'family' ? (
-                  ar ? (
-                    <>
-                      كل يومهم.
-                      <br />
-                      أقرب إليك<span>.</span>
-                    </>
-                  ) : (
-                    <>
-                      Their day.
-                      <br />A little closer<span>.</span>
-                    </>
-                  )
-                ) : ar ? (
-                  <>
-                    أهلاً بصنّاع
-                    <br />
-                    الأثر الجميل<span>.</span>
-                  </>
-                ) : (
-                  <>
-                    Welcome,
-                    <br />
-                    day makers<span>.</span>
-                  </>
-                )}
-              </h1>
-              <p>
-                {portal === 'family'
-                  ? ar
-                    ? 'أدخل بيانات أي من أبنائك للوصول إلى حساب العائلة نفسه.'
-                    : 'Use either child’s credentials to open your shared family account.'
-                  : ar
-                    ? 'مساحتك للتعليم، والمتابعة، والتواصل مع العائلة.'
-                    : 'Your space to teach, follow up, and stay connected.'}
-              </p>
-            </div>
-            <form
-              className="entry-form form-stack"
-              data-reveal
-              onSubmit={(e) => {
-                e.preventDefault();
-                void signIn(
-                  portal === 'family'
-                    ? { portal, nationalId: username, password }
-                    : { portal, email: username, password },
-                );
-              }}
-            >
-              <label>
-                {portal === 'family'
-                  ? ar
-                    ? 'الرقم الوطني للطالب'
-                    : 'Student national ID'
-                  : ar
-                    ? 'البريد الإلكتروني'
-                    : 'Email'}
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  type={portal === 'staff' ? 'email' : 'text'}
-                  inputMode={portal === 'family' ? 'numeric' : 'email'}
-                  maxLength={portal === 'family' ? 10 : 200}
-                  autoComplete="username"
-                  placeholder={portal === 'family' ? '••••••••••' : 'name@school.edu'}
-                  required
-                  dir="ltr"
-                />
-              </label>
-              <label>
-                {portal === 'family'
-                  ? ar
-                    ? 'رمز الدخول'
-                    : 'Access code'
-                  : ar
-                    ? 'كلمة المرور'
-                    : 'Password'}
-                <span className="password-input">
-                  <input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type={visible ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    dir="ltr"
-                  />
-                  <button
-                    type="button"
-                    className="password-visibility"
-                    aria-label={
-                      visible
-                        ? ar
-                          ? 'إخفاء الرمز'
-                          : 'Hide password'
-                        : ar
-                          ? 'إظهار الرمز'
-                          : 'Show password'
-                    }
-                    onClick={() => setVisible(!visible)}
-                  >
-                    {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </span>
-              </label>
-              {error && (
-                <div className="entry-error" role="alert">
-                  {error}
-                </div>
-              )}
-              <button className="primary entry-continue" disabled={busy}>
-                {busy
-                  ? ar
-                    ? 'نفتح مساحتك…'
-                    : 'Opening your space…'
-                  : ar
-                    ? 'تسجيل الدخول'
-                    : 'Sign in'}
-                <ArrowLeft size={19} />
-              </button>
-            </form>
-            {portal === 'family' && (
-              <div className="family-login-note" data-reveal>
-                <UsersRound size={19} />
-                <p>
-                  {ar
-                    ? 'لكل طالب رمز مستقل، وللأشقاء حساب عائلة مشترك. بعد الدخول، اختر الطالب الذي تريد متابعته.'
-                    : 'Each child has their own code. Siblings share a family account; choose a child after signing in.'}
-                </p>
-              </div>
-            )}
-            {demo && (
-              <div className="entry-demo" data-reveal>
-                <span className="eyebrow">
-                  {ar ? 'جرّبها ببيانات خيالية' : 'EXPLORE WITH FICTIONAL DATA'}
-                </span>
-                {portal === 'family' ? (
-                  <>
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() =>
-                        void signIn({
-                          portal: 'family',
-                          nationalId: '0000000001',
-                          password: 'YousefDemo2026',
-                        })
-                      }
-                    >
-                      {ar ? 'تجربة عائلة بطفلين' : 'Explore a family with two children'}
-                      <ArrowLeft size={16} />
-                    </button>
-                    <small>
-                      {ar ? 'يوسف وعمر · حساب العائلة نفسه' : 'Yousef & Omar · One family account'}
-                    </small>
-                  </>
-                ) : (
-                  <div className="staff-demo-actions">
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() =>
-                        void signIn({
-                          portal: 'staff',
-                          email: 'emma@schoolsync.demo',
-                          password: 'SchoolSync!2026',
-                        })
-                      }
-                    >
-                      {ar ? 'تجربة المعلم' : 'Teacher demo'}
-                    </button>
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() =>
-                        void signIn({
-                          portal: 'staff',
-                          email: 'rami@schoolsync.demo',
-                          password: 'SchoolSync!2026',
-                        })
-                      }
-                    >
-                      {ar ? 'تجربة الإدارة' : 'Administrator demo'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            <p className="entry-foot">
-              <ShieldCheck size={12} />
-              {ar
-                ? 'المدرسة تتحقق من الحسابات وروابط العائلة.'
-                : 'Accounts and family relationships are verified by your school.'}
-            </p>
-          </>
-        )}
-      </Motion>
+          </section>
+          <section className="card login-card">
+            <div className="login-card-icon" aria-hidden="true"><School size={26} /></div>
+            <h2>{ar ? 'أهلاً بك من جديد' : 'Welcome back'}</h2>
+            <LoginCredentialsStep
+              portal={portal} onSelectPortal={handlePortalSwitch} username={username} setUsername={setUsername}
+              password={password} setPassword={setPassword} visible={visible} setVisible={setVisible}
+              busy={busy} error={error} demo={demo} lang={lang} signIn={handleSignIn}
+            />
+          </section>
+        </div>
+      </div>
+      <OrbConnectionDialog
+        open={connectOpen} lang={lang} tone={orbTone} schoolName={schoolTitle}
+        onConnected={handleConnected} onResetLocal={onServerChanged} onClose={() => setConnectOpen(false)}
+      />
     </div>
   );
 }

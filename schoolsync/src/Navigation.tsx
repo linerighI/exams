@@ -24,8 +24,8 @@ export function Navigation({
           gsap.set(marker.current, { opacity: 0 });
           return;
         }
-        gsap.set(marker.current, { width: button.offsetWidth, height: button.offsetHeight });
-        const vars = { x: button.offsetLeft, y: button.offsetTop, opacity: 1 };
+        gsap.set(marker.current, { width: button.offsetWidth, height: button.offsetHeight, force3D: true });
+        const vars = { x: button.offsetLeft, y: button.offsetTop, opacity: 1, force3D: true };
         if (!placed.current || quietMotion()) gsap.set(marker.current, vars);
         else
           gsap.to(marker.current, { ...vars, duration: 0.48, ease: 'expo.out', overwrite: 'auto' });

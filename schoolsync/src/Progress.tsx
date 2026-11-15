@@ -1,15 +1,8 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
-import {
-  ArrowUpRight,
-  BookOpen,
-  CheckCheck,
-  Clock,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-} from 'lucide-react';
+import { BookOpen, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
 import type { State } from './types';
 import type { Language } from './i18n';
+import { CountValue } from './schoolsync-ui';
 import { Empty, Section } from './ui';
 import { gsap, quietMotion } from './animation';
 import { tr } from './translations';
@@ -94,7 +87,7 @@ export function GradesScreen({ data, lang }: { data: State; lang: Language }) {
           ))}
         </select>
       </div>
-      <section className="learning-overview" data-reveal>
+      <section className="learning-overview t-surface" data-reveal>
         <div className="card-top">
           <span className="eyebrow">
             {ar ? 'متوسط العلامات المنشورة' : 'PUBLISHED GRADE AVERAGE'}
@@ -105,7 +98,7 @@ export function GradesScreen({ data, lang }: { data: State; lang: Language }) {
           </span>
         </div>
         <div className="learning-average">
-          {average ?? '—'}
+          {average === null ? '—' : <CountValue value={average} />}
           <small>{average !== null ? '٪' : ''}</small>
         </div>
         <p>
@@ -204,7 +197,7 @@ export function GradesScreen({ data, lang }: { data: State; lang: Language }) {
           .reverse()
           .map((g) => (
             <button
-              className={`milestone-row ${selected === g.id ? 'selected' : ''}`}
+              className={`milestone-row t-stagger-row ${selected === g.id ? 'selected' : ''}`}
               key={g.id}
               onClick={() => setSelected(g.id)}
             >
@@ -246,178 +239,4 @@ export function GradesScreen({ data, lang }: { data: State; lang: Language }) {
     </div>
   );
 }
-export function AttendanceScreen({ data, lang }: { data: State; lang: Language }) {
-  const [month, setMonth] = useState('all');
-  const [filter, setFilter] = useState('all');
-  const root = useRef<HTMLDivElement>(null);
-  const ar = lang === 'ar';
-  const months = [...new Set(data.attendance.map((a) => a.date.slice(0, 7)))].sort().reverse();
-  const records = data.attendance.filter((a) => month === 'all' || a.date.startsWith(month));
-  const count = (status: string) => records.filter((a) => a.status === status).length;
-  const rate = records.length
-    ? Math.round(((count('present') + count('late')) / records.length) * 100)
-    : null;
-  const filtered = records.filter((a) => filter === 'all' || a.status === filter);
-  const incidents = data.incidents.filter((i) => i.status !== 'resolved');
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      if (quietMotion()) return;
-      gsap.fromTo(
-        '.attendance-arc',
-        { strokeDasharray: '0 100' },
-        { strokeDasharray: `${rate ?? 0} 100`, duration: 1.2, ease: 'power3.out' },
-      );
-    }, root);
-    return () => ctx.revert();
-  }, [rate, month, data.student?.id]);
-  return (
-    <div ref={root}>
-      <div className="page-intro" data-reveal>
-        <div className="eyebrow">
-          {ar ? 'حضور نطمئن إليه، ومتابعة باهتمام' : 'PRESENCE, WITH PEACE OF MIND'}
-        </div>
-        <h1>
-          {ar ? 'الحضور والغياب' : 'Attendance'}
-          <span className="greeting-dot">.</span>
-        </h1>
-        <p>
-          {ar
-            ? 'كل حصة مؤكدة، وكل متابعة في مكانها.'
-            : 'Every recorded lesson. Every update, together.'}
-        </p>
-      </div>
-      <div className="academic-filter" data-reveal>
-        <span>
-          <CalendarIcon />
-          {ar ? 'سجل الحضور' : 'Attendance records'}
-        </span>
-        <label className="sr-only" htmlFor="attendance-month">
-          {ar ? 'تصفية حسب الشهر' : 'Filter by month'}
-        </label>
-        <select id="attendance-month" value={month} onChange={(e) => setMonth(e.target.value)}>
-          <option value="all">{ar ? 'كل الفترات' : 'All periods'}</option>
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {new Date(`${m}-15T12:00:00Z`).toLocaleDateString(ar ? 'ar-JO' : 'en-GB', {
-                month: 'long',
-                year: 'numeric',
-              })}
-            </option>
-          ))}
-        </select>
-      </div>
-      <section className="attendance-overview" data-reveal>
-        <div className="attendance-ring">
-          <svg viewBox="0 0 180 180" aria-hidden="true">
-            <circle className="attendance-track" cx="90" cy="90" r="72" />
-            <circle
-              className="attendance-arc"
-              cx="90"
-              cy="90"
-              r="72"
-              pathLength="100"
-              strokeDasharray={`${rate ?? 0} 100`}
-              transform="rotate(-90 90 90)"
-            />
-          </svg>
-          <span>
-            <strong>{rate === null ? '—' : `${rate}٪`}</strong>
-            <small>{ar ? 'نسبة الحضور' : 'Attendance rate'}</small>
-          </span>
-          <i>
-            <CheckCheck size={16} />
-          </i>
-        </div>
-        <h2>
-          {rate === null
-            ? ar
-              ? 'بانتظار أول تأكيد'
-              : 'Waiting for the first check'
-            : ar
-              ? 'كل يوم، أقرب إلى التعلّم.'
-              : 'A little closer to learning, every day.'}
-        </h2>
-        <p>
-          {records.length
-            ? ar
-              ? `${records.length} حصص مسجّلة · تشمل النسبة الحضور والتأخر`
-              : `${records.length} recorded lessons · present and late count as attended`
-            : ar
-              ? 'لا يعني غياب السجل أن الطالب غائب. تظهر الحالات بعد تسجيل المدرسة لها.'
-              : 'An unrecorded check does not mean absence. Status appears after the school records it.'}
-        </p>
-        <div className="attendance-counts">
-          {['present', 'absent', 'late', 'excused'].map((status) => (
-            <button
-              key={status}
-              className={`attendance-count count-${status} ${filter === status ? 'selected' : ''}`}
-              onClick={() => setFilter(filter === status ? 'all' : status)}
-              aria-pressed={filter === status}
-            >
-              <i />
-              <strong>{count(status)}</strong>
-              <span>{tr(status)}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-      {incidents.map((i) => (
-        <div className="attendance-alert" key={i.id} data-reveal>
-          <ShieldCheck size={19} />
-          <div>
-            <h3>{ar ? 'المدرسة تتابع الحالة' : 'The school is following up'}</h3>
-            <p>{i.detail}</p>
-            <small>
-              {ar
-                ? 'الغياب غير المتوقع لا يؤكد مغادرة المدرسة.'
-                : 'An unexpected absence does not confirm departure.'}
-            </small>
-          </div>
-        </div>
-      ))}
-      <Section
-        title={ar ? 'الحصص المسجّلة' : 'Recorded lessons'}
-        action={filter !== 'all' ? (ar ? 'عرض الكل' : 'Show all') : undefined}
-        onAction={() => setFilter('all')}
-      />
-      {filtered.length ? (
-        filtered.map((a) => (
-          <div className="attendance-record" key={a.id}>
-            <span className={`attendance-symbol count-${a.status}`}>
-              {a.status === 'late' ? <Clock size={17} /> : <CheckCheck size={18} />}
-            </span>
-            <span className="row-copy">
-              <strong>{tr(a.subject)}</strong>
-              <small>
-                {new Date(`${a.date}T12:00:00Z`).toLocaleDateString(ar ? 'ar-JO' : 'en-GB', {
-                  day: 'numeric',
-                  month: 'long',
-                })}{' '}
-                · {a.start}
-              </small>
-            </span>
-            <span className={`record-status status-${a.status}`}>{tr(a.status)}</span>
-          </div>
-        ))
-      ) : (
-        <Empty
-          title={ar ? 'لا توجد سجلات في هذه الفترة' : 'No records in this period'}
-          detail={
-            ar
-              ? 'ستجد هنا الحضور والغياب كما تسجّله المدرسة، دون افتراضات.'
-              : 'Recorded school attendance appears here, without assumptions.'
-          }
-        />
-      )}
-      <p className="progress-footnote">
-        <ShieldCheck size={13} />
-        {ar
-          ? 'كل حالة مصدرها سجل فعلي في المدرسة.'
-          : 'Every status comes from an actual school record.'}
-      </p>
-    </div>
-  );
-}
-function CalendarIcon() {
-  return <ShieldCheck size={16} />;
-}
+export { AttendanceScreen } from './family/AttendanceHistoryScreen';
