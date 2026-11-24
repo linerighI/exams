@@ -5,7 +5,7 @@
  */
 const Fastify = require('fastify');
 const Database = require('better-sqlite3');
-const { spawn } = require('node:child_process');
+const { execFile, spawn } = require('node:child_process');
 const {
   existsSync,
   mkdirSync,
@@ -25,6 +25,77 @@ const { fail } = require('./db.cjs');
 
 const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const MAX_CONSOLE_LOGS = 300;
+const RUN_VALUE_NAME = 'SchoolSyncServer';
+const HKCU_RUN = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
+const HKLM_RUN = 'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
+
+function execReg(args) {
+  return new Promise((resolve) => {
+    execFile('reg', args, { windowsHide: true, timeout: 5000 }, (err, stdout, stderr) => {
+      resolve({ ok: !err, stdout: String(stdout || ''), stderr: String(stderr || ''), code: err?.code ?? 0 });
+    });
+  });
+}
+
+function resolveServerExecutable(repoRoot) {
+  const candidates = [
+    process.env.SCHOOLSYNC_SERVER_EXE,
+    path.join(repoRoot, 'SchoolSync Server.exe'),
+    path.join(repoRoot, 'schoolsync/desktop/bin/server/SchoolSync Server.exe'),
+  ].filter(Boolean);
+  for (const item of candidates) {
+    if (existsSync(item)) return item;
+  }
+  return candidates[0] || null;
+}
+
+async function queryRegRunValue(hivePath) {
+  const res = await execReg(['query', hivePath, '/v', RUN_VALUE_NAME]);
+  if (!res.ok) return null;
+  const match = res.stdout.match(/SchoolSyncServer\s+REG_(?:SZ|EXPAND_SZ)\s+(.+)/i);
+  return match ? match[1].trim() : null;
+}
+
+/** Query Windows Startup (`Run`) registry state for `SchoolSync Server.exe --background`. */
+async function getWindowsStartupStatus(repoRoot) {
+  const exePath = resolveServerExecutable(repoRoot);
+  if (process.platform !== 'win32') {
+    return { supported: false, enabled: false, scope: 'none', command: null, exePath };
+  }
+  const [hkcu, hklm] = await Promise.all([queryRegRunValue(HKCU_RUN), queryRegRunValue(HKLM_RUN)]);
+  const scope = hklm && hkcu ? 'both' : hklm ? 'machine' : hkcu ? 'user' : 'none';
+  return {
+    supported: true,
+    enabled: Boolean(hkcu || hklm),
+    scope,
+    command: hkcu || hklm || null,
+    exePath,
+  };
+}
+
+/** Enable or disable silent Windows boot auto-start (`SchoolSync Server.exe --background`). */
+async function setWindowsStartup(enabled, repoRoot) {
+  if (process.platform !== 'win32') fail('التشغيل التلقائي مدعوم على نظام Windows فقط.', 400);
+  const exePath = resolveServerExecutable(repoRoot);
+  if (enabled) {
+    if (!exePath || !existsSync(exePath)) {
+      fail('ملف SchoolSync Server.exe غير موجود. شغّل البناء أو برنامج التثبيت أولاً.', 404);
+    }
+    const command = `"${exePath}" --background`;
+    const added = await execReg(['add', HKCU_RUN, '/v', RUN_VALUE_NAME, '/t', 'REG_SZ', '/d', command, '/f']);
+    if (!added.ok) fail(`تعذر تفعيل التشغيل التلقائي: ${added.stderr.trim() || 'Registry error'}`, 500);
+  } else {
+    await execReg(['delete', HKCU_RUN, '/v', RUN_VALUE_NAME, '/f']);
+    const existingHklm = await queryRegRunValue(HKLM_RUN);
+    if (existingHklm) {
+      const removed = await execReg(['delete', HKLM_RUN, '/v', RUN_VALUE_NAME, '/f']);
+      if (!removed.ok) {
+        fail('تم تعطيل تشغيل المستخدم الحالي، لكن إزالة الإعداد العام يتطلب تشغيل اللوحة كمسؤول.', 403);
+      }
+    }
+  }
+  return getWindowsStartupStatus(repoRoot);
+}
 
 /** List non-internal IPv4 LAN URLs for the managed SchoolSync server port. */
 function collectLanUrls(port) {
@@ -115,9 +186,9 @@ function inspectDatabase(dbPath, backupsDir) {
 /** Build the Fastify Server Console Daemon (`127.0.0.1` only). */
 function createConsoleDaemon({
   consolePort = Number(process.env.SCHOOLSYNC_CONSOLE_PORT || 4325),
-  dataDir = path.join(__dirname, '../.data'),
+  dataDir = process.env.SCHOOLSYNC_DATA_DIR || path.join(__dirname, '../.data'),
   repoRoot = path.resolve(__dirname, '../..'),
-  dbPath = process.env.SCHOOLSYNC_DB || path.join(__dirname, '../.data/schoolsync-live.sqlite'),
+  dbPath = process.env.SCHOOLSYNC_DB || path.join(dataDir, 'schoolsync-live.sqlite'),
   distConsoleDir = path.resolve(__dirname, '../dist-console'),
   tunnelCtrl = defaultTunnelCtrl,
   gitSync = defaultGitSync,
@@ -135,6 +206,19 @@ function createConsoleDaemon({
   let serverPort = gitSync.loadConsoleConfig(dataDir).serverPort || 4320;
   let lastServerExitCode = null;
   let driftTimer = null;
+  let startupState = {
+    supported: process.platform === 'win32',
+    enabled: false,
+    scope: 'none',
+    command: null,
+    exePath: resolveServerExecutable(repoRoot),
+  };
+
+  async function refreshStartupState() {
+    startupState = await getWindowsStartupStatus(repoRoot);
+    return startupState;
+  }
+  void refreshStartupState();
 
   const gitState = {
     syncing: false,
@@ -210,6 +294,7 @@ function createConsoleDaemon({
         error: gitState.error,
       },
       config: gitSync.maskConsoleConfig(cfg),
+      startup: startupState,
       db: inspectDatabase(dbPath, backupsDir),
       logs: logs.slice(-150),
     };
@@ -317,6 +402,7 @@ function createConsoleDaemon({
       env: {
         ...process.env,
         SCHOOLSYNC_PORT: String(serverPort),
+        SCHOOLSYNC_DATA_DIR: dataDir,
         SCHOOLSYNC_DB: dbPath,
       },
     });
@@ -452,7 +538,10 @@ function createConsoleDaemon({
     uptimeMs: Math.round(process.uptime() * 1000),
   }));
 
-  app.get('/api/console/status', async () => buildStatus());
+  app.get('/api/console/status', async () => {
+    await refreshStartupState();
+    return buildStatus();
+  });
 
   app.get('/api/console/events', async (req, reply) => {
     const headers = {
@@ -495,6 +584,20 @@ function createConsoleDaemon({
 
   app.post('/api/console/git/sync', async () => syncTunnelUrlToGit(undefined, { force: true }));
   app.post('/api/console/git/check', async () => checkRemoteDrift({ autoRepair: false }));
+
+  app.post('/api/console/startup', async (req) => {
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body || {});
+    startupState = await setWindowsStartup(enabled, repoRoot);
+    pushLog(
+      'server',
+      'info',
+      enabled
+        ? 'تم تفعيل التشغيل التلقائي في الخلفية مع بدء تشغيل Windows'
+        : 'تم إيقاف التشغيل التلقائي مع بدء تشغيل Windows',
+    );
+    emitStatus();
+    return { ok: true, startup: startupState };
+  });
 
   app.post('/api/console/config', async (req) => {
     const patch = z
@@ -653,7 +756,13 @@ function createConsoleDaemon({
   };
 }
 
-module.exports = { createConsoleDaemon, collectLanUrls, inspectDatabase };
+module.exports = {
+  createConsoleDaemon,
+  collectLanUrls,
+  inspectDatabase,
+  getWindowsStartupStatus,
+  setWindowsStartup,
+};
 
 if (require.main === module) {
   const consolePort = Number(process.env.SCHOOLSYNC_CONSOLE_PORT || 4325);
@@ -671,10 +780,10 @@ if (require.main === module) {
     .listen({ port: consolePort, host: '127.0.0.1' })
     .then(() => {
       console.log(`SchoolSync Server Console listening on http://127.0.0.1:${consolePort}`);
-      const autoStartFlag = process.argv.includes('--auto-start');
+      const forceAll = process.argv.includes('--force-auto-start');
       const cfg = defaultGitSync.loadConsoleConfig();
-      if (autoStartFlag || cfg.autoStartServer) daemon.startSchoolServer();
-      if (autoStartFlag || cfg.autoStartTunnel) daemon.startManagedTunnel();
+      if (forceAll || cfg.autoStartServer) daemon.startSchoolServer();
+      if (forceAll || cfg.autoStartTunnel) daemon.startManagedTunnel();
     })
     .catch((err) => {
       console.error(err);

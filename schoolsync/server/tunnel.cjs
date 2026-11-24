@@ -79,6 +79,7 @@ function findTunnelExecutable(provider = 'cloudflared') {
   }
   const candidates = [
     process.env.CLOUDFLARED_PATH,
+    path.resolve(__dirname, '../../runtime/cloudflared.exe'),
     'C:\\Program Files (x86)\\cloudflared\\cloudflared.exe',
     'C:\\Program Files\\cloudflared\\cloudflared.exe',
     process.env.LOCALAPPDATA
@@ -196,7 +197,7 @@ function startTunnel(options = {}) {
   const {
     port = 4320,
     provider = 'cloudflared',
-    dataDir = path.join(__dirname, '../.data'),
+    dataDir = process.env.SCHOOLSYNC_DATA_DIR || path.join(__dirname, '../.data'),
     onUrl,
     autoRestart = false,
     silentBanner = false,

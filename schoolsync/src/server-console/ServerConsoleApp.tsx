@@ -437,9 +437,48 @@ export function ServerConsoleApp() {
 
           <p className="sc-hint">
             {ar
-              ? 'عند إعادة التشغيل وتوليد رابط Cloudflare جديد، يقوم الخادم بتحديث الملف النصي في GitHub تلقائياً لتصل إليه تطبيقات سطح المكتب والأندرويد بدون أي تدخل.'
-              : 'Whenever Cloudflare generates a new URL on restart, this console publishes it to GitHub automatically so Desktop and Android clients reconnect automatically.'}
+              ? 'إغلاق هذه النافذة يخفيها في شريط المهام (System Tray) ويبقي الخادم والنفق نشطين في الخلفية. للإيقاف النهائي استخدم قائمة الأيقونة بجوار الساعة.'
+              : 'Closing this window hides it to the Windows System Tray while keeping the server & tunnel running in the background. Use the tray icon menu to quit completely.'}
           </p>
+
+          {status?.startup?.supported ? (
+            <div className="sc-url-box">
+              <div style={{ display: 'grid', gap: 2 }}>
+                <strong style={{ fontSize: 13.5 }}>
+                  {ar ? 'التشغيل التلقائي مع بدء Windows (في الخلفية)' : 'Start Automatically with Windows (Background)'}
+                </strong>
+                <span className="sc-hint">
+                  {status.startup.enabled
+                    ? ar
+                      ? `مفعّل (${status.startup.scope === 'machine' || status.startup.scope === 'both' ? 'لكل الجهاز' : 'للمستخدم الحالي'})`
+                      : `Enabled (${status.startup.scope})`
+                    : ar
+                      ? 'معطّل حالياً'
+                      : 'Currently disabled'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className={`sc-btn ${status.startup.enabled ? 'success' : 'primary'}`}
+                disabled={Boolean(busyAction)}
+                onClick={() =>
+                  void runAction('toggle-startup', async () => {
+                    const next = !status.startup?.enabled;
+                    await consoleApi('/startup', { enabled: next });
+                    return next
+                      ? ar
+                        ? 'تم تفعيل التشغيل التلقائي في الخلفية عند تشغيل الكمبيوتر'
+                        : 'Windows background startup enabled'
+                      : ar
+                        ? 'تم إيقاف التشغيل التلقائي عند بدء التشغيل'
+                        : 'Windows startup disabled';
+                  })
+                }
+              >
+                {status.startup.enabled ? (ar ? 'مفعّل · إيقاف' : 'Enabled · Disable') : ar ? 'تفعيل الآن' : 'Enable Now'}
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {/* Live URLs, GitHub Sync & QR */}

@@ -10,6 +10,11 @@ const path = require('node:path');
 const DEFAULT_DATA_DIR = path.join(__dirname, '../.data');
 const DEFAULT_REPO_ROOT = path.resolve(__dirname, '../..');
 
+/** Resolve the writable SchoolSync data directory (`SCHOOLSYNC_DATA_DIR` override or `.data`). */
+function resolveDataDir(dataDir) {
+  return dataDir || process.env.SCHOOLSYNC_DATA_DIR || DEFAULT_DATA_DIR;
+}
+
 const DEFAULT_CONSOLE_CONFIG = {
   githubOwner: 'linerighI',
   githubRepo: 'exams',
@@ -46,12 +51,12 @@ function parseTunnelUrlFromText(text) {
   return '';
 }
 
-function configFilePath(dataDir = DEFAULT_DATA_DIR) {
-  return path.join(dataDir, 'console-config.json');
+function configFilePath(dataDir) {
+  return path.join(resolveDataDir(dataDir), 'console-config.json');
 }
 
 /** Load persisted Server Console & GitHub sync config merged with defaults. */
-function loadConsoleConfig(dataDir = DEFAULT_DATA_DIR) {
+function loadConsoleConfig(dataDir) {
   const file = configFilePath(dataDir);
   let stored = {};
   if (existsSync(file)) {
@@ -100,8 +105,9 @@ function loadConsoleConfig(dataDir = DEFAULT_DATA_DIR) {
 }
 
 /** Update and persist Server Console configuration safely without leaking or clobbering tokens. */
-function saveConsoleConfig(patch = {}, dataDir = DEFAULT_DATA_DIR) {
-  const current = loadConsoleConfig(dataDir);
+function saveConsoleConfig(patch = {}, dataDir) {
+  const effectiveDataDir = resolveDataDir(dataDir);
+  const current = loadConsoleConfig(effectiveDataDir);
   const next = { ...current };
 
   if (typeof patch.githubOwner === 'string' && patch.githubOwner.trim())
@@ -132,8 +138,8 @@ function saveConsoleConfig(patch = {}, dataDir = DEFAULT_DATA_DIR) {
     if (Number.isInteger(port) && port >= 1024 && port <= 65535) next.serverPort = port;
   }
 
-  mkdirSync(dataDir, { recursive: true });
-  writeFileSync(configFilePath(dataDir), JSON.stringify(next, null, 2) + '\n', 'utf8');
+  mkdirSync(effectiveDataDir, { recursive: true });
+  writeFileSync(configFilePath(effectiveDataDir), JSON.stringify(next, null, 2) + '\n', 'utf8');
   return next;
 }
 
@@ -288,7 +294,7 @@ function runGit(args, cwd) {
 async function publishTunnelUrl(
   url,
   cfg = DEFAULT_CONSOLE_CONFIG,
-  { repoRoot = DEFAULT_REPO_ROOT, dataDir = DEFAULT_DATA_DIR, fetchImpl = globalThis.fetch } = {},
+  { repoRoot = DEFAULT_REPO_ROOT, dataDir, fetchImpl = globalThis.fetch } = {},
 ) {
   const cleanUrl = String(url || '').trim().replace(/\/+$/, '');
   if (!/^https?:\/\/.+/i.test(cleanUrl)) {
@@ -302,16 +308,18 @@ async function publishTunnelUrl(
   }
 
   const effective = { ...DEFAULT_CONSOLE_CONFIG, ...cfg };
+  const effectiveDataDir = resolveDataDir(dataDir);
   const payload = `${cleanUrl}\n`;
 
   try {
-    mkdirSync(dataDir, { recursive: true });
-    writeFileSync(path.join(dataDir, 'tunnel-url.txt'), payload, 'utf8');
+    mkdirSync(effectiveDataDir, { recursive: true });
+    writeFileSync(path.join(effectiveDataDir, 'tunnel-url.txt'), payload, 'utf8');
   } catch {}
 
   const absRoot = path.resolve(repoRoot);
   const absRepoFile = path.resolve(absRoot, effective.githubFilePath);
-  if (absRepoFile.startsWith(absRoot + path.sep)) {
+  const hasGitCheckout = existsSync(path.join(absRoot, '.git'));
+  if ((hasGitCheckout || !resolveGithubToken(effective)) && absRepoFile.startsWith(absRoot + path.sep)) {
     try {
       mkdirSync(path.dirname(absRepoFile), { recursive: true });
       writeFileSync(absRepoFile, payload, 'utf8');
@@ -438,6 +446,7 @@ module.exports = {
   DEFAULT_CONSOLE_CONFIG,
   DEFAULT_DATA_DIR,
   DEFAULT_REPO_ROOT,
+  resolveDataDir,
   parseTunnelUrlFromText,
   loadConsoleConfig,
   saveConsoleConfig,

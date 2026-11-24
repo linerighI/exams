@@ -117,7 +117,10 @@ test('publishTunnelUrl handles initial PUT, idempotent no-op, and SHA update via
   assert.equal(first.changed, true);
   assert.equal(first.url, 'https://one.trycloudflare.com');
   assert.equal(putCount, 1);
-  assert.equal(fs.readFileSync(path.join(repoRoot, 'schoolsync/tunnel-url.txt'), 'utf8'), 'https://one.trycloudflare.com\n');
+  assert.equal(fs.readFileSync(path.join(dataDir, 'tunnel-url.txt'), 'utf8'), 'https://one.trycloudflare.com\n');
+  assert.equal(fs.existsSync(path.join(repoRoot, 'schoolsync/tunnel-url.txt')), false);
+
+  fs.mkdirSync(path.join(repoRoot, '.git'), { recursive: true });
 
   // 2) Idempotent no-op when same URL is already published
   const second = await publishTunnelUrl('https://one.trycloudflare.com', cfg, {
@@ -138,6 +141,7 @@ test('publishTunnelUrl handles initial PUT, idempotent no-op, and SHA update via
   assert.equal(third.ok, true);
   assert.equal(third.changed, true);
   assert.equal(putCount, 2);
+  assert.equal(fs.readFileSync(path.join(repoRoot, 'schoolsync/tunnel-url.txt'), 'utf8'), 'https://two.trycloudflare.com\n');
 
   const fetched = await fetchRemoteTunnelUrl(cfg, { bypassCdn: true, fetchImpl: mockFetch });
   assert.equal(fetched.ok, true);
@@ -189,6 +193,8 @@ test('console daemon enforces loopback/origin checks and updates masked config',
     const body = status.json();
     assert.equal(body.tunnel.url, 'https://live-console.trycloudflare.com');
     assert.equal(body.config.githubOwner, 'linerighI');
+    assert.equal(typeof body.startup.supported, 'boolean');
+    assert.equal(typeof body.startup.enabled, 'boolean');
 
     const badOrigin = await app.inject({
       method: 'POST',
@@ -243,5 +249,21 @@ test('app exposes registry metadata on /api/config and supports standalone WebVi
     }
   } finally {
     await app.close();
+  }
+});
+
+test('SCHOOLSYNC_DATA_DIR overrides default console-config location for packaged installs', () => {
+  const customDir = makeTempDir();
+  const prev = process.env.SCHOOLSYNC_DATA_DIR;
+  process.env.SCHOOLSYNC_DATA_DIR = customDir;
+  try {
+    saveConsoleConfig({ serverPort: 4455, autoStartTunnel: false });
+    const loaded = loadConsoleConfig();
+    assert.equal(loaded.serverPort, 4455);
+    assert.equal(loaded.autoStartTunnel, false);
+    assert.equal(fs.existsSync(path.join(customDir, 'console-config.json')), true);
+  } finally {
+    if (prev === undefined) delete process.env.SCHOOLSYNC_DATA_DIR;
+    else process.env.SCHOOLSYNC_DATA_DIR = prev;
   }
 });

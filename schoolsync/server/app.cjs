@@ -223,13 +223,14 @@ function createApp({
 module.exports = { createApp, seed, day, hash };
 
 if (require.main === module) {
-  mkdirSync(path.join(__dirname, '../.data'), { recursive: true });
+  const dataDir = process.env.SCHOOLSYNC_DATA_DIR || path.join(__dirname, '../.data');
+  mkdirSync(dataDir, { recursive: true });
   const { app } = createApp({
     database:
       process.env.SCHOOLSYNC_DB ||
       path.join(
-        __dirname,
-        process.argv.includes('--demo') ? '../.data/schoolsync.sqlite' : '../.data/schoolsync-live.sqlite',
+        dataDir,
+        process.argv.includes('--demo') ? 'schoolsync.sqlite' : 'schoolsync-live.sqlite',
       ),
     demo: process.argv.includes('--demo'),
     logger: true,
@@ -251,7 +252,6 @@ if (require.main === module) {
           publishTunnelUrl,
           fetchRemoteTunnelUrl,
         } = require('./git-sync.cjs');
-        const dataDir = path.join(__dirname, '../.data');
         const syncLiveUrl = async (url) => {
           const cfg = loadConsoleConfig(dataDir);
           if (!cfg.autoSyncToGitHub) return;

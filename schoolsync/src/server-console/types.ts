@@ -69,6 +69,13 @@ export interface ConsoleStatus {
     error: string | null;
   };
   config: ConsoleConfig;
+  startup?: {
+    supported: boolean;
+    enabled: boolean;
+    scope: 'none' | 'user' | 'machine' | 'both' | string;
+    command: string | null;
+    exePath: string | null;
+  };
   db: {
     path: string;
     exists: boolean;
