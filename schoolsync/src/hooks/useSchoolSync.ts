@@ -3,7 +3,8 @@
  * for SchoolSync.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, wsUrl } from '../api';
+import { api, getServerBase, hasCustomServerBase, isStandaloneClient, usesRemoteBearerAuth, wsUrl } from '../api';
+import { discoverAndSwitchServer, getAutoDiscoverEnabled, SERVER_UPDATED_EVENT } from '../registry';
 import { homeFor } from '../experience';
 import { type Language } from '../i18n';
 import type { LoginRequest } from '../Login';
@@ -80,9 +81,16 @@ export function useSchoolSync() {
   const [schoolName, setSchoolName] = useState('مدرسة محمد الشريقي الثانوية للبنين');
   const [familyWelcome, setFamilyWelcome] = useState(true);
   const [switching, setSwitching] = useState(false);
+  const [serverVersion, setServerVersion] = useState(0);
 
   const requestNumber = useRef(0);
   setLanguage(lang);
+
+  useEffect(() => {
+    const onServerUpdated = () => setServerVersion((v) => v + 1);
+    window.addEventListener(SERVER_UPDATED_EVENT, onServerUpdated);
+    return () => window.removeEventListener(SERVER_UPDATED_EVENT, onServerUpdated);
+  }, []);
 
   const refresh = useCallback(async () => {
     const req = ++requestNumber.current;
@@ -113,6 +121,9 @@ export function useSchoolSync() {
 
   /** Re-fetch server metadata (`/api/config`) and state after server/tunnel switch. */
   const reloadConfig = useCallback(async () => {
+    if (isStandaloneClient() && !hasCustomServerBase() && getAutoDiscoverEnabled()) {
+      await discoverAndSwitchServer({ currentUrl: getServerBase() });
+    }
     try {
       const c = await api<{ demo: boolean; setupRequired: boolean; schoolName?: string }>('/config');
       setDemo(c.demo);
@@ -150,11 +161,23 @@ export function useSchoolSync() {
     let socket: WebSocket;
     let reconnect: ReturnType<typeof setTimeout>;
     let closed = false;
+    let consecutiveFailures = 0;
     const connect = () => {
       socket = new WebSocket(wsUrl('/live'));
+      socket.onopen = () => {
+        consecutiveFailures = 0;
+      };
       socket.onmessage = () => void refresh();
       socket.onclose = () => {
-        if (!closed) reconnect = setTimeout(connect, 3000);
+        if (closed) return;
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= 2 && usesRemoteBearerAuth() && getAutoDiscoverEnabled()) {
+          void discoverAndSwitchServer({
+            forceBypassCdn: true,
+            currentUrl: getServerBase(),
+          });
+        }
+        reconnect = setTimeout(connect, 3000);
       };
     };
     connect();
@@ -163,7 +186,7 @@ export function useSchoolSync() {
       clearTimeout(reconnect);
       socket?.close();
     };
-  }, [auth, refresh]);
+  }, [auth, refresh, serverVersion]);
 
   useEffect(() => {
     document.documentElement.lang = lang;

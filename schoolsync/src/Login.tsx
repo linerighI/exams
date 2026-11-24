@@ -5,7 +5,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { gsap, quietMotion, usePressFeedback } from './animation';
-import { getCustomServerBase, probeServer, type ServerProbeResult } from './api';
+import { getCustomServerBase, getServerBase, isStandaloneClient, probeServer, type ServerProbeResult } from './api';
+import { discoverAndSwitchServer, getAutoDiscoverEnabled } from './registry';
 import { OrbConnectionDialog } from './components/OrbConnectionDialog';
 import type { Language } from './i18n';
 import { LoginCredentialsStep } from './LoginCredentialsStep';
@@ -65,12 +66,25 @@ export default function Login({
       setSchoolTitle(info.schoolName);
       setOrbTone((prev) => (prev === 'red' ? 'green' : prev));
     } catch {
+      if ((isStandaloneClient() || getCustomServerBase()) && getAutoDiscoverEnabled()) {
+        const disc = await discoverAndSwitchServer({
+          forceBypassCdn: true,
+          currentUrl: getServerBase(),
+        });
+        if (disc.ok && disc.probe) {
+          setServerOnline(true);
+          setSchoolTitle(disc.probe.schoolName);
+          flashGreen();
+          if (disc.switched) await onServerChanged();
+          return;
+        }
+      }
       setServerOnline(false);
       setOrbTone('red');
     } finally {
       setProbing(false);
     }
-  }, []);
+  }, [flashGreen, onServerChanged]);
 
   useEffect(() => {
     void checkServer();

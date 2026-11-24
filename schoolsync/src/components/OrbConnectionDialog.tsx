@@ -1,10 +1,10 @@
 /**
- * Interactive Orb Connection Dialog: lets phones and laptops link to the SchoolSync
- * server via Cloudflare/ngrok Cloud Tunnel URL or local PC address without same-Wi-Fi limits.
+ * Interactive Orb Connection Dialog: lets WebView2 Desktop, Capacitor Android, and Web
+ * clients auto-discover the active tunnel URL from GitHub or enter a custom link.
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, Globe, Loader2, RefreshCw, Server, WifiOff, X } from 'lucide-react';
+import { CheckCircle2, GitBranch, Globe, Loader2, RefreshCw, Server, WifiOff, X } from 'lucide-react';
 import {
   getCustomServerBase,
   getServerBase,
@@ -14,6 +14,13 @@ import {
 } from '../api';
 import type { Language } from '../i18n';
 import { Orb } from '../Orb';
+import {
+  discoverAndSwitchServer,
+  getAutoDiscoverEnabled,
+  getLastSyncAt,
+  getRegistryLabel,
+  setAutoDiscoverEnabled,
+} from '../registry';
 
 export interface OrbConnectionDialogProps {
   open: boolean;
@@ -25,7 +32,7 @@ export interface OrbConnectionDialogProps {
   onClose: () => void;
 }
 
-/** Modal dialog triggered by tapping the Login Orb to inspect or switch server/tunnel links. */
+/** Modal dialog triggered by tapping the Login Orb to inspect, sync, or switch server links. */
 export function OrbConnectionDialog({
   open,
   lang,
@@ -36,6 +43,7 @@ export function OrbConnectionDialog({
   onClose,
 }: OrbConnectionDialogProps) {
   const [urlInput, setUrlInput] = useState(() => getCustomServerBase() || getServerBase());
+  const [autoDiscover, setAutoDiscover] = useState(() => getAutoDiscoverEnabled());
   const [checking, setChecking] = useState(false);
   const [dialogTone, setDialogTone] = useState<'blue' | 'green' | 'red'>(tone);
   const [feedback, setFeedback] = useState('');
@@ -50,6 +58,7 @@ export function OrbConnectionDialog({
   useEffect(() => {
     if (!open) return;
     setUrlInput(getCustomServerBase() || getServerBase());
+    setAutoDiscover(getAutoDiscoverEnabled());
     setError('');
     setFeedback('');
     const t = setTimeout(() => inputRef.current?.focus(), 60);
@@ -91,13 +100,51 @@ export function OrbConnectionDialog({
       setDialogTone('red');
       setError(
         ar
-          ? 'تعذر الوصول إلى هذا الرابط. تأكد من تشغيل الخادم والنفق السحابي (npm run schoolsync:cloud).'
-          : 'Server unreachable. Make sure your PC server & cloud tunnel are running.',
+          ? 'تعذر الوصول إلى هذا الرابط. تأكد من تشغيل تطبيق لوحة الخادم والنفق السحابي.'
+          : 'Server unreachable. Make sure the SchoolSync Server Console & tunnel are running.',
       );
     } finally {
       setChecking(false);
     }
   };
+
+  const syncFromGitHub = async () => {
+    setChecking(true);
+    setError('');
+    setFeedback('');
+    try {
+      const outcome = await discoverAndSwitchServer({
+        force: true,
+        forceBypassCdn: true,
+        currentUrl: getCustomServerBase() || getServerBase(),
+      });
+      if (!outcome.ok || !outcome.probe || !outcome.url) {
+        setDialogTone('red');
+        setError(
+          outcome.reason === 'no-url'
+            ? ar
+              ? 'لم ينشر الخادم رابطاً نشطاً في GitHub بعد.'
+              : 'No active tunnel URL is published on GitHub yet.'
+            : ar
+              ? 'تم جلب الرابط من GitHub لكن الخادم لا يستجيب حالياً.'
+              : 'Fetched tunnel URL from GitHub, but the school server did not respond.',
+        );
+        return;
+      }
+      setUrlInput(outcome.url);
+      setDialogTone('green');
+      setFeedback(
+        ar
+          ? `تم التحديث التلقائي من GitHub: ${outcome.probe.schoolName}`
+          : `Synced from GitHub: ${outcome.probe.schoolName}`,
+      );
+      await onConnected(outcome.probe);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const lastSync = getLastSyncAt();
 
   return createPortal(
     <div
@@ -120,7 +167,7 @@ export function OrbConnectionDialog({
         <header className="orb-dialog-head">
           <div className="orb-dialog-title">
             <Globe size={18} />
-            <h2 id="orb-conn-title">{ar ? 'اتصال الخادم والنفق السحابي' : 'Server & Cloud Link'}</h2>
+            <h2 id="orb-conn-title">{ar ? 'اتصال الخادم والمزامنة التلقائية' : 'Server & Auto-Sync Link'}</h2>
           </div>
           <button
             type="button"
@@ -155,6 +202,37 @@ export function OrbConnectionDialog({
           </div>
         </div>
 
+        <div className="orb-dialog-registry">
+          <div className="orb-dialog-registry-row">
+            <GitBranch size={14} />
+            <span dir="ltr">{getRegistryLabel()}</span>
+          </div>
+          <label className="orb-dialog-toggle">
+            <input
+              type="checkbox"
+              checked={autoDiscover}
+              onChange={(e) => {
+                setAutoDiscover(e.target.checked);
+                setAutoDiscoverEnabled(e.target.checked);
+              }}
+            />
+            <span>
+              {ar
+                ? 'استبدال الرابط تلقائياً عند تغيير رابط الخادم في GitHub'
+                : 'Auto-replace URL from GitHub when server restarts'}
+            </span>
+          </label>
+          {lastSync ? (
+            <p className="orb-dialog-hint">
+              {ar ? `آخر مزامنة ناجحة: ${lastSync.slice(0, 19).replace('T', ' ')}` : `Last sync: ${lastSync.slice(0, 19).replace('T', ' ')}`}
+            </p>
+          ) : null}
+          <button type="button" className="secondary" disabled={checking} onClick={() => void syncFromGitHub()}>
+            {checking ? <Loader2 size={15} className="spin" /> : <GitBranch size={15} />}
+            {ar ? 'تحديث تلقائي من GitHub الآن' : 'Sync from GitHub Now'}
+          </button>
+        </div>
+
         <form
           className="orb-dialog-form"
           onSubmit={(e) => {
@@ -163,7 +241,7 @@ export function OrbConnectionDialog({
           }}
         >
           <label htmlFor="orb-server-url-input">
-            {ar ? 'رابط الخادم أو النفق السحابي (من أي شبكة أو إنترنت)' : 'School Server or Cloud Tunnel URL'}
+            {ar ? 'رابط الخادم أو النفق السحابي (يدوياً)' : 'School Server or Cloud Tunnel URL'}
           </label>
           <input
             id="orb-server-url-input"
@@ -176,8 +254,8 @@ export function OrbConnectionDialog({
           />
           <p className="orb-dialog-hint">
             {ar
-              ? 'شغّل (npm run schoolsync:cloud) على جهاز المدرسة أو جهازك ثم الصق الرابط السحابي هنا للعمل بدون الحاجة لنفس الواي فاي.'
-              : 'Run npm run schoolsync:cloud on your host PC and paste the HTTPS link here to connect over any network.'}
+              ? 'يقوم التطبيق بجلب أحدث رابط سحابي تلقائياً من مستودع المدرسة عند انقطاع الاتصال أو إعادة التشغيل.'
+              : 'The app automatically fetches the latest cloud link from GitHub whenever the host restarts.'}
           </p>
 
           {error && (

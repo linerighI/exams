@@ -47,3 +47,6 @@
 .orb-dialog-error { padding: 9px 12px; border-radius: 12px; font-size: 12.5px; background: #fee2e2; color: #991b1b; font-weight: 600; }
 .orb-dialog-success { padding: 9px 12px; border-radius: 12px; font-size: 12.5px; background: #dcfce7; color: #166534; font-weight: 600; }
 .orb-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.orb-dialog-registry { display: grid; gap: 8px; padding: 11px 12px; border-radius: 14px; background: var(--canvas); border: 1px solid var(--line); }
+.orb-dialog-registry-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--brand); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.orb-dialog-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer; }

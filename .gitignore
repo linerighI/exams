@@ -27,3 +27,8 @@ build/*.zip
 output/playwright/
 onboarding-video/out/
 !tests/network-ipc.cjs
+schoolsync/dist/
+schoolsync/dist-console/
+schoolsync/desktop/**/bin/
+schoolsync/desktop/**/obj/
+schoolsync/.data/

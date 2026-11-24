@@ -42,6 +42,9 @@ function createApp({
     'capacitor://localhost',
     'http://127.0.0.1:5180',
     'http://localhost:5180',
+    'https://app.schoolsync.invalid',
+    'http://app.schoolsync.invalid',
+    'https://linerighi.github.io',
   ]);
   app.register(require('@fastify/websocket'));
   const db = new Database(database);
@@ -115,9 +118,23 @@ function createApp({
       .header('Referrer-Policy', 'same-origin');
     if (!req.url.startsWith('/api/')) return;
     const origin = req.headers.origin;
+    const routePath = req.url.split('?')[0];
     const isBearerClient = req.headers['x-schoolsync-client'] === 'capacitor' && !req.headers.cookie;
-    const isNativeOrigin = origin ? CAPACITOR_ORIGINS.has(origin) || (isBearerClient && /^https?:\/\//i.test(origin)) : false;
-    if (isNativeOrigin) {
+    const acrh = String(req.headers['access-control-request-headers'] || '').toLowerCase();
+    const isPreflightForClient =
+      req.method === 'OPTIONS' &&
+      acrh.includes('x-schoolsync-client') &&
+      Boolean(origin && /^https?:\/\//i.test(origin));
+    const isPublicConfigGet =
+      routePath === '/api/config' &&
+      req.method === 'GET' &&
+      Boolean(origin && /^https?:\/\//i.test(origin));
+    const isNativeOrigin = origin
+      ? CAPACITOR_ORIGINS.has(origin) ||
+        (isBearerClient && /^https?:\/\//i.test(origin)) ||
+        isPreflightForClient
+      : false;
+    if (isNativeOrigin || isPublicConfigGet) {
       reply
         .header('Access-Control-Allow-Origin', origin)
         .header('Access-Control-Allow-Credentials', 'true')
@@ -125,7 +142,6 @@ function createApp({
         .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       if (req.method === 'OPTIONS') return reply.code(204).send();
     }
-    const routePath = req.url.split('?')[0];
     if ((!['GET', 'HEAD'].includes(req.method) || routePath === '/api/live') && origin && !isNativeOrigin) {
       let host;
       try {
@@ -229,11 +245,44 @@ if (require.main === module) {
     })
     .then(() => {
       if (cloudMode) {
-        const { startTunnel } = require('./tunnel.cjs');
+        const { startTunnel, getActiveTunnelUrl } = require('./tunnel.cjs');
+        const {
+          loadConsoleConfig,
+          publishTunnelUrl,
+          fetchRemoteTunnelUrl,
+        } = require('./git-sync.cjs');
+        const dataDir = path.join(__dirname, '../.data');
+        const syncLiveUrl = async (url) => {
+          const cfg = loadConsoleConfig(dataDir);
+          if (!cfg.autoSyncToGitHub) return;
+          const res = await publishTunnelUrl(url, cfg, { dataDir });
+          if (res.ok) {
+            console.log(`[git-sync] Published ${res.url} via ${res.method}`);
+          } else if (res.method !== 'none') {
+            console.warn(`[git-sync] Publish warning (${res.method}): ${res.error}`);
+          }
+        };
+        const cfg = loadConsoleConfig(dataDir);
         startTunnel({
           port: listenPort,
-          provider: process.argv.includes('--ngrok') ? 'ngrok' : 'cloudflared',
+          provider: process.argv.includes('--ngrok') ? 'ngrok' : cfg.tunnelProvider || 'cloudflared',
+          dataDir,
+          autoRestart: true,
+          onUrl: syncLiveUrl,
         });
+        const intervalMs = Math.max(15000, Number(cfg.driftCheckSeconds || 60) * 1000);
+        const driftTimer = setInterval(async () => {
+          const liveUrl = getActiveTunnelUrl();
+          if (!liveUrl) return;
+          const currentCfg = loadConsoleConfig(dataDir);
+          if (!currentCfg.autoSyncToGitHub) return;
+          const remote = await fetchRemoteTunnelUrl(currentCfg, { bypassCdn: true });
+          if (remote.ok && remote.url !== liveUrl) {
+            await syncLiveUrl(liveUrl);
+          }
+        }, intervalMs);
+        driftTimer.unref();
+        app.addHook('onClose', async () => clearInterval(driftTimer));
       }
     })
     .catch((err) => {

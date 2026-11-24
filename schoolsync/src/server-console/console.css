@@ -1,0 +1,473 @@
+/**
+ * Styling for App #1: SchoolSync Server Console (blue surface language + dark mode).
+ */
+:root {
+  --sc-bg: #eef4fc;
+  --sc-surface: #ffffff;
+  --sc-surface-soft: #f6f9fe;
+  --sc-ink: #0f172a;
+  --sc-muted: #52627a;
+  --sc-line: #d9e3f0;
+  --sc-brand: #1d4ed8;
+  --sc-brand-soft: #dbeafe;
+  --sc-green: #15803d;
+  --sc-green-bg: #dcfce7;
+  --sc-amber: #b45309;
+  --sc-amber-bg: #fef3c7;
+  --sc-red: #b91c1c;
+  --sc-red-bg: #fee2e2;
+  --sc-log-bg: #0b1220;
+  --sc-log-ink: #dbe7f6;
+}
+
+:root[data-theme='dark'] {
+  --sc-bg: #0b111d;
+  --sc-surface: #131c2e;
+  --sc-surface-soft: #1a253b;
+  --sc-ink: #f1f5f9;
+  --sc-muted: #94a3b8;
+  --sc-line: #27344f;
+  --sc-brand: #60a5fa;
+  --sc-brand-soft: rgba(59, 130, 246, 0.16);
+  --sc-green: #4ade80;
+  --sc-green-bg: rgba(34, 197, 94, 0.16);
+  --sc-amber: #fbbf24;
+  --sc-amber-bg: rgba(245, 158, 11, 0.16);
+  --sc-red: #f87171;
+  --sc-red-bg: rgba(239, 68, 68, 0.16);
+  --sc-log-bg: #070b14;
+  --sc-log-ink: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Tajawal', 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.11), transparent 46%), var(--sc-bg);
+  color: var(--sc-ink);
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.15s ease;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sc-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.sc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--sc-surface);
+  border: 1px solid var(--sc-line);
+  border-radius: 20px;
+  padding: 14px 18px;
+}
+
+.sc-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sc-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.25);
+}
+
+.sc-brand h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.sc-brand p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--sc-muted);
+}
+
+.sc-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: var(--sc-surface-soft);
+  color: var(--sc-ink);
+  border-color: var(--sc-line);
+}
+
+.sc-btn.primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.sc-btn.success {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+
+.sc-btn.danger {
+  background: var(--sc-red-bg);
+  color: var(--sc-red);
+  border-color: transparent;
+}
+
+.sc-btn.warn {
+  background: var(--sc-amber-bg);
+  color: var(--sc-amber);
+  border-color: transparent;
+}
+
+.sc-banner {
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sc-banner.ok {
+  background: var(--sc-green-bg);
+  color: var(--sc-green);
+}
+
+.sc-banner.err {
+  background: var(--sc-red-bg);
+  color: var(--sc-red);
+}
+
+.sc-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .sc-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sc-card {
+  background: var(--sc-surface);
+  border: 1px solid var(--sc-line);
+  border-radius: 20px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.sc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sc-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--sc-surface-soft);
+  color: var(--sc-muted);
+}
+
+.sc-pill.green {
+  background: var(--sc-green-bg);
+  color: var(--sc-green);
+}
+
+.sc-pill.amber {
+  background: var(--sc-amber-bg);
+  color: var(--sc-amber);
+}
+
+.sc-pill.red {
+  background: var(--sc-red-bg);
+  color: var(--sc-red);
+}
+
+.sc-power-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .sc-power-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sc-unit {
+  background: var(--sc-surface-soft);
+  border: 1px solid var(--sc-line);
+  border-radius: 16px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.sc-unit-meta {
+  font-size: 12.5px;
+  color: var(--sc-muted);
+}
+
+.sc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sc-url-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: var(--sc-surface-soft);
+  border: 1px solid var(--sc-line);
+}
+
+.sc-url-code {
+  direction: ltr;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-qr-wrap {
+  display: grid;
+  grid-template-columns: 124px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+@media (max-width: 560px) {
+  .sc-qr-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sc-qr-img {
+  width: 124px;
+  height: 124px;
+  border-radius: 14px;
+  background: #fff;
+  padding: 6px;
+  border: 1px solid var(--sc-line);
+}
+
+.sc-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .sc-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sc-field {
+  display: grid;
+  gap: 5px;
+}
+
+.sc-field.full {
+  grid-column: 1 / -1;
+}
+
+.sc-field label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sc-muted);
+}
+
+.sc-field input,
+.sc-field select {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 11px;
+  border: 1px solid var(--sc-line);
+  background: var(--sc-surface-soft);
+  color: var(--sc-ink);
+  font-size: 13.5px;
+}
+
+.sc-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .sc-toggles {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: var(--sc-surface-soft);
+  border: 1px solid var(--sc-line);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .sc-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sc-stat {
+  background: var(--sc-surface-soft);
+  border: 1px solid var(--sc-line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 3px;
+}
+
+.sc-stat strong {
+  font-size: 20px;
+  color: var(--sc-brand);
+}
+
+.sc-stat span {
+  font-size: 12px;
+  color: var(--sc-muted);
+}
+
+.sc-logs {
+  background: var(--sc-log-bg);
+  color: var(--sc-log-ink);
+  border-radius: 14px;
+  padding: 12px;
+  height: 240px;
+  overflow: auto;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  direction: ltr;
+  text-align: left;
+}
+
+.sc-log-line {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.sc-log-src {
+  color: #60a5fa;
+  min-width: 58px;
+}
+
+.sc-log-line.warn .sc-log-msg {
+  color: #fbbf24;
+}
+
+.sc-log-line.error .sc-log-msg {
+  color: #f87171;
+}
+
+.sc-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--sc-muted);
+  line-height: 1.5;
+}
+
+.spin {
+  animation: sc-spin 0.9s linear infinite;
+}
+
+@keyframes sc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

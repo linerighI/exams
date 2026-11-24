@@ -1,12 +1,23 @@
 /**
- * HTTP, HTTPS Cloud Tunnel & WebSocket transport adapter for both browser/PWA sessions
- * and Capacitor Android containers connecting to a local or tunneled SchoolSync server.
+ * HTTP, HTTPS Cloud Tunnel & WebSocket transport adapter for browser/PWA sessions,
+ * Windows WebView2 Desktop Clients, and Capacitor Android containers.
  */
-const SERVER_URL_KEY = 'schoolsync-server-url';
+import {
+  discoverAndSwitchServer,
+  getAutoDiscoverEnabled,
+  isCapacitorNative,
+  isDesktopWebView2,
+  isStandaloneClient,
+  SERVER_URL_KEY,
+} from './registry';
+
 const NATIVE_TOKEN_KEY = 'schoolsync-native-token';
 const DEFAULT_NATIVE_SERVER =
   (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ||
   'http://127.0.0.1:4320';
+const TUNNEL_DOWN_STATUSES = new Set([502, 503, 521, 522, 524, 530]);
+
+export { isCapacitorNative, isDesktopWebView2, isStandaloneClient };
 
 export interface ServerProbeResult {
   ok: boolean;
@@ -14,12 +25,6 @@ export interface ServerProbeResult {
   tunnelUrl: string | null;
   demo: boolean;
   url: string;
-}
-
-/** Detect whether the app is running inside the Capacitor native Android runtime. */
-export function isCapacitorNative(): boolean {
-  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-  return Boolean(cap?.isNativePlatform?.());
 }
 
 /** Return the normalized custom server URL stored by the user, or empty string if unset. */
@@ -32,15 +37,20 @@ export function hasCustomServerBase(): boolean {
   return getCustomServerBase().length > 0;
 }
 
-/** Resolve the effective API base URL (custom tunnel override, native default, or same-origin). */
+/** Return true when bearer-token auth + CORS mode should be used instead of same-origin cookies. */
+export function usesRemoteBearerAuth(): boolean {
+  return isStandaloneClient() || hasCustomServerBase();
+}
+
+/** Resolve the effective API base URL (custom/discovered tunnel override, native default, or same-origin). */
 export function getServerBase(): string {
   const custom = getCustomServerBase();
   if (custom) return custom;
-  if (!isCapacitorNative()) return '';
+  if (!isStandaloneClient()) return '';
   return DEFAULT_NATIVE_SERVER.replace(/\/+$/, '');
 }
 
-/** Persist or clear the user-configured remote/tunnel server URL. */
+/** Persist or clear the user-configured or auto-discovered remote/tunnel server URL. */
 export function setServerBase(url: string): void {
   const clean = url.trim().replace(/\/+$/, '');
   if (clean) localStorage.setItem(SERVER_URL_KEY, clean);
@@ -50,7 +60,7 @@ export function setServerBase(url: string): void {
 /** Build authentication and tunnel-bypass headers for native or remote-tunnel sessions. */
 export function authHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'ngrok-skip-browser-warning': 'true' };
-  const useBearer = isCapacitorNative() || hasCustomServerBase();
+  const useBearer = usesRemoteBearerAuth();
   if (!useBearer) return headers;
   const token = localStorage.getItem(NATIVE_TOKEN_KEY);
   return {
@@ -70,7 +80,7 @@ export function wsUrl(path: string): string {
   const base = getServerBase();
   const origin = base ? new URL(base) : location;
   const proto = origin.protocol === 'https:' ? 'wss:' : 'ws:';
-  const useBearer = isCapacitorNative() || hasCustomServerBase();
+  const useBearer = usesRemoteBearerAuth();
   const token = useBearer ? localStorage.getItem(NATIVE_TOKEN_KEY) : '';
   const suffix = token ? `?token=${encodeURIComponent(token)}` : '';
   return `${proto}//${origin.host}/api${path}${suffix}`;
@@ -83,10 +93,14 @@ export async function probeServer(candidateUrl?: string): Promise<ServerProbeRes
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
+    const useRemote = Boolean(clean) || isStandaloneClient();
     const res = await fetch(endpoint, {
       method: 'GET',
-      credentials: clean ? 'omit' : 'same-origin',
-      headers: { 'ngrok-skip-browser-warning': 'true' },
+      credentials: useRemote ? 'omit' : 'same-origin',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+        ...(useRemote ? { 'X-SchoolSync-Client': 'capacitor' } : {}),
+      },
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -103,10 +117,9 @@ export async function probeServer(candidateUrl?: string): Promise<ServerProbeRes
   }
 }
 
-/** Execute an authenticated JSON request against the active SchoolSync server. */
-export async function api<T = unknown>(url: string, body?: unknown): Promise<T> {
-  const useBearer = isCapacitorNative() || hasCustomServerBase();
-  const response = await fetch(apiUrl(url), {
+async function fetchApiOnce(url: string, body?: unknown): Promise<Response> {
+  const useBearer = usesRemoteBearerAuth();
+  return fetch(apiUrl(url), {
     method: body === undefined ? 'GET' : 'POST',
     credentials: useBearer ? 'omit' : 'same-origin',
     headers: {
@@ -115,6 +128,47 @@ export async function api<T = unknown>(url: string, body?: unknown): Promise<T> 
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+}
+
+/**
+ * Execute an authenticated JSON request against the active SchoolSync server.
+ * On standalone/remote clients, automatically checks GitHub for a rotated tunnel URL
+ * and retries once if the previous Cloudflare tunnel went offline.
+ */
+export async function api<T = unknown>(url: string, body?: unknown): Promise<T> {
+  const canAutoHeal = () => usesRemoteBearerAuth() && getAutoDiscoverEnabled();
+  let response: Response | undefined;
+  let networkError: unknown;
+  let needsHeal = false;
+
+  try {
+    response = await fetchApiOnce(url, body);
+    const contentType = response.headers.get('content-type') || '';
+    const isTunnelProxyError =
+      response.status === 530 ||
+      (TUNNEL_DOWN_STATUSES.has(response.status) && !contentType.includes('application/json'));
+    if (isTunnelProxyError && canAutoHeal()) needsHeal = true;
+  } catch (err) {
+    if (!canAutoHeal()) throw err;
+    networkError = err;
+    needsHeal = true;
+  }
+
+  if (needsHeal) {
+    const healed = await discoverAndSwitchServer({
+      forceBypassCdn: true,
+      currentUrl: getServerBase(),
+    });
+    if (healed.ok) {
+      response = await fetchApiOnce(url, body);
+    } else if (networkError) {
+      throw networkError;
+    }
+  }
+
+  if (!response) throw networkError || new Error('Unable to connect');
+
+  const useBearer = usesRemoteBearerAuth();
   const result = await response.json();
   if (!response.ok) {
     if (useBearer && response.status === 401) localStorage.removeItem(NATIVE_TOKEN_KEY);

@@ -5,6 +5,7 @@ const { z } = require('zod');
 const { id, hash, verify, digest, normalizeNationalId, text, time, fail } = require('./db.cjs');
 const { STAFF_ROLES } = require('./state.cjs');
 const { getActiveTunnelUrl } = require('./tunnel.cjs');
+const { loadConsoleConfig } = require('./git-sync.cjs');
 
 function registerAuthRoutes(app, ctx, { allowSetup, demo, nationalHash }) {
   const { one, run, audit, student } = ctx;
@@ -45,11 +46,18 @@ function registerAuthRoutes(app, ctx, { allowSetup, demo, nationalHash }) {
 
   app.get('/api/config', async () => {
     const school = one('SELECT name FROM schools LIMIT 1');
+    const cfg = loadConsoleConfig();
     return {
       demo,
       setupRequired: allowSetup && !one('SELECT 1 FROM users LIMIT 1'),
       schoolName: school?.name || 'مدرسة محمد الشريقي الثانوية للبنين',
       tunnelUrl: getActiveTunnelUrl() || null,
+      registry: {
+        owner: cfg.githubOwner,
+        repo: cfg.githubRepo,
+        branch: cfg.githubBranch,
+        filePath: cfg.githubFilePath,
+      },
     };
   });
 
