@@ -1,10 +1,13 @@
 /**
- * Functional Blue Orb host with visibility-aware animation and dynamic day tone.
+ * Functional Blue Orb host with visibility-aware animation and concentric DayPulse ring.
  */
 import { useEffect, useRef, useState } from 'react';
 import BlueOrb from '../../src/BlueOrb';
-import { tr } from './translations';
+import type { Language } from './i18n';
 
+export type OrbTone = 'blue' | 'red' | 'green';
+
+/** Interactive glowing Blue Orb wrapping the animated WebGL/Canvas BlueOrb shader. */
 export function Orb({
   size = 82,
   className = '',
@@ -13,7 +16,7 @@ export function Orb({
 }: {
   size?: number;
   className?: string;
-  tone?: 'blue' | 'red' | 'green';
+  tone?: OrbTone;
   speed?: number;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -47,23 +50,33 @@ export function Orb({
   );
 }
 
+/** Concentric Blue Orb button displaying live school-day progress. */
 export function DayPulse({
   progress,
   onClick,
   tone = 'blue',
   speed = 0.55,
-  size = 109,
+  size = 64,
+  lang = 'ar',
+  compact = false,
 }: {
   progress: number;
   onClick: () => void;
-  tone?: 'blue' | 'red' | 'green';
+  tone?: OrbTone;
   speed?: number;
   size?: number;
+  lang?: Language;
+  compact?: boolean;
 }) {
-  // Keep outer ring strictly concentric with the orb across every portal and viewport size.
-  const stageSize = Math.round(size * 1.33);
+  const stageSize = Math.round(size * 1.3);
+  const clamped = Math.max(0, Math.min(100, progress));
   return (
-    <button className="day-pulse" onClick={onClick} aria-label={tr('Open day companion')}>
+    <button
+      type="button"
+      className={`day-pulse ${compact ? 'is-compact' : ''}`}
+      onClick={onClick}
+      aria-label={lang === 'ar' ? 'فتح رفيق اليوم' : 'Open day companion'}
+    >
       <span className="pulse-stage" style={{ width: stageSize, height: stageSize }}>
         <svg viewBox="0 0 160 160" className="pulse-track" aria-hidden="true">
           <circle cx="80" cy="80" r="73" />
@@ -73,7 +86,7 @@ export function DayPulse({
             cy="80"
             r="73"
             pathLength="100"
-            strokeDasharray={`${progress} 100`}
+            strokeDasharray={`${clamped} 100`}
             transform="rotate(-90 80 80)"
           />
         </svg>
@@ -81,8 +94,7 @@ export function DayPulse({
       </span>
       <span className="pulse-caption">
         <i />
-        {Math.round(progress)}
-        {tr('% of today')}
+        {Math.round(clamped)}%
       </span>
     </button>
   );

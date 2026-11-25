@@ -27,6 +27,10 @@ const { registerPeopleRoutes } = require('./routes-people.cjs');
 const { registerAcademicRoutes } = require('./routes-academics.cjs');
 const { registerClassroomRoutes } = require('./routes-classroom.cjs');
 const { registerDatabaseRoutes } = require('./routes-database.cjs');
+const { registerSpatialRoutes } = require('./routes-spatial.cjs');
+const { registerCampusLayoutRoutes } = require('./routes-campus-layout.cjs');
+const { registerPresenceRoutes } = require('./routes-presence.cjs');
+const { createWsHub } = require('./ws-hub.cjs');
 
 function createApp({
   database = ':memory:',
@@ -35,7 +39,7 @@ function createApp({
   allowSetup = false,
   clock = () => new Date(),
 } = {}) {
-  const app = Fastify({ logger, bodyLimit: 65536, trustProxy: ['127.0.0.1', '::1'] });
+  const app = Fastify({ logger, bodyLimit: 524288, trustProxy: ['127.0.0.1', '::1'] });
   const CAPACITOR_ORIGINS = new Set([
     'http://localhost',
     'https://localhost',
@@ -86,27 +90,24 @@ function createApp({
     }
   }
 
-  const ctx = { ...createContext(db, clock), db };
-  const liveClients = new Map();
+  const wsHub = createWsHub();
+  const ctx = { ...createContext(db, clock), db, wsHub };
 
   app.addHook('onResponse', async (req, reply) => {
-    if (req.method === 'POST' && reply.statusCode < 300 && req.user) {
-      for (const [socket, info] of liveClients) {
-        if (info.expires < Date.now()) {
-          socket.close();
-          continue;
-        }
-        if (info.school === req.user.school_id && socket.readyState === 1)
-          socket.send('{"changed":true}');
-      }
+    if (
+      req.method === 'POST' &&
+      reply.statusCode < 300 &&
+      req.user &&
+      !req.url.startsWith('/api/presence/') &&
+      !req.url.startsWith('/api/campus-layout')
+    ) {
+      wsHub.broadcastStateChanged(req.user.school_id);
     }
   });
 
   app.register(async function (routes) {
     routes.get('/api/live', { websocket: true }, (socket, req) => {
-      liveClients.set(socket, { school: req.user.school_id, expires: Date.now() + 3600000 });
-      socket.on('close', () => liveClients.delete(socket));
-      socket.on('error', () => liveClients.delete(socket));
+      wsHub.register(socket, req.user);
     });
   });
 
@@ -187,6 +188,9 @@ function createApp({
   registerAcademicRoutes(app, ctx);
   registerClassroomRoutes(app, ctx);
   registerDatabaseRoutes(app, ctx, { nationalHash });
+  registerSpatialRoutes(app, ctx);
+  registerCampusLayoutRoutes(app, ctx);
+  registerPresenceRoutes(app, ctx, { demo });
 
   const dist = path.resolve(__dirname, '../dist');
   const mime = {
@@ -216,7 +220,10 @@ function createApp({
     return reply.type(mime[path.extname(file)] || 'application/octet-stream').send(readFileSync(file));
   });
 
-  app.addHook('onClose', async () => db.close());
+  app.addHook('onClose', async () => {
+    wsHub.closeAll();
+    db.close();
+  });
   return { app, db };
 }
 

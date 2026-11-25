@@ -1,0 +1,240 @@
+/**
+ * Apple HIG floating overlays for the 3D School Model Editor Studio and live Teacher
+ * presence HUD indicators (top bar, CAD tool rail, prefab drawer, onboarding banner).
+ */
+.sp-editor-topbar {
+  position: fixed;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 44;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 999px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(36px) saturate(210%);
+  -webkit-backdrop-filter: blur(36px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.sp-editor-topbar::-webkit-scrollbar { display: none; }
+
+[data-window-id='editor-inspector'] {
+  top: 122px !important;
+  max-height: calc(100vh - 220px);
+}
+
+.sp-editor-floors,
+.sp-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sp-editor-floors {
+  padding-inline-end: 8px;
+  border-inline-end: 1px solid var(--sp-divider);
+}
+
+.sp-ed-pill,
+.sp-ed-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(118, 118, 128, 0.08);
+  color: var(--sp-ink);
+  font-size: 0.77rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 140ms ease, color 140ms ease, transform 120ms ease;
+}
+
+.sp-ed-icon {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.sp-ed-pill.is-active,
+.sp-ed-icon.is-active {
+  background: var(--sp-blue);
+  color: #ffffff;
+}
+
+.sp-ed-pill:hover,
+.sp-ed-icon:hover {
+  background: rgba(118, 118, 128, 0.16);
+}
+
+.sp-ed-pill.is-active:hover,
+.sp-ed-icon.is-active:hover {
+  background: var(--sp-blue-hover);
+}
+
+.sp-ed-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sp-ed-publish {
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sp-editor-rail {
+  position: fixed;
+  top: 50%;
+  inset-inline-start: 14px;
+  transform: translateY(-50%);
+  z-index: 36;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border-radius: 20px;
+  background: rgba(250, 251, 254, 0.84);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1);
+}
+
+.sp-rail-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 58px;
+  padding: 7px 4px;
+  border: none;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--sp-muted);
+  font-size: 0.67rem;
+  font-weight: 600;
+  transition: background 140ms ease, color 140ms ease, transform 120ms ease;
+}
+
+.sp-rail-btn:hover {
+  background: rgba(118, 118, 128, 0.1);
+  color: var(--sp-ink);
+}
+
+.sp-rail-btn:active { transform: scale(0.96); }
+
+.sp-rail-btn.is-active {
+  background: var(--sp-blue);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 122, 255, 0.28);
+}
+
+.sp-editor-measure {
+  position: fixed;
+  bottom: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(29, 29, 31, 0.86);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.sp-editor-empty-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 34;
+  width: min(460px, calc(100vw - 40px));
+  padding: 16px 20px;
+  border-radius: 20px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  box-shadow: var(--sp-shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-editor-empty-banner p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--sp-muted);
+}
+
+.sp-teacher-pill {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(15, 23, 42, 0.86);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.sp-teacher-pill.is-mismatch {
+  background: rgba(255, 149, 0, 0.94);
+}
+
+.sp-sare-tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.12);
+  color: var(--sp-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.sp-color-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+
+.sp-color-dot {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid rgba(15, 23, 42, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+}
+
+.sp-color-dot.is-active {
+  border-color: var(--sp-accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.25);
+}
+
+.sp-color-picker { width: 26px; height: 22px; padding: 0; border: none; border-radius: 6px; background: transparent; cursor: pointer; }

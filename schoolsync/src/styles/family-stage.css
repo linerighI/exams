@@ -1,0 +1,190 @@
+/**
+ * Parent & Student 3D Avatar stage overlay: orbital frosted-glass student widgets,
+ * child switcher pill, and live avatar model/color/animation customizer bar.
+ */
+.sp-family-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.sp-child-switcher {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 22;
+}
+
+.sp-child-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sp-border);
+  background: var(--sp-surface);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--sp-shadow-sm);
+  font-size: 0.84rem;
+}
+
+.sp-child-pill.is-active {
+  background: var(--sp-blue);
+  color: #ffffff;
+  border-color: var(--sp-blue);
+}
+
+.sp-child-pill small {
+  opacity: 0.8;
+}
+
+.sp-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.sp-status-dot.is-present {
+  background: var(--sp-emerald);
+}
+.sp-status-dot.is-absent {
+  background: var(--sp-coral);
+}
+.sp-status-dot.is-late {
+  background: var(--sp-amber);
+}
+
+.sp-orbit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sp-orbit-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.sp-orbit-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 175px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--sp-border);
+  background: var(--sp-surface);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--sp-shadow-sm);
+  text-align: start;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.sp-orbit-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 122, 255, 0.35);
+}
+
+.sp-orbit-card.is-active {
+  border-color: var(--sp-blue);
+  box-shadow: 0 10px 28px rgba(0, 122, 255, 0.18);
+}
+
+.sp-orbit-card small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--sp-muted);
+}
+
+.sp-orbit-card strong {
+  display: block;
+  font-size: 0.84rem;
+}
+
+.sp-avatar-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--sp-border);
+  box-shadow: var(--sp-shadow);
+  pointer-events: auto;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 22;
+}
+
+.sp-avatar-models,
+.sp-gesture-row,
+.sp-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-avatar-models button,
+.sp-gesture-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--sp-border);
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.sp-avatar-models button.is-active {
+  background: var(--sp-blue);
+  color: #ffffff;
+  border-color: var(--sp-blue);
+}
+
+.sp-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.14);
+}
+
+.sp-swatch.is-active {
+  box-shadow: 0 0 0 2px var(--sp-blue);
+  transform: scale(1.14);
+}
+
+@media (max-width: 780px) {
+  .sp-orbit-layer {
+    position: fixed;
+    bottom: 84px;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    pointer-events: auto;
+  }
+  .sp-orbit-anchor {
+    position: static;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,245 @@
+/**
+ * Right-side Floor Pill, 3D-tracked room pills, hover callout cards, and toasts.
+ */
+.sp-floor-dock {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 22;
+}
+
+.sp-floor-pill,
+.sp-view-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--sp-border);
+  border-radius: 999px;
+  box-shadow: var(--sp-shadow-sm);
+}
+
+.sp-floor-btn,
+.sp-tool-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--sp-ink);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.sp-floor-btn.is-all {
+  font-size: 0.72rem;
+}
+
+.sp-floor-btn.is-active,
+.sp-tool-btn.is-active {
+  background: var(--sp-blue);
+  color: #ffffff;
+}
+
+.sp-floor-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sp-floor-lock {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+}
+
+.sp-callout-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.sp-room-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--sp-border);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.sp-room-pill.is-special {
+  background: rgba(248, 250, 252, 0.92);
+  color: #334155;
+}
+
+.sp-room-pill.is-hovered,
+.sp-room-pill.is-selected {
+  background: var(--sp-blue);
+  color: #ffffff;
+  border-color: var(--sp-blue);
+}
+
+.sp-room-state-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sp-room-state-dot.is-highlight { background: #007aff; }
+.sp-room-state-dot.is-note { background: #ff9500; }
+.sp-room-state-dot.is-alert { background: #ff3b30; }
+.sp-room-state-dot.is-maintenance { background: #6366f1; }
+
+.sp-callout-note {
+  margin: 4px 0 0;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(255, 149, 0, 0.12);
+  color: #b45309;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.sp-hover-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+  z-index: 16;
+}
+
+.sp-hover-callout.is-visible {
+  opacity: 1;
+}
+
+.sp-callout-card {
+  position: relative;
+  transform: translate(-50%, 14px);
+  min-width: 210px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(22px);
+  border: 1px solid rgba(0, 122, 255, 0.22);
+  border-radius: 16px;
+  box-shadow: var(--sp-shadow);
+}
+
+.sp-callout-stem {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 1.5px;
+  height: 15px;
+  background: var(--sp-blue);
+}
+
+.sp-callout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.sp-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+.sp-live-badge i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.sp-count-badge {
+  font-size: 0.74rem;
+  color: var(--sp-muted);
+}
+
+.sp-callout-line {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--sp-muted);
+}
+
+.sp-callout-line.is-primary {
+  color: var(--sp-ink);
+  font-weight: 600;
+}
+
+.sp-callout-stats {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.sp-callout-stats .is-green {
+  color: #059669;
+}
+
+.sp-toast-stack {
+  position: fixed;
+  bottom: 20px;
+  left: 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 90;
+}
+
+.sp-toast {
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+  font-size: 0.84rem;
+  box-shadow: var(--sp-shadow-sm);
+}
+
+.sp-toast.is-error {
+  background: var(--sp-coral);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-toast.is-error button {
+  background: rgba(255, 255, 255, 0.22);
+  border: none;
+  border-radius: 8px;
+  padding: 3px 9px;
+  color: #ffffff;
+}

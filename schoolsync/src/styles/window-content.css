@@ -1,0 +1,295 @@
+/**
+ * Floating window cards, KPI tiles, schedule lists, chips, and upload dropzone.
+ */
+.sp-inline-box,
+.sp-note-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.sp-note-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+}
+
+.sp-note-head small {
+  margin-inline-start: auto;
+  color: var(--sp-muted);
+}
+
+.sp-note-card p,
+.sp-small-copy {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #3a3a3c;
+}
+
+.sp-subhead {
+  margin: 4px 4px -4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+}
+
+.sp-empty-note {
+  margin: 8px 0;
+  padding: 14px;
+  text-align: center;
+  color: var(--sp-muted);
+  font-size: 0.84rem;
+}
+
+.sp-weekday-pills,
+.sp-chip-grid,
+.sp-bell-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-weekday-pills button,
+.sp-toggle-chip {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: none;
+  background: var(--sp-fill-input);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sp-ink);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.sp-weekday-pills button:hover,
+.sp-toggle-chip:hover {
+  background: rgba(118, 118, 128, 0.16);
+}
+
+.sp-weekday-pills button.is-active,
+.sp-toggle-chip.is-active {
+  background: var(--sp-blue);
+  color: #ffffff;
+}
+
+.sp-lesson-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid var(--sp-divider);
+  border-radius: 0;
+}
+
+.sp-lesson-card:last-child {
+  border-bottom: none;
+}
+
+.sp-lesson-card.is-live {
+  background: rgba(0, 122, 255, 0.07);
+}
+
+.sp-live-chip {
+  margin-inline-start: 7px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--sp-emerald);
+  color: #ffffff;
+  font-size: 0.7rem;
+}
+
+.sp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.sp-kpi-card {
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sp-kpi-card strong {
+  font-size: 1.15rem;
+}
+
+.sp-kpi-card small {
+  font-size: 0.74rem;
+  color: var(--sp-muted);
+}
+
+.sp-bell-pill {
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  font-size: 0.74rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sp-bell-pill.is-now {
+  background: var(--sp-blue-soft);
+  border-color: rgba(0, 122, 255, 0.35);
+  color: var(--sp-blue);
+}
+
+.sp-status-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--sp-surface-muted);
+}
+
+.sp-status-tag.is-present {
+  background: var(--sp-emerald-soft);
+  color: #047857;
+}
+.sp-status-tag.is-absent {
+  background: var(--sp-coral-soft);
+  color: #be123c;
+}
+.sp-status-tag.is-late {
+  background: var(--sp-amber-soft);
+  color: #b45309;
+}
+
+.sp-alert {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--sp-coral-soft);
+  color: #be123c;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.sp-demo-strip {
+  padding-top: 8px;
+  border-top: 1px solid var(--sp-border);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sp-demo-strip small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--sp-muted);
+}
+
+.sp-demo-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sp-demo-chips button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: var(--sp-fill-input);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 140ms ease;
+}
+
+.sp-demo-chips button:hover {
+  background: rgba(118, 118, 128, 0.16);
+}
+
+.sp-upload-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--sp-border-strong);
+  background: var(--sp-surface-card);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.sp-chip-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-chip-picker > span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+}
+
+.sp-submitted-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #059669;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sp-grade-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-att-group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgba(118, 118, 128, 0.09);
+  flex-shrink: 0;
+}
+
+.sp-att-btn {
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.sp-att-btn.is-active {
+  color: #ffffff;
+}
+.sp-att-btn.is-present.is-active {
+  background: var(--sp-emerald);
+}
+.sp-att-btn.is-absent.is-active {
+  background: var(--sp-coral);
+}
+.sp-att-btn.is-late.is-active {
+  background: var(--sp-amber);
+}
+.sp-att-btn.is-excused.is-active {
+  background: #475569;
+}

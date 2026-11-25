@@ -1,0 +1,186 @@
+/**
+ * SchoolSync Blue Orb, Login Connection Orb pill, floating DayPulse companion dock,
+ * and Connection Orb dialog styling.
+ */
+.orb-host {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sp-login-orb-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 6px;
+}
+
+.sp-login-orb-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 28px rgba(0, 122, 255, 0.22);
+  transition: transform 180ms ease;
+}
+
+.sp-login-orb-btn:hover {
+  transform: scale(1.05);
+}
+
+.sp-orb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--sp-border);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+}
+
+.sp-orb-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sp-blue);
+}
+
+.sp-orb-pill.is-green i {
+  background: var(--sp-emerald);
+}
+
+.sp-orb-pill.is-red {
+  color: #be123c;
+  background: var(--sp-coral-soft);
+}
+
+.sp-orb-pill.is-red i {
+  background: var(--sp-coral);
+}
+
+.sp-orb-dock {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 26;
+}
+
+.day-pulse {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--sp-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--sp-shadow);
+  transition: transform 160ms ease;
+}
+
+.day-pulse:hover {
+  transform: translateY(-2px);
+}
+
+.pulse-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.pulse-track {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+}
+
+.pulse-track circle {
+  stroke: rgba(0, 122, 255, 0.14);
+  stroke-width: 7;
+}
+
+.pulse-track .pulse-value {
+  stroke: var(--sp-blue);
+  stroke-linecap: round;
+  transition: stroke-dasharray 400ms ease;
+}
+
+.pulse-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sp-ink);
+}
+
+.sp-orb-dialog-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.sp-orb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--sp-blue-soft);
+  color: var(--sp-blue);
+}
+
+.sp-orb-status.is-green {
+  background: var(--sp-emerald-soft);
+  color: #047857;
+}
+
+.sp-orb-status.is-red {
+  background: var(--sp-coral-soft);
+  color: #be123c;
+}
+
+.sp-success-note {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--sp-emerald-soft);
+  color: #047857;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.sp-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sp-toggle-row input {
+  width: auto;
+}
+
+.sp-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,126 @@
+/**
+ * Apple-inspired white clay & frosted-glass design tokens and base viewport reset
+ * for SchoolSync 3D Spatial Campus OS.
+ */
+:root {
+  --sp-bg: #f4f6fa;
+  --sp-surface: rgba(251, 252, 255, 0.85);
+  --sp-surface-solid: #ffffff;
+  --sp-surface-card: rgba(255, 255, 255, 0.86);
+  --sp-surface-muted: rgba(118, 118, 128, 0.1);
+  --sp-fill-input: rgba(118, 118, 128, 0.085);
+  --sp-border: rgba(15, 23, 42, 0.06);
+  --sp-border-strong: rgba(15, 23, 42, 0.11);
+  --sp-divider: rgba(60, 60, 67, 0.1);
+  --sp-ink: #1d1d1f;
+  --sp-muted: #6e6e73;
+  --sp-blue: #007aff;
+  --sp-accent: #007aff;
+  --sp-blue-hover: #0066d6;
+  --sp-blue-soft: rgba(0, 122, 255, 0.11);
+  --sp-emerald: #34c759;
+  --sp-emerald-soft: rgba(52, 199, 89, 0.14);
+  --sp-coral: #ff3b30;
+  --sp-coral-soft: rgba(255, 59, 48, 0.13);
+  --sp-amber: #ff9500;
+  --sp-amber-soft: rgba(255, 149, 0, 0.15);
+  --sp-slate-soft: rgba(118, 118, 128, 0.14);
+  --sp-shadow: 0 24px 60px rgba(15, 23, 42, 0.12), 0 2px 10px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  --sp-shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.075), 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --sp-radius: 22px;
+  --sp-radius-sm: 12px;
+  --sp-font: 'Tajawal', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--sp-bg);
+  color: var(--sp-ink);
+  font-family: var(--sp-font);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  user-select: text;
+}
+
+.sp-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--sp-bg);
+}
+
+.sp-loading-splash {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--sp-bg);
+  z-index: 100;
+}
+
+.sp-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 36px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius);
+  box-shadow: var(--sp-shadow);
+}
+
+.sp-spin {
+  animation: sp-spin 1s linear infinite;
+  color: var(--sp-blue);
+}
+
+@keyframes sp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.is-blue {
+  color: var(--sp-blue);
+}
+.is-emerald {
+  color: var(--sp-emerald);
+}
+.is-coral {
+  color: var(--sp-coral);
+}
+.is-indigo {
+  color: #6366f1;
+}

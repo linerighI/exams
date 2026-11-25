@@ -4,6 +4,8 @@
  */
 const { day, id, fail } = require('./db.cjs');
 const { createNotificationsHub } = require('./notifications-hub.cjs');
+const { getPublishedLayoutPayload } = require('./routes-campus-layout.cjs');
+const { buildTeacherPresenceList, getOwnPresence } = require('./routes-presence.cjs');
 
 const STAFF_ROLES = ['teacher', 'assistant', 'admin'];
 const MANAGER_ROLES = ['assistant', 'admin'];
@@ -48,6 +50,10 @@ function createContext(db, clock) {
 
   function teacherSubjects(u) {
     return all('SELECT subject FROM teacher_subjects WHERE teacher_id=?', u.id).map((r) => r.subject);
+  }
+
+  function teacherWings(u) {
+    return all('SELECT wing FROM teacher_wings WHERE teacher_id=?', u.id).map((r) => r.wing);
   }
 
   function students(u) {
@@ -123,6 +129,7 @@ function createContext(db, clock) {
     lesson,
     teacherClasses,
     teacherSubjects,
+    teacherWings,
     teacherCanManageSubject,
     clock,
   };
@@ -198,6 +205,7 @@ function buildState(ctx, u, requestedStudentId, demo) {
           email: t.email,
           classes: ctx.teacherClasses(t),
           subjects: ctx.teacherSubjects(t),
+          wings: ctx.teacherWings(t),
         }),
       )
     : [];
@@ -211,6 +219,14 @@ function buildState(ctx, u, requestedStudentId, demo) {
     classes: all('SELECT * FROM classes WHERE school_id=? ORDER BY sort_order ASC, name ASC', u.school_id),
     subjects: all('SELECT * FROM subjects WHERE school_id=? ORDER BY name', u.school_id),
     teachers,
+    teacherWings: u.role === 'teacher' ? ctx.teacherWings(u) : [],
+    spatialRooms: all('SELECT slot_id,label,kind,class_name,wing FROM spatial_rooms WHERE school_id=?', u.school_id),
+    campusLayout: isStaff ? getPublishedLayoutPayload(one, u.school_id) : null,
+    teacherPresence: isManager
+      ? buildTeacherPresenceList(ctx, school, clock())
+      : u.role === 'teacher'
+        ? [getOwnPresence(ctx, u)].filter(Boolean)
+        : [],
     lessons: s
       ? all(
           'SELECT l.*,u.name teacher FROM lessons l JOIN users u ON u.id=l.teacher_id WHERE l.school_id=? AND l.section=? ORDER BY l.weekday,l.start',

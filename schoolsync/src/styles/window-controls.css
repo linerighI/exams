@@ -1,0 +1,298 @@
+/**
+ * Floating window forms, buttons, search fields, and student attendance controls.
+ */
+.sp-live-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.sp-live-banner.is-live {
+  background: rgba(0, 122, 255, 0.08);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.sp-live-banner-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sp-muted);
+  flex-shrink: 0;
+}
+
+.sp-live-banner.is-live .sp-live-banner-dot {
+  background: var(--sp-emerald);
+  box-shadow: 0 0 0 4px var(--sp-emerald-soft);
+}
+
+.sp-live-banner-text strong,
+.sp-live-banner-text small {
+  display: block;
+}
+
+.sp-live-banner-text strong {
+  font-size: 0.88rem;
+}
+
+.sp-live-banner-text small {
+  font-size: 0.76rem;
+  color: var(--sp-muted);
+}
+
+.sp-tab-pane,
+.sp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sp-field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+}
+
+.sp-field input,
+.sp-field select,
+.sp-field textarea,
+.sp-inline-box input,
+.sp-inline-box select {
+  width: 100%;
+  padding: 9px 12px;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--sp-fill-input);
+  font-size: 0.85rem;
+  outline: none;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.sp-field input:focus,
+.sp-field select:focus,
+.sp-field textarea:focus,
+.sp-inline-box input:focus,
+.sp-inline-box select:focus {
+  background: #ffffff;
+  border-color: rgba(0, 122, 255, 0.55);
+  box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.14);
+}
+
+.sp-window input:-webkit-autofill,
+.sp-window select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #edf0f5 inset;
+  -webkit-text-fill-color: var(--sp-ink);
+  transition: background-color 9999s ease-out 0s;
+}
+
+.sp-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sp-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.sp-row-actions,
+.sp-toolbar-row,
+.sp-section-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sp-btn-primary,
+.sp-btn-soft,
+.sp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  border: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: background 150ms ease, transform 120ms ease;
+}
+
+.sp-btn-primary {
+  background: var(--sp-blue);
+  color: #ffffff;
+}
+
+.sp-btn-primary:hover {
+  background: var(--sp-blue-hover);
+}
+
+.sp-btn-primary:active {
+  transform: scale(0.985);
+}
+
+.sp-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.sp-btn-soft {
+  background: var(--sp-blue-soft);
+  color: var(--sp-blue);
+  padding: 7px 12px;
+}
+
+.sp-btn-soft:hover {
+  background: rgba(0, 122, 255, 0.18);
+}
+
+.sp-btn-ghost {
+  background: transparent;
+  color: var(--sp-muted);
+}
+
+.sp-btn-ghost:hover {
+  background: var(--sp-fill-input);
+  color: var(--sp-ink);
+}
+
+.sp-search-mini {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  background: var(--sp-fill-input);
+  border: 1px solid transparent;
+}
+
+.sp-search-mini input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.83rem;
+}
+
+.sp-stats-pills,
+.sp-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-stats-pills span,
+.sp-chip-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: var(--sp-surface-muted);
+}
+
+.sp-stats-pills .is-green {
+  background: var(--sp-emerald-soft);
+  color: #047857;
+}
+
+.sp-stats-pills .is-coral {
+  background: var(--sp-coral-soft);
+  color: #be123c;
+}
+
+.sp-student-list,
+.sp-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-student-list,
+.sp-list-stack:has(> .sp-info-row, > .sp-lesson-card) {
+  gap: 0;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.sp-student-row,
+.sp-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 0.5px solid var(--sp-divider);
+  transition: background 140ms ease;
+}
+
+:is(.sp-student-row, .sp-info-row):last-child {
+  border-bottom: none;
+}
+
+:is(.sp-student-row, .sp-info-row):hover {
+  background: rgba(0, 122, 255, 0.045);
+}
+
+.sp-student-name-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: start;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.sp-student-name-btn strong,
+.sp-student-name-btn small,
+.sp-info-row strong,
+.sp-info-row small {
+  display: block;
+}
+
+.sp-info-row small,
+.sp-student-name-btn small {
+  font-size: 0.74rem;
+  color: var(--sp-muted);
+  font-weight: 500;
+}
+
+.sp-mini-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--sp-blue-soft);
+  color: var(--sp-blue);
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+

@@ -184,6 +184,7 @@ function registerSchoolRoutes(app, ctx) {
       .object({
         classes: z.array(z.string().trim().min(1).max(80)).max(30),
         subjects: z.array(z.string().trim().min(1).max(80)).max(30),
+        wings: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
       })
       .parse(req.body);
     ctx.db.transaction(() => {
@@ -196,6 +197,12 @@ function registerSchoolRoutes(app, ctx) {
       for (const sub of new Set(v.subjects)) {
         run('INSERT OR IGNORE INTO teacher_subjects(school_id,teacher_id,subject) VALUES(?,?,?)', u.school_id, t.id, sub);
         run('INSERT OR IGNORE INTO subjects(id,school_id,name) VALUES(?,?,?)', id(), u.school_id, sub);
+      }
+      if (v.wings !== undefined) {
+        run('DELETE FROM teacher_wings WHERE teacher_id=?', t.id);
+        for (const w of new Set(v.wings)) {
+          run('INSERT OR IGNORE INTO teacher_wings(school_id,teacher_id,wing) VALUES(?,?,?)', u.school_id, t.id, w);
+        }
       }
       run('UPDATE users SET section=? WHERE id=?', v.classes[0] || null, t.id);
       audit(u, `Updated teacher assignments for ${t.name}`);

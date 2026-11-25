@@ -20,6 +20,7 @@ export default defineConfig({
           if (!module.includes('/node_modules/')) return;
           if (/\/(motion|motion-dom|motion-utils|framer-motion|gsap)\//.test(module))
             return 'animation';
+          if (/\/three\//.test(module)) return 'three';
           if (/\/(react|react-dom|scheduler)\//.test(module)) return 'react';
         },
       },

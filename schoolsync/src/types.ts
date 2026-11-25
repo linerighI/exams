@@ -1,9 +1,30 @@
 /**
  * Domain TypeScript contracts shared across SchoolSync client modules.
  */
+import type {
+  CampusLayout,
+  RoomKind,
+  SpatialRoomRecord,
+  TeacherPresenceRecord,
+  WingId,
+} from './spatial/engine/spatialTypes';
+
+export type * from './spatial/engine/spatialTypes';
 
 export type Role = 'student' | 'parent' | 'teacher' | 'assistant' | 'admin';
 export type LayoutMode = 'auto' | 'phone' | 'tablet' | 'desktop';
+
+export interface LoginRequest {
+  portal: 'staff' | 'family';
+  email?: string;
+  nationalId?: string;
+  password: string;
+}
+
+export const isSchoolRole = (role: Role): boolean =>
+  role === 'teacher' || role === 'assistant' || role === 'admin';
+
+export const isManagerRole = (role: Role): boolean => role === 'assistant' || role === 'admin';
 
 export interface User {
   id: string;
@@ -51,6 +72,7 @@ export interface TeacherProfile {
   email: string;
   classes: string[];
   subjects: string[];
+  wings?: WingId[];
 }
 
 export interface Student {
@@ -158,6 +180,10 @@ export interface State {
   classes: SchoolClass[];
   subjects: SubjectItem[];
   teachers: TeacherProfile[];
+  teacherWings?: WingId[];
+  spatialRooms?: SpatialRoomRecord[];
+  campusLayout?: CampusLayout | null;
+  teacherPresence?: TeacherPresenceRecord[];
   lessons: Lesson[];
   homework: Homework[];
   grades: Grade[];
@@ -177,3 +203,5 @@ export interface State {
   } | null;
   demo: boolean;
 }
+
+export type { RoomKind };
