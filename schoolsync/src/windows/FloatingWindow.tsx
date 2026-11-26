@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useGsapEntrance } from '../spatial/editor/editorMotion';
 
 export type DockSide = 'right' | 'left' | 'center';
 
@@ -52,6 +53,13 @@ export function FloatingWindow({
   const [pos, setPos] = useState(() => initialPosition(dock, width));
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const winRef = useRef<HTMLDivElement>(null);
+
+  useGsapEntrance(
+    winRef,
+    { opacity: 0, y: 14, scale: 0.97 },
+    { opacity: 1, y: 0, scale: 1, duration: 0.34, ease: 'power4.out' },
+    [id],
+  );
 
   useEffect(() => {
     const clamp = () => {

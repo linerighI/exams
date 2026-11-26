@@ -4,6 +4,7 @@
  */
 import type { Language } from '../../i18n';
 import type { CampusRoom, RoomStateKind } from '../../types';
+import { gsapPop } from './editorMotion';
 
 const WALL_SWATCHES = ['#ffffff', '#f1f5f9', '#eff6ff', '#fef3c7', '#ecfdf5', '#fdf2f8'];
 const FLOOR_SWATCHES = ['#f6f8fc', '#eaf1fa', '#fef9c3', '#e2e8f0', '#ede9fe'];
@@ -40,7 +41,7 @@ export function RoomAppearancePanel({
               type="button"
               className={`sp-color-dot ${curWall.toLowerCase() === hex ? 'is-active' : ''}`}
               style={{ background: hex }}
-              onClick={() => onUpdate({ wallColor: hex })}
+              onClick={(e) => { gsapPop(e.currentTarget); onUpdate({ wallColor: hex }); }}
               title={hex}
             />
           ))}
@@ -62,7 +63,7 @@ export function RoomAppearancePanel({
               type="button"
               className={`sp-color-dot ${curFloor.toLowerCase() === hex ? 'is-active' : ''}`}
               style={{ background: hex }}
-              onClick={() => onUpdate({ floorColor: hex })}
+              onClick={(e) => { gsapPop(e.currentTarget); onUpdate({ floorColor: hex }); }}
               title={hex}
             />
           ))}
@@ -83,7 +84,7 @@ export function RoomAppearancePanel({
               key={st.key}
               type="button"
               className={`sp-toggle-chip ${curState === st.key ? 'is-active' : ''}`}
-              onClick={() => onUpdate({ roomState: st.key })}
+              onClick={(e) => { gsapPop(e.currentTarget); onUpdate({ roomState: st.key }); }}
             >
               {lang === 'ar' ? st.ar : st.en}
             </button>

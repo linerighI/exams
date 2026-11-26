@@ -2,13 +2,15 @@
  * Teachers' Room floating window: live radar showing which classroom every teacher
  * is currently teaching in (with 1-click drone fly-to) plus Principal Wing/Class assignment.
  */
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, Compass, Layers, Radio } from 'lucide-react';
 import type { Language } from '../i18n';
 import { minutesOf, nowMinutesInZone, weekdayOfDate } from '../jordanTime';
+import { gsapPop, useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import { isManagerRole, type CampusLayout, type State, type WingId } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { SegmentedTabs } from './SegmentedTabs';
 
 interface TeachersRoomWindowProps {
   room: ResolvedSpatialRoom;
@@ -41,6 +43,13 @@ export function TeachersRoomWindow({
   const manager = isManagerRole(data.user.role);
   const [tab, setTab] = useState<'radar' | 'assign'>('radar');
   const [selectedId, setSelectedId] = useState(data.teachers[0]?.id || '');
+  const paneRef = useRef<HTMLDivElement>(null);
+
+  useGsapStagger(paneRef, '.sp-info-row, .sp-chip-picker', [tab, selectedId], {
+    y: 8,
+    stagger: 0.025,
+    duration: 0.24,
+  });
 
   const selectedTeacher = data.teachers.find((t) => t.id === selectedId) || data.teachers[0] || null;
   const [selWings, setSelWings] = useState<WingId[]>(selectedTeacher?.wings || []);
@@ -83,17 +92,17 @@ export function TeachersRoomWindow({
       onClose={onClose}
     >
       {manager && (
-        <div className="sp-segmented">
-          <button type="button" className={tab === 'radar' ? 'is-active' : ''} onClick={() => setTab('radar')}>
-            <Radio size={13} />
-            <span>{lang === 'ar' ? 'رادار المعلمين الآن' : 'Live Radar'}</span>
-          </button>
-          <button type="button" className={tab === 'assign' ? 'is-active' : ''} onClick={() => setTab('assign')}>
-            <Layers size={13} />
-            <span>{lang === 'ar' ? 'تخصيص الأجنحة والصفوف' : 'Assign Wings'}</span>
-          </button>
-        </div>
+        <SegmentedTabs
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: 'radar', label: <><Radio size={13} /><span>{lang === 'ar' ? 'رادار المعلمين الآن' : 'Live Radar'}</span></> },
+            { id: 'assign', label: <><Layers size={13} /><span>{lang === 'ar' ? 'تخصيص الأجنحة والصفوف' : 'Assign Wings'}</span></> },
+          ]}
+        />
       )}
+
+      <div ref={paneRef} className="sp-tab-pane">
 
       {tab === 'radar' && (
         <div className="sp-list-stack">
@@ -160,7 +169,7 @@ export function TeachersRoomWindow({
                   key={w.id}
                   type="button"
                   className={`sp-toggle-chip ${selWings.includes(w.id) ? 'is-active' : ''}`}
-                  onClick={() => setSelWings(toggleItem(selWings, w.id))}
+                  onClick={(e) => { gsapPop(e.currentTarget); setSelWings(toggleItem(selWings, w.id)); }}
                 >
                   {lang === 'ar' ? w.labelAr : w.labelEn}
                 </button>
@@ -176,7 +185,7 @@ export function TeachersRoomWindow({
                   key={c.id}
                   type="button"
                   className={`sp-toggle-chip ${selClasses.includes(c.name) ? 'is-active' : ''}`}
-                  onClick={() => setSelClasses(toggleItem(selClasses, c.name))}
+                  onClick={(e) => { gsapPop(e.currentTarget); setSelClasses(toggleItem(selClasses, c.name)); }}
                 >
                   {c.name}
                 </button>
@@ -192,7 +201,7 @@ export function TeachersRoomWindow({
                   key={s.id}
                   type="button"
                   className={`sp-toggle-chip ${selSubjects.includes(s.name) ? 'is-active' : ''}`}
-                  onClick={() => setSelSubjects(toggleItem(selSubjects, s.name))}
+                  onClick={(e) => { gsapPop(e.currentTarget); setSelSubjects(toggleItem(selSubjects, s.name)); }}
                 >
                   {s.name}
                 </button>
@@ -206,6 +215,7 @@ export function TeachersRoomWindow({
           </button>
         </form>
       )}
+      </div>
     </FloatingWindow>
   );
 }

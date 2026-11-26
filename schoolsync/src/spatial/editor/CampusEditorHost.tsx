@@ -10,6 +10,7 @@ import { EditorGeoWindow } from './EditorGeoWindow';
 import { EditorInspectorWindow } from './EditorInspectorWindow';
 import { EditorPropDrawer } from './EditorPropDrawer';
 import { EditorToolbar } from './EditorToolbar';
+import { SarCodeWindow } from '../sar/SarCodeWindow';
 
 interface CampusEditorHostProps {
   editor: ReturnType<typeof useCampusEditor>;
@@ -129,6 +130,8 @@ export function CampusEditorHost({
         onOpenGeo={() => editor.setGeoCalibratorOpen(true)}
         onLoadStarter={() => editor.loadStarter(data.classes)}
         onClearBlank={editor.clearBlank}
+        sarOpen={editor.sarStudioOpen}
+        onToggleSar={() => editor.setSarStudioOpen((v) => !v)}
         onPublish={() => void handlePublish()}
         onExit={onExit}
       />
@@ -159,6 +162,15 @@ export function CampusEditorHost({
           lang={lang}
           onSelectProp={editor.setActivePropId}
           onRotate={() => editor.setPropRotation((r) => (r + Math.PI / 4) % (Math.PI * 2))}
+        />
+      )}
+
+      {editor.sarStudioOpen && (
+        <SarCodeWindow
+          draft={editor.draft}
+          lang={lang}
+          onApplyLayout={editor.applyLayout}
+          onClose={() => editor.setSarStudioOpen(false)}
         />
       )}
 

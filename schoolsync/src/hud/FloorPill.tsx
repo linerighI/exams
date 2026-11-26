@@ -2,8 +2,10 @@
  * Dynamic Apple-style vertical floor switcher pill reading floors from CampusLayout,
  * with teacher access locking, roof cutaway toggle, and camera reset.
  */
+import { useRef } from 'react';
 import { Compass, Layers, Lock } from 'lucide-react';
 import type { Language } from '../i18n';
+import { gsapPop, useGsapEntrance } from '../spatial/editor/editorMotion';
 import type { CampusLayout } from '../types';
 import type { FloorFilter, ResolvedSpatialRoom, TeacherAccess } from '../spatial/roomCatalog';
 
@@ -32,6 +34,14 @@ export function FloorPill({
   onResetCamera,
 }: FloorPillProps) {
   const orderedFloors = [...layout.floors].sort((a, b) => b.index - a.index);
+  const dockRef = useRef<HTMLDivElement>(null);
+
+  useGsapEntrance(
+    dockRef,
+    { opacity: 0, x: 18, scale: 0.96 },
+    { opacity: 1, x: 0, scale: 1, duration: 0.42, ease: 'power4.out' },
+    [layout.floors.length],
+  );
 
   const canAccessFloor = (floorId: string): boolean => {
     if (!access.restricted) return true;
@@ -43,7 +53,7 @@ export function FloorPill({
   };
 
   return (
-    <div className="sp-floor-dock" aria-label={lang === 'ar' ? 'تبديل الطوابق' : 'Floor Switcher'}>
+    <div ref={dockRef} className="sp-floor-dock" aria-label={lang === 'ar' ? 'تبديل الطوابق' : 'Floor Switcher'}>
       <div className="sp-floor-pill">
         {orderedFloors.map((fl) => {
           const allowed = canAccessFloor(fl.id);
@@ -54,7 +64,10 @@ export function FloorPill({
               className={`sp-floor-btn ${floor === fl.id ? 'is-active' : ''}`}
               disabled={!allowed}
               title={lang === 'ar' ? fl.labelAr : fl.labelEn}
-              onClick={() => onChangeFloor(fl.id)}
+              onClick={(e) => {
+                gsapPop(e.currentTarget);
+                onChangeFloor(fl.id);
+              }}
             >
               <span>{fl.index}</span>
               {!allowed && <Lock size={10} className="sp-floor-lock" />}

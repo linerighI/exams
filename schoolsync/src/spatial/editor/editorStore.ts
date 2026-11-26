@@ -49,6 +49,7 @@ export function useCampusEditor(initialLayout: CampusLayout | null, lang: Langua
   const [gridSnap, setGridSnap] = useState<number>(0.5);
   const [onionSkin, setOnionSkin] = useState<boolean>(true);
   const [geoCalibratorOpen, setGeoCalibratorOpen] = useState<boolean>(false);
+  const [sarStudioOpen, setSarStudioOpen] = useState<boolean>(false);
   const [dirty, setDirty] = useState<boolean>(false);
 
   const commit = useCallback((updater: (prev: CampusLayout) => CampusLayout) => {
@@ -262,13 +263,21 @@ export function useCampusEditor(initialLayout: CampusLayout | null, lang: Langua
     setSelected(null);
   }, [commit, lang]);
 
+  const applyLayout = useCallback((next: CampusLayout) => {
+    commit(() => next);
+    setActiveFloorId(next.floors[0]?.id || 'floor-1');
+    setActiveWingId(next.wings[0]?.id || 'main');
+    setSelected(null);
+  }, [commit]);
+
   return {
     draft, tool, setTool, selected, setSelected, activeFloorId, setActiveFloorId,
     activeWingId, setActiveWingId, activePropId, setActivePropId, propRotation, setPropRotation,
     gridSnap, setGridSnap, onionSkin, setOnionSkin, geoCalibratorOpen, setGeoCalibratorOpen,
+    sarStudioOpen, setSarStudioOpen,
     dirty, setDirty, canUndo: past.length > 0, canRedo: future.length > 0,
     syncLayoutFromServer, undo, redo, addRoom, updateRoom, toggleSharedWallMerge, addOpening, updateOpening, removeOpening, addProp, updateProp,
     addAssignment, updateAssignment, deleteSelected, duplicateSelected, addFloor, addWing,
-    loadStarter, clearBlank,
+    loadStarter, clearBlank, applyLayout,
   };
 }

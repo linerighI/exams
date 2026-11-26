@@ -3,20 +3,12 @@
  * Top-left brand + live Jordanian bell period pill, Top-right school name, Spotlight search,
  * Principal quick room-label toggle, Notifications popover, and Account popover.
  */
-import { useEffect, useState } from 'react';
-import {
-  Bell,
-  Box,
-  Clock,
-  Globe,
-  LogOut,
-  Pencil,
-  Radio,
-  ShieldAlert,
-  WifiOff,
-} from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
+import { Bell, Box, Clock, Globe, LogOut, Pencil, Radio, ShieldAlert, WifiOff } from 'lucide-react';
 import type { Language } from '../i18n';
 import { buildPeriodSlots, formatClock, minutesOf, nowMinutesInZone } from '../jordanTime';
+import { useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom, TeacherAccess } from '../spatial/roomCatalog';
 import type { TrackerStatus } from '../tracking/teacherTracker';
 import { isManagerRole, isSchoolRole, type State } from '../types';
@@ -62,6 +54,19 @@ export function SpatialHud({
 }: SpatialHudProps) {
   const [popover, setPopover] = useState<'none' | 'alerts' | 'account'>('none');
   const [tick, setTick] = useState(0);
+  const hudRef = useRef<HTMLElement>(null);
+
+  useGsapStagger(hudRef, '.sp-hud-brand > *, .sp-hud-actions > *', [Boolean(data)], { y: -8, stagger: 0.03, duration: 0.32 });
+
+  useLayoutEffect(() => {
+    const el = hudRef.current;
+    if (!el) return;
+    if (editorMode) {
+      gsap.to(el, { y: -22, opacity: 0, pointerEvents: 'none', duration: 0.24, ease: 'power2.in', overwrite: 'auto' });
+    } else {
+      gsap.to(el, { y: 0, opacity: 1, pointerEvents: 'auto', duration: 0.36, ease: 'power3.out', overwrite: 'auto' });
+    }
+  }, [editorMode]);
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30000);
@@ -114,7 +119,7 @@ export function SpatialHud({
             : 'Family 3D Companion';
 
   return (
-    <header className="sp-hud">
+    <header ref={hudRef} className="sp-hud">
       <div className="sp-hud-brand">
         <div className="sp-brand-title">
           <strong>SchoolSync</strong>
@@ -205,16 +210,7 @@ export function SpatialHud({
         {data ? (
           <>
             <div className="sp-popover-anchor">
-              <button
-                type="button"
-                className="sp-icon-pill"
-                aria-label={lang === 'ar' ? 'التنبيهات' : 'Notifications'}
-                onClick={() => {
-                  const next = popover === 'alerts' ? 'none' : 'alerts';
-                  setPopover(next);
-                  if (next === 'alerts' && unread > 0) onMarkNotificationsRead();
-                }}
-              >
+              <button type="button" className="sp-icon-pill" aria-label={lang === 'ar' ? 'التنبيهات' : 'Notifications'} onClick={() => { const next = popover === 'alerts' ? 'none' : 'alerts'; setPopover(next); if (next === 'alerts' && unread > 0) onMarkNotificationsRead(); }}>
                 <Bell size={17} />
                 {unread > 0 && <i className="sp-badge-dot" />}
               </button>
@@ -223,15 +219,11 @@ export function SpatialHud({
                 <div className="sp-popover-card">
                   <div className="sp-popover-head">
                     <strong>{lang === 'ar' ? 'الإشعارات والتنبيهات' : 'Notifications'}</strong>
-                    <button type="button" onClick={() => setPopover('none')}>
-                      ×
-                    </button>
+                    <button type="button" onClick={() => setPopover('none')}>×</button>
                   </div>
                   <div className="sp-popover-list">
                     {data.notifications.length === 0 ? (
-                      <p className="sp-empty-note">
-                        {lang === 'ar' ? 'لا توجد تنبيهات جديدة' : 'No notifications'}
-                      </p>
+                      <p className="sp-empty-note">{lang === 'ar' ? 'لا توجد تنبيهات جديدة' : 'No notifications'}</p>
                     ) : (
                       data.notifications.slice(0, 12).map((n) => (
                         <div key={n.id} className={`sp-notif-row ${n.read ? '' : 'is-unread'}`}>
@@ -246,11 +238,7 @@ export function SpatialHud({
             </div>
 
             <div className="sp-popover-anchor">
-              <button
-                type="button"
-                className="sp-avatar-pill"
-                onClick={() => setPopover(popover === 'account' ? 'none' : 'account')}
-              >
+              <button type="button" className="sp-avatar-pill" onClick={() => setPopover(popover === 'account' ? 'none' : 'account')}>
                 {data.user.name.slice(0, 2)}
               </button>
 
@@ -260,22 +248,11 @@ export function SpatialHud({
                     <strong>{data.user.name}</strong>
                     <small>{data.user.email}</small>
                   </div>
-                  <button
-                    type="button"
-                    className="sp-menu-action"
-                    onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-                  >
+                  <button type="button" className="sp-menu-action" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>
                     <Globe size={15} />
                     <span>{lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="sp-menu-action is-danger"
-                    onClick={() => {
-                      setPopover('none');
-                      onLogout();
-                    }}
-                  >
+                  <button type="button" className="sp-menu-action is-danger" onClick={() => { setPopover('none'); onLogout(); }}>
                     <LogOut size={15} />
                     <span>{lang === 'ar' ? 'تسجيل الخروج' : 'Sign out'}</span>
                   </button>
@@ -284,11 +261,7 @@ export function SpatialHud({
             </div>
           </>
         ) : (
-          <button
-            type="button"
-            className="sp-hud-chip"
-            onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-          >
+          <button type="button" className="sp-hud-chip" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>
             <Globe size={14} />
             <span>{lang === 'ar' ? 'EN' : 'عربي'}</span>
           </button>

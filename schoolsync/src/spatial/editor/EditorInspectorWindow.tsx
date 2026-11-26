@@ -1,26 +1,28 @@
 /**
- * Floating Apple HIG right-side Inspector window inside the 3D School Editor:
- * delegates Prop, 3D Assignment, and Wing/Beacon sections cleanly to keep under 300 lines.
+ * Zero-scroll 4-Tab Apple SARE Inspector (`الشكل` | `الفتحات` | `المظهر` | `ذكي`):
+ * features a GSAP sliding segmented pill, staggered tab transitions, and contextual panels.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Copy, CopyPlus, QrCode, Trash2 } from 'lucide-react';
 import type { Language } from '../../i18n';
-import type {
-  CampusBeacon,
-  CampusLayout,
-  CampusProp,
-  CampusRoom,
-  RoomKind,
-  SpatialAssignment3D,
-  State,
-} from '../../types';
+import type { CampusBeacon, CampusLayout, CampusProp, CampusRoom, SpatialAssignment3D, State } from '../../types';
 import { buildRoomQrPayload } from '../../tracking/beaconScanner';
 import { FloatingWindow } from '../../windows/FloatingWindow';
 import type { SelectedEditorEntity } from '../engine/campusSchema';
-import { AssignmentInspectorSection, EDITOR_ROOM_KINDS, PropInspectorSection, WingsBeaconSection } from './EditorInspectorPanels';
+import { AssignmentInspectorSection, PropInspectorSection, WingsBeaconSection } from './EditorInspectorPanels';
+import { gsapPop, useGsapStagger, useSlidingPill } from './editorMotion';
 import { RoomAppearancePanel } from './RoomAppearancePanel';
 import { RoomOpeningsPanel } from './RoomOpeningsPanel';
-import { computePointsBounds } from '../engine/roomPolygon';
+import { RoomShapeTab } from './RoomShapeTab';
+
+type InspectorTab = 'shape' | 'doors' | 'style' | 'smart';
+
+const ROOM_TABS: { key: InspectorTab; ar: string; en: string }[] = [
+  { key: 'shape', ar: 'الشكل', en: 'Shape' },
+  { key: 'doors', ar: 'الفتحات', en: 'Doors' },
+  { key: 'style', ar: 'المظهر', en: 'Style' },
+  { key: 'smart', ar: 'ذكي', en: 'Smart' },
+];
 
 interface EditorInspectorWindowProps {
   draft: CampusLayout;
@@ -41,34 +43,24 @@ interface EditorInspectorWindowProps {
   onDeleteBeacon: (id: string) => void;
 }
 
-/** Contextual Apple HIG inspector panel for the active 3D Editor entity or wings. */
+/** Tabbed macOS-inspired 3D Editor Inspector window with GSAP micro-animations. */
 export function EditorInspectorWindow({
-  draft,
-  selected,
-  activeWingId,
-  beacons,
-  data,
-  lang,
-  onSelectWing,
-  onAddWing,
-  onUpdateRoom,
-  onToggleSharedWall,
-  onUpdateProp,
-  onUpdateAssignment,
-  onDuplicate,
-  onDelete,
-  onRegisterQrBeacon,
-  onDeleteBeacon,
+  draft, selected, activeWingId, beacons, data, lang, onSelectWing, onAddWing, onUpdateRoom,
+  onToggleSharedWall, onUpdateProp, onUpdateAssignment, onDuplicate, onDelete, onRegisterQrBeacon, onDeleteBeacon,
 }: EditorInspectorWindowProps) {
   const [copiedId, setCopiedId] = useState('');
+  const [tab, setTab] = useState<InspectorTab>('shape');
+  const tabTrackRef = useRef<HTMLDivElement>(null);
+  const tabPillRef = useRef<HTMLSpanElement>(null);
+  const tabBodyRef = useRef<HTMLDivElement>(null);
 
   const selRoom = selected?.type === 'room' ? draft.rooms.find((r) => r.id === selected.id) : null;
   const selProp = selected?.type === 'prop' ? draft.props.find((p) => p.id === selected.id) : null;
   const selAssignRoom = selected?.type === 'assignment' ? draft.rooms.find((r) => r.id === selected.roomId) : null;
-  const selAssign =
-    selected?.type === 'assignment' && selAssignRoom
-      ? selAssignRoom.assignments3D.find((a) => a.id === selected.id)
-      : null;
+  const selAssign = selected?.type === 'assignment' && selAssignRoom ? selAssignRoom.assignments3D.find((a) => a.id === selected.id) : null;
+
+  useSlidingPill(tabTrackRef, tabPillRef, 'button.is-active', [tab, selRoom?.id, lang]);
+  useGsapStagger(tabBodyRef, '.sp-ed-card', [tab, selRoom?.id], { y: 8, scale: 0.98, stagger: 0.03, duration: 0.24 });
 
   const copyQrLink = (roomId: string) => {
     void navigator.clipboard?.writeText(buildRoomQrPayload(roomId));
@@ -89,179 +81,76 @@ export function EditorInspectorWindow({
               : lang === 'ar' ? 'الأجنحة والإشارات' : 'Wings & Beacons'
       }
       dock="right"
-      width={340}
+      width={326}
       zIndex={42}
       onFocus={() => {}}
     >
       {selRoom ? (
         <div className="sp-form">
-          <div className="sp-ed-card">
-            <label className="sp-field">
-              <span>{lang === 'ar' ? 'اسم الغرفة' : 'Room Name'}</span>
-              <input value={selRoom.label} onChange={(e) => onUpdateRoom(selRoom.id, { label: e.target.value })} />
-            </label>
-            <div className="sp-row-2">
-              <label className="sp-field">
-                <span>{lang === 'ar' ? 'النوع' : 'Function'}</span>
-                <select value={selRoom.kind} onChange={(e) => onUpdateRoom(selRoom.id, { kind: e.target.value as RoomKind })}>
-                  {EDITOR_ROOM_KINDS.map((k) => (
-                    <option key={k.value} value={k.value}>{lang === 'ar' ? k.ar : k.en}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="sp-field">
-                <span>{lang === 'ar' ? 'الجناح' : 'Wing'}</span>
-                <select value={selRoom.wingId} onChange={(e) => onUpdateRoom(selRoom.id, { wingId: e.target.value })}>
-                  {draft.wings.map((w) => (
-                    <option key={w.id} value={w.id}>{lang === 'ar' ? w.labelAr : w.labelEn}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
+          <div ref={tabTrackRef} className="sp-seg-track is-4" role="tablist">
+            <span ref={tabPillRef} className="sp-seg-pill" aria-hidden="true" />
+            {ROOM_TABS.map((t) => (
+              <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
+                {lang === 'ar' ? t.ar : t.en}
+              </button>
+            ))}
+          </div>
 
-            {selRoom.kind === 'classroom' && (
-              <label className="sp-field">
-                <span>{lang === 'ar' ? 'ربط بشعبة دراسية' : 'Linked Class'}</span>
-                <select
-                  value={selRoom.className}
-                  onChange={(e) => {
-                    const cls = e.target.value;
-                    onUpdateRoom(selRoom.id, { className: cls, label: cls || selRoom.label });
-                  }}
-                >
-                  <option value="">{lang === 'ar' ? '— بدون ربط —' : '— None —'}</option>
-                  {data.classes.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
+          <div ref={tabBodyRef}>
+            {tab === 'shape' && (
+              <RoomShapeTab
+                room={selRoom}
+                draft={draft}
+                classes={data.classes}
+                lang={lang}
+                onUpdate={(patch) => onUpdateRoom(selRoom.id, patch)}
+                onToggleSharedWall={onToggleSharedWall}
+              />
             )}
-
-            <div className="sp-row-3">
-              <label className="sp-field">
-                <span>{lang === 'ar' ? 'العرض (م)' : 'Width'}</span>
-                <input
-                  type="number"
-                  step={0.5}
-                  min={2}
-                  max={80}
-                  value={selRoom.width}
-                  onChange={(e) => {
-                    const nw = Math.max(2, Number(e.target.value));
-                    if (selRoom.points?.length) {
-                      const curW = Math.max(1.5, computePointsBounds(selRoom.points).width);
-                      const s = nw / curW;
-                      onUpdateRoom(selRoom.id, {
-                        width: nw,
-                        points: selRoom.points.map((p) => ({ x: Number((p.x * s).toFixed(2)), z: p.z })),
-                      });
-                    } else {
-                      onUpdateRoom(selRoom.id, { width: nw });
-                    }
-                  }}
-                />
-              </label>
-              <label className="sp-field">
-                <span>{lang === 'ar' ? 'العمق (م)' : 'Depth'}</span>
-                <input
-                  type="number"
-                  step={0.5}
-                  min={2}
-                  max={80}
-                  value={selRoom.depth}
-                  onChange={(e) => {
-                    const nd = Math.max(2, Number(e.target.value));
-                    if (selRoom.points?.length) {
-                      const curD = Math.max(1.5, computePointsBounds(selRoom.points).depth);
-                      const s = nd / curD;
-                      onUpdateRoom(selRoom.id, {
-                        depth: nd,
-                        points: selRoom.points.map((p) => ({ x: p.x, z: Number((p.z * s).toFixed(2)) })),
-                      });
-                    } else {
-                      onUpdateRoom(selRoom.id, { depth: nd });
-                    }
-                  }}
-                />
-              </label>
-              <label className="sp-field">
-                <span>{lang === 'ar' ? 'الارتفاع' : 'Height'}</span>
-                <input type="number" step={0.2} min={0.3} max={6} value={selRoom.wallHeight} onChange={(e) => onUpdateRoom(selRoom.id, { wallHeight: Math.max(0.3, Number(e.target.value)) })} />
-              </label>
-            </div>
-          </div>
-
-          <RoomOpeningsPanel
-            room={selRoom}
-            floorRooms={draft.rooms}
-            lang={lang}
-            onUpdate={(patch) => onUpdateRoom(selRoom.id, patch)}
-            onToggleSharedWall={onToggleSharedWall}
-          />
-
-          <RoomAppearancePanel
-            room={selRoom}
-            lang={lang}
-            onUpdate={(patch) => onUpdateRoom(selRoom.id, patch)}
-          />
-
-          <div className="sp-ed-card">
-            <div className="sp-row-actions">
-              <button
-                type="button"
-                className="sp-btn-soft"
-                onClick={() => onRegisterQrBeacon(selRoom)}
-                title={lang === 'ar' ? 'تسجيل الغرفة كرمز QR لمسح حضور المعلم عند الباب' : 'Register this room as a QR door check-in point'}
-              >
-                <QrCode size={14} />
-                <span>{lang === 'ar' ? 'تسجيل إشارة QR' : 'Register QR'}</span>
-              </button>
-              <button
-                type="button"
-                className="sp-btn-ghost"
-                onClick={() => copyQrLink(selRoom.id)}
-                title={lang === 'ar' ? 'نسخ رابط فحص QR لطباعته أو فتحه من تطبيق المعلم' : 'Copy QR check-in payload link'}
-              >
-                <Copy size={13} />
-                <span>{copiedId === selRoom.id ? '✓' : 'URL'}</span>
-              </button>
-            </div>
-            <p className="sp-mini-hint">
-              {lang === 'ar' ? 'لطباعة رمز QR على باب الغرفة وتحديد موقع المعلم تلقائياً عند المسح' : 'Generates & copies a QR check-in token for automatic teacher location logging'}
-            </p>
-          </div>
-
-          <div className="sp-row-actions">
-            <button type="button" className="sp-btn-soft" onClick={onDuplicate}>
-              <CopyPlus size={14} />
-              <span>{lang === 'ar' ? 'تكرار' : 'Duplicate'}</span>
-            </button>
-            <button type="button" className="sp-icon-btn is-danger" onClick={onDelete}>
-              <Trash2 size={14} />
-            </button>
+            {tab === 'doors' && (
+              <RoomOpeningsPanel room={selRoom} lang={lang} onUpdate={(patch) => onUpdateRoom(selRoom.id, patch)} />
+            )}
+            {tab === 'style' && (
+              <RoomAppearancePanel room={selRoom} lang={lang} onUpdate={(patch) => onUpdateRoom(selRoom.id, patch)} />
+            )}
+            {tab === 'smart' && (
+              <div className="sp-form">
+                <div className="sp-ed-card">
+                  <div className="sp-row-actions">
+                    <button type="button" className="sp-btn-soft" onClick={(e) => { gsapPop(e.currentTarget); onRegisterQrBeacon(selRoom); }}>
+                      <QrCode size={14} />
+                      <span>{lang === 'ar' ? 'تسجيل إشارة QR' : 'Register QR'}</span>
+                    </button>
+                    <button type="button" className="sp-btn-ghost" onClick={(e) => { gsapPop(e.currentTarget); copyQrLink(selRoom.id); }}>
+                      <Copy size={13} />
+                      <span>{copiedId === selRoom.id ? '✓' : 'URL'}</span>
+                    </button>
+                  </div>
+                  <p className="sp-mini-hint">
+                    {lang === 'ar' ? 'لطباعة رمز QR على باب الغرفة وتحديد موقع المعلم تلقائياً عند المسح' : 'Generates & copies a QR check-in token for automatic teacher location logging'}
+                  </p>
+                </div>
+                <div className="sp-ed-card">
+                  <div className="sp-row-actions">
+                    <button type="button" className="sp-btn-soft" onClick={(e) => { gsapPop(e.currentTarget); onDuplicate(); }}>
+                      <CopyPlus size={14} />
+                      <span>{lang === 'ar' ? 'تكرار الغرفة' : 'Duplicate'}</span>
+                    </button>
+                    <button type="button" className="sp-icon-btn is-danger" onClick={onDelete} title={lang === 'ar' ? 'حذف' : 'Delete'}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : selProp ? (
         <PropInspectorSection prop={selProp} lang={lang} onUpdateProp={onUpdateProp} onDelete={onDelete} />
       ) : selAssign && selAssignRoom ? (
-        <AssignmentInspectorSection
-          roomId={selAssignRoom.id}
-          assignment={selAssign}
-          data={data}
-          lang={lang}
-          onUpdateAssignment={onUpdateAssignment}
-          onDelete={onDelete}
-        />
+        <AssignmentInspectorSection roomId={selAssignRoom.id} assignment={selAssign} data={data} lang={lang} onUpdateAssignment={onUpdateAssignment} onDelete={onDelete} />
       ) : (
-        <WingsBeaconSection
-          draft={draft}
-          activeWingId={activeWingId}
-          beacons={beacons}
-          lang={lang}
-          onSelectWing={onSelectWing}
-          onAddWing={onAddWing}
-          onDeleteBeacon={onDeleteBeacon}
-        />
+        <WingsBeaconSection draft={draft} activeWingId={activeWingId} beacons={beacons} lang={lang} onSelectWing={onSelectWing} onAddWing={onAddWing} onDeleteBeacon={onDeleteBeacon} />
       )}
     </FloatingWindow>
   );

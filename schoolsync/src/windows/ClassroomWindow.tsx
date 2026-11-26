@@ -3,16 +3,18 @@
  * 1-tap present/absent/late/excused student attendance toggles, clickable Student Profile launch,
  * class schedule tab, and assigned teachers/homework.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { CheckCheck, Pencil, Search } from 'lucide-react';
 import type { Language } from '../i18n';
 import { formatClock, minutesOf, nowMinutesInZone } from '../jordanTime';
+import { gsapPop, useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import { getRoomLiveSnapshot } from '../spatial/RoomCalloutLayer';
 import { isManagerRole, type State } from '../types';
 import { ClassroomScheduleTab } from './ClassroomScheduleTab';
 import { ClassroomTeachersTab } from './ClassroomTeachersTab';
 import { FloatingWindow } from './FloatingWindow';
+import { SegmentedTabs } from './SegmentedTabs';
 
 interface ClassroomWindowProps {
   room: ResolvedSpatialRoom;
@@ -51,6 +53,7 @@ export function ClassroomWindow({
 }: ClassroomWindowProps) {
   const [tab, setTab] = useState<'students' | 'schedule' | 'teachers'>('students');
   const [filter, setFilter] = useState('');
+  const paneRef = useRef<HTMLDivElement>(null);
 
   const manager = isManagerRole(data.user.role);
   const live = getRoomLiveSnapshot(room, data);
@@ -65,6 +68,12 @@ export function ClassroomWindow({
     () => data.teachers.filter((t) => t.classes.includes(room.className)),
     [data.teachers, room.className],
   );
+
+  useGsapStagger(paneRef, '.sp-student-row, .sp-lesson-card, .sp-info-row', [tab, filter, room.slotId], {
+    y: 8,
+    stagger: 0.02,
+    duration: 0.24,
+  });
 
   const nowMin = nowMinutesInZone(data.school.timezone);
   const minsLeft = live.activeLesson ? Math.max(0, minutesOf(live.activeLesson.end) - nowMin) : 0;
@@ -143,18 +152,17 @@ export function ClassroomWindow({
             </div>
           </div>
 
-          <div className="sp-segmented">
-            <button type="button" className={tab === 'students' ? 'is-active' : ''} onClick={() => setTab('students')}>
-              {lang === 'ar' ? 'الطلبة والحضور' : 'Students'}
-            </button>
-            <button type="button" className={tab === 'schedule' ? 'is-active' : ''} onClick={() => setTab('schedule')}>
-              {lang === 'ar' ? 'جدول الصف' : 'Schedule'}
-            </button>
-            <button type="button" className={tab === 'teachers' ? 'is-active' : ''} onClick={() => setTab('teachers')}>
-              {lang === 'ar' ? 'المعلمون والواجبات' : 'Teachers'}
-            </button>
-          </div>
+          <SegmentedTabs
+            value={tab}
+            onChange={setTab}
+            items={[
+              { id: 'students', label: lang === 'ar' ? 'الطلبة والحضور' : 'Students' },
+              { id: 'schedule', label: lang === 'ar' ? 'جدول الصف' : 'Schedule' },
+              { id: 'teachers', label: lang === 'ar' ? 'المعلمون والواجبات' : 'Teachers' },
+            ]}
+          />
 
+          <div ref={paneRef} className="sp-tab-pane">
           {tab === 'students' && (
             <div className="sp-tab-pane">
               <div className="sp-toolbar-row">
@@ -196,9 +204,10 @@ export function ClassroomWindow({
                           key={b.key}
                           type="button"
                           className={`sp-att-btn is-${b.key} ${st.today_status === b.key ? 'is-active' : ''}`}
-                          onClick={() =>
-                            void mutate('/attendance/quick', { studentId: st.id, status: b.key }, 'Attendance recorded')
-                          }
+                          onClick={(e) => {
+                            gsapPop(e.currentTarget);
+                            void mutate('/attendance/quick', { studentId: st.id, status: b.key }, 'Attendance recorded');
+                          }}
                         >
                           {lang === 'ar' ? b.ar : b.en}
                         </button>
@@ -231,6 +240,7 @@ export function ClassroomWindow({
               mutate={mutate}
             />
           )}
+          </div>
         </>
       )}
     </FloatingWindow>

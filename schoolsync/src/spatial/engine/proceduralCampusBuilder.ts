@@ -48,17 +48,17 @@ export function buildCampusGraph(
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(240, 240),
-    new THREE.ShadowMaterial({ opacity: 0.16 }),
+    new THREE.ShadowMaterial({ opacity: 0.11 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.02;
   ground.receiveShadow = true;
   root.add(ground);
 
-  const gridHelper = new THREE.GridHelper(90, 90, 0xbfd1e8, 0xdce6f4);
+  const gridHelper = new THREE.GridHelper(90, 90, 0xc3d5ec, 0xe1eaf7);
   gridHelper.position.y = -0.01;
   (gridHelper.material as THREE.Material).transparent = true;
-  (gridHelper.material as THREE.Material).opacity = 0.55;
+  (gridHelper.material as THREE.Material).opacity = 0.42;
   root.add(gridHelper);
 
   const floorGroups = new Map<string, THREE.Group>();

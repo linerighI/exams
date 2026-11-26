@@ -2,12 +2,14 @@
  * Principal's Office floating command window: school & Jordanian bell schedule settings,
  * class creation & 3D room slot labeling overview, subjects, and staff accounts.
  */
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Check, Compass, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Language } from '../i18n';
+import { useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import type { Role, State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { SegmentedTabs } from './SegmentedTabs';
 
 interface PrincipalOfficeWindowProps {
   room: ResolvedSpatialRoom;
@@ -38,6 +40,12 @@ export function PrincipalOfficeWindow({
   mutate,
 }: PrincipalOfficeWindowProps) {
   const [tab, setTab] = useState<'school' | 'rooms' | 'accounts'>('rooms');
+  const paneRef = useRef<HTMLDivElement>(null);
+  useGsapStagger(paneRef, '.sp-info-row, .sp-inline-box, .sp-field', [tab], {
+    y: 8,
+    stagger: 0.02,
+    duration: 0.24,
+  });
 
   const [schoolForm, setSchoolForm] = useState({
     name: data.school.name,
@@ -109,17 +117,17 @@ export function PrincipalOfficeWindow({
       onFocus={onFocus}
       onClose={onClose}
     >
-      <div className="sp-segmented">
-        <button type="button" className={tab === 'rooms' ? 'is-active' : ''} onClick={() => setTab('rooms')}>
-          {lang === 'ar' ? 'الغرف والشعب' : 'Rooms & Classes'}
-        </button>
-        <button type="button" className={tab === 'school' ? 'is-active' : ''} onClick={() => setTab('school')}>
-          {lang === 'ar' ? 'الدوام والجرس' : 'Bell & Hours'}
-        </button>
-        <button type="button" className={tab === 'accounts' ? 'is-active' : ''} onClick={() => setTab('accounts')}>
-          {lang === 'ar' ? 'المواد والحسابات' : 'Subjects & Staff'}
-        </button>
-      </div>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        items={[
+          { id: 'rooms', label: lang === 'ar' ? 'الغرف والشعب' : 'Rooms & Classes' },
+          { id: 'school', label: lang === 'ar' ? 'الدوام والجرس' : 'Bell & Hours' },
+          { id: 'accounts', label: lang === 'ar' ? 'المواد والحسابات' : 'Subjects & Staff' },
+        ]}
+      />
+
+      <div ref={paneRef} className="sp-tab-pane">
 
       {tab === 'rooms' && (
         <div className="sp-tab-pane">
@@ -270,6 +278,7 @@ export function PrincipalOfficeWindow({
           </form>
         </div>
       )}
+      </div>
     </FloatingWindow>
   );
 }

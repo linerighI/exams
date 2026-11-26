@@ -2,12 +2,14 @@
  * Floating Student Profile window launched alongside a Classroom or Search result
  * without ever leaving the 3D campus: shows attendance, grades, notes, and guardian info.
  */
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Award, MessageSquarePlus, Phone, Send } from 'lucide-react';
 import type { Language } from '../i18n';
+import { gsapPop, useGsapStagger } from '../spatial/editor/editorMotion';
 import { tr } from '../translations';
 import type { State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { SegmentedTabs } from './SegmentedTabs';
 
 interface StudentProfileWindowProps {
   studentId: string;
@@ -37,10 +39,17 @@ export function StudentProfileWindow({
   const [noteText, setNoteText] = useState('');
   const [noteCat, setNoteCat] = useState<'behavior' | 'academic' | 'general'>('behavior');
   const [gradeForm, setGradeForm] = useState({ subject: '', title: '', score: '90', max: '100', published: true });
+  const paneRef = useRef<HTMLDivElement>(null);
 
   const listEntry = data.students.find((s) => s.id === studentId);
   const st = data.student?.id === studentId ? data.student : listEntry;
   const loadedMatches = data.student?.id === studentId && !switching;
+
+  useGsapStagger(paneRef, '.sp-info-row, .sp-note-card, .sp-inline-box', [tab, loadedMatches, st?.id], {
+    y: 8,
+    stagger: 0.025,
+    duration: 0.24,
+  });
 
   if (!st) return null;
 
@@ -109,9 +118,10 @@ export function StudentProfileWindow({
               key={status}
               type="button"
               className={`sp-att-btn is-${status} ${st.today_status === status ? 'is-active' : ''}`}
-              onClick={() =>
-                void mutate('/attendance/quick', { studentId: st.id, status }, 'Attendance recorded')
-              }
+              onClick={(e) => {
+                gsapPop(e.currentTarget);
+                void mutate('/attendance/quick', { studentId: st.id, status }, 'Attendance recorded');
+              }}
             >
               {tr(status)}
             </button>
@@ -119,22 +129,20 @@ export function StudentProfileWindow({
         </div>
       </div>
 
-      <div className="sp-segmented">
-        <button type="button" className={tab === 'attendance' ? 'is-active' : ''} onClick={() => setTab('attendance')}>
-          {lang === 'ar' ? 'سجل الحضور' : 'Attendance'}
-        </button>
-        <button type="button" className={tab === 'grades' ? 'is-active' : ''} onClick={() => setTab('grades')}>
-          {lang === 'ar' ? 'العلامات' : 'Grades'}
-        </button>
-        <button type="button" className={tab === 'notes' ? 'is-active' : ''} onClick={() => setTab('notes')}>
-          {lang === 'ar' ? 'الملاحظات' : 'Notes'}
-        </button>
-      </div>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        items={[
+          { id: 'attendance', label: lang === 'ar' ? 'سجل الحضور' : 'Attendance' },
+          { id: 'grades', label: lang === 'ar' ? 'العلامات' : 'Grades' },
+          { id: 'notes', label: lang === 'ar' ? 'الملاحظات' : 'Notes' },
+        ]}
+      />
 
       {!loadedMatches ? (
         <p className="sp-empty-note">{lang === 'ar' ? 'جارٍ تحميل سجل الطالب…' : 'Loading records…'}</p>
       ) : (
-        <>
+        <div ref={paneRef} className="sp-tab-pane">
           {tab === 'attendance' && (
             <div className="sp-list-stack">
               {data.attendance.length === 0 ? (
@@ -257,7 +265,7 @@ export function StudentProfileWindow({
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </FloatingWindow>
   );

@@ -59,6 +59,7 @@ export function createSpatialRuntime(options: {
 
   const scene = new THREE.Scene();
   scene.background = createStudioGradientTexture();
+  scene.fog = new THREE.FogExp2(0xeaf2fc, 0.0095);
 
   const camera = new THREE.PerspectiveCamera(40, initW / initH, 0.2, 260);
   camera.position.set(16, 28, 28);
@@ -68,19 +69,19 @@ export function createSpatialRuntime(options: {
   renderer.setSize(initW, initH);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 0.98;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.04;
   container.appendChild(renderer.domElement);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = envTex;
-  scene.environmentIntensity = 0.24;
+  scene.environmentIntensity = 0.34;
   pmrem.dispose();
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8d0ee, 0.72));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd4e6fa, 0.96));
 
-  const sun = new THREE.DirectionalLight(0xfffcf5, 1.55);
+  const sun = new THREE.DirectionalLight(0xfffdf8, 1.25);
   sun.position.set(34, 48, 22);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -91,14 +92,18 @@ export function createSpatialRuntime(options: {
   sun.shadow.camera.right = d;
   sun.shadow.camera.top = d;
   sun.shadow.camera.bottom = -d;
-  sun.shadow.radius = 3;
+  sun.shadow.radius = 5.5;
   sun.shadow.bias = -0.0003;
   sun.shadow.normalBias = 0.04;
   scene.add(sun);
 
-  const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.45);
+  const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.58);
   fillLight.position.set(-30, 24, -22);
   scene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.25);
+  rimLight.position.set(-18, 22, 34);
+  scene.add(rimLight);
 
   const highlights = new CampusHighlightController(scene);
   const effects = new CampusEffectsController(scene);

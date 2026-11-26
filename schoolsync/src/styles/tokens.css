@@ -3,13 +3,13 @@
  * for SchoolSync 3D Spatial Campus OS.
  */
 :root {
-  --sp-bg: #f4f6fa;
-  --sp-surface: rgba(251, 252, 255, 0.85);
+  --sp-bg: #eef3fb;
+  --sp-surface: rgba(255, 255, 255, 0.74);
   --sp-surface-solid: #ffffff;
-  --sp-surface-card: rgba(255, 255, 255, 0.86);
+  --sp-surface-card: rgba(255, 255, 255, 0.78);
   --sp-surface-muted: rgba(118, 118, 128, 0.1);
   --sp-fill-input: rgba(118, 118, 128, 0.085);
-  --sp-border: rgba(15, 23, 42, 0.06);
+  --sp-border: rgba(255, 255, 255, 0.88);
   --sp-border-strong: rgba(15, 23, 42, 0.11);
   --sp-divider: rgba(60, 60, 67, 0.1);
   --sp-ink: #1d1d1f;
@@ -17,7 +17,7 @@
   --sp-blue: #007aff;
   --sp-accent: #007aff;
   --sp-blue-hover: #0066d6;
-  --sp-blue-soft: rgba(0, 122, 255, 0.11);
+  --sp-blue-soft: rgba(0, 122, 255, 0.12);
   --sp-emerald: #34c759;
   --sp-emerald-soft: rgba(52, 199, 89, 0.14);
   --sp-coral: #ff3b30;
@@ -25,8 +25,8 @@
   --sp-amber: #ff9500;
   --sp-amber-soft: rgba(255, 149, 0, 0.15);
   --sp-slate-soft: rgba(118, 118, 128, 0.14);
-  --sp-shadow: 0 24px 60px rgba(15, 23, 42, 0.12), 0 2px 10px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.94);
-  --sp-shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.075), 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --sp-shadow: 0 24px 64px rgba(15, 23, 42, 0.13), 0 2px 10px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --sp-shadow-sm: 0 10px 28px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.92);
   --sp-radius: 22px;
   --sp-radius-sm: 12px;
   --sp-font: 'Tajawal', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
