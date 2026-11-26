@@ -1,6 +1,6 @@
 /**
- * Apple Liquid Glass trigger & refractive floating portal styles built for `liquid-glass-react`.
- * Scopes backdrop layers cleanly without Tailwind so refractive menus stay bright & crisp.
+ * Apple Light Liquid Glass trigger & crisp frosted dropdown popover styling
+ * with single-line option clamping and subtle ultra-thin scrollbars.
  */
 .sp-glass-select-btn {
   width: 100%;
@@ -10,12 +10,12 @@
   justify-content: space-between;
   gap: 8px;
   padding: 7px 11px;
-  border-radius: 11px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.8) 0%, rgba(242, 247, 255, 0.65) 100%);
+  backdrop-filter: blur(18px) saturate(190%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04), 0 0 0 0.5px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff;
   color: var(--sp-ink);
   font-size: 0.82rem;
   font-weight: 600;
@@ -24,14 +24,14 @@
 }
 
 .sp-glass-select-btn:hover {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(0, 122, 255, 0.3);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 250, 255, 0.82) 100%);
+  border-color: rgba(0, 122, 255, 0.35);
 }
 
 .sp-glass-select-btn.is-open {
   background: #ffffff;
-  border-color: rgba(0, 122, 255, 0.65);
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14);
+  border-color: rgba(0, 122, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14), inset 0 1px 0 #ffffff;
 }
 
 .sp-glass-select-val {
@@ -43,7 +43,7 @@
 .sp-glass-select-caret {
   color: var(--sp-muted);
   flex-shrink: 0;
-  transition: transform 180ms ease;
+  transition: transform 180ms ease, color 140ms ease;
 }
 
 .sp-glass-select-btn.is-open .sp-glass-select-caret {
@@ -55,42 +55,45 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 210;
+  z-index: 220;
 }
 
-.sp-glass-portal .pointer-events-none { pointer-events: none; }
-.sp-glass-portal .opacity-0 { opacity: 0; }
-.sp-glass-portal .opacity-20 { opacity: 0; }
-.sp-glass-portal .opacity-100 { opacity: 0; }
-.sp-glass-portal .bg-black { display: none !important; }
-
-.sp-glass-portal .sp-glass-menu {
-  transition-property: transform, opacity !important;
-}
-
-.sp-glass-portal .sp-glass-menu .glass {
-  width: 100%;
-  display: block;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.96);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
-}
-
-.sp-glass-portal .sp-glass-menu .text-white {
-  color: var(--sp-ink);
-  text-shadow: none !important;
-  font: inherit !important;
+.sp-glass-menu-card {
+  pointer-events: auto;
+  border-radius: 16px;
+  padding: 6px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 250, 255, 0.89) 100%);
+  backdrop-filter: blur(28px) saturate(210%);
+  -webkit-backdrop-filter: blur(28px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.14),
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 0 0 0.5px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 #ffffff;
 }
 
 .sp-glass-options {
-  pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
   max-height: 220px;
   overflow-y: auto;
   scrollbar-width: thin;
-  color: var(--sp-ink);
+  scrollbar-color: rgba(15, 23, 42, 0.16) transparent;
+}
+
+.sp-glass-options::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sp-glass-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sp-glass-options::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.16);
 }
 
 .sp-glass-opt {
@@ -110,12 +113,23 @@
   transition: background 120ms ease, color 120ms ease;
 }
 
+.sp-glass-opt > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-glass-opt > svg {
+  flex-shrink: 0;
+}
+
 .sp-glass-opt:hover {
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(0, 122, 255, 0.09);
   color: var(--sp-blue);
 }
 
 .sp-glass-opt.is-active {
   background: var(--sp-blue);
   color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.28);
 }

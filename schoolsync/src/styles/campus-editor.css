@@ -18,10 +18,10 @@
   scrollbar-width: none;
   border-radius: 999px;
   background: var(--sp-surface);
-  backdrop-filter: blur(46px) saturate(220%);
-  -webkit-backdrop-filter: blur(46px) saturate(220%);
+  backdrop-filter: blur(26px) saturate(200%);
+  -webkit-backdrop-filter: blur(26px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.92);
-  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  box-shadow: var(--sp-shadow-sm);
 }
 
 .sp-editor-topbar::-webkit-scrollbar { display: none; }
@@ -113,10 +113,10 @@
   padding: 6px 5px;
   border-radius: 24px;
   background: var(--sp-surface);
-  backdrop-filter: blur(46px) saturate(220%);
-  -webkit-backdrop-filter: blur(46px) saturate(220%);
+  backdrop-filter: blur(18px) saturate(210%);
+  -webkit-backdrop-filter: blur(18px) saturate(210%);
   border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  box-shadow: var(--sp-shadow-sm);
 }
 
 .sp-rail-active-bg {

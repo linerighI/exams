@@ -1,12 +1,11 @@
 /**
- * Apple Liquid Glass dropdown select powered by `liquid-glass-react` + GSAP 3:
- * replaces native browser <select> pickers with refractive translucent menus,
- * synchronous frame-0 anchor positioning, keyboard Escape support, and spring feedback.
+ * Apple Light Liquid Glass dropdown select powered by GSAP 3 spring choreography:
+ * renders an elevated frosted popover with RTL/LTR rail-safe edge alignment,
+ * single-line option labels, keyboard Escape dismissal, and viewport clamping.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
-import LiquidGlass from 'liquid-glass-react';
 import gsap from 'gsap';
 import { gsapPop } from '../spatial/editor/editorMotion';
 
@@ -25,26 +24,31 @@ interface GlassSelectProps {
 }
 
 interface MenuGeometry {
-  centerX: number;
-  centerY: number;
-  width: number;
+  left: number;
   top: number;
+  width: number;
+  openAbove: boolean;
+  anchorTop: number;
+  anchorBottom: number;
 }
 
 function measureMenuGeometry(btn: HTMLElement, optionCount: number): MenuGeometry {
   const rect = btn.getBoundingClientRect();
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const width = Math.max(178, Math.min(300, Math.round(rect.width)));
+  const isRtl =
+    document.documentElement.dir === 'rtl' || getComputedStyle(btn).direction === 'rtl';
+  const width = Math.max(216, Math.min(300, Math.round(rect.width)));
   const estH = Math.min(232, Math.max(46, optionCount * 34 + 14));
-  const left = Math.max(12, Math.min(vw - width - 12, Math.round(rect.left)));
+  const rawLeft = isRtl ? rect.right - width : rect.left;
+  const left = Math.max(12, Math.min(vw - width - 72, Math.round(rawLeft)));
   const openAbove = rect.bottom + estH + 14 > vh && rect.top - estH - 12 > 12;
   const rawTop = openAbove ? rect.top - estH - 6 : rect.bottom + 6;
   const top = Math.max(12, Math.min(vh - estH - 12, Math.round(rawTop)));
-  return { centerX: Math.round(left + width / 2), centerY: Math.round(top + estH / 2), width, top };
+  return { left, top, width, openAbove, anchorTop: rect.top, anchorBottom: rect.bottom };
 }
 
-/** Apple Liquid Glass frosted dropdown picker replacing native HTML <select>. */
+/** Apple frosted-glass dropdown picker replacing native browser <select>. */
 export function GlassSelect({
   value,
   options,
@@ -56,28 +60,30 @@ export function GlassSelect({
   const [open, setOpen] = useState(false);
   const [geom, setGeom] = useState<MenuGeometry | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const selected = options.find((o) => o.value === value);
   const displayLabel = selected?.label || placeholder;
 
   useLayoutEffect(() => {
-    if (!open || !listRef.current) return;
-    const realH = listRef.current.offsetHeight + 12;
+    if (!open || !menuRef.current || !geom) return;
+    const realH = menuRef.current.offsetHeight;
     const vh = window.innerHeight;
-    setGeom((prev) => {
-      if (!prev) return prev;
-      const clampedTop = Math.max(12, Math.min(vh - realH - 12, prev.top));
-      const nextCenterY = Math.round(clampedTop + realH / 2);
-      return Math.abs(nextCenterY - prev.centerY) > 3 ? { ...prev, top: clampedTop, centerY: nextCenterY } : prev;
-    });
+    if (realH > 0) {
+      const targetTop = geom.openAbove
+        ? Math.max(12, Math.round(geom.anchorTop - realH - 6))
+        : Math.max(12, Math.min(vh - realH - 12, Math.round(geom.anchorBottom + 6)));
+      if (Math.abs(targetTop - geom.top) > 2) {
+        setGeom((g) => (g ? { ...g, top: targetTop } : g));
+      }
+    }
     const ctx = gsap.context(() => {
       gsap.fromTo(
-        listRef.current,
-        { opacity: 0, y: -5, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: 'power3.out', clearProps: 'transform' },
+        menuRef.current,
+        { opacity: 0, y: geom.openAbove ? 6 : -6, scale: 0.94 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: 'back.out(1.4)', clearProps: 'transform' },
       );
-    }, listRef);
+    }, menuRef);
     return () => ctx.revert();
   }, [open, options.length]);
 
@@ -85,7 +91,7 @@ export function GlassSelect({
     if (!open) return;
     const onDown = (e: PointerEvent) => {
       const target = e.target as Node;
-      if (btnRef.current?.contains(target) || listRef.current?.contains(target)) return;
+      if (btnRef.current?.contains(target) || menuRef.current?.contains(target)) return;
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -130,26 +136,17 @@ export function GlassSelect({
         typeof document !== 'undefined' &&
         createPortal(
           <div className="sp-glass-portal" data-glass-menu={ariaLabel || 'true'}>
-            <LiquidGlass
-              className="sp-glass-menu"
-              displacementScale={20}
-              blurAmount={0.16}
-              saturation={175}
-              aberrationIntensity={1.2}
-              elasticity={0.04}
-              cornerRadius={16}
-              padding="6px"
-              overLight
-              mode="standard"
+            <div
+              ref={menuRef}
+              className="sp-glass-menu-card"
               style={{
                 position: 'fixed',
-                top: `${geom.centerY}px`,
-                left: `${geom.centerX}px`,
+                top: `${geom.top}px`,
+                left: `${geom.left}px`,
                 width: `${geom.width}px`,
-                zIndex: 220,
               }}
             >
-              <div ref={listRef} className="sp-glass-options" role="listbox" aria-label={ariaLabel}>
+              <div className="sp-glass-options" role="listbox" aria-label={ariaLabel}>
                 {options.map((opt) => {
                   const active = opt.value === value;
                   return (
@@ -171,7 +168,7 @@ export function GlassSelect({
                   );
                 })}
               </div>
-            </LiquidGlass>
+            </div>
           </div>,
           document.body,
         )}
