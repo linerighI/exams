@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import type { Language } from '../../i18n';
 import type { CampusRoom, WallOpening } from '../../types';
+import { GlassSelect } from '../../windows/GlassSelect';
 import {
   clampOpeningOffset,
   getOpeningEdgeOffset,
@@ -86,23 +87,22 @@ export function RoomOpeningsPanel({
           ))}
         </div>
 
-        <label className="sp-field">
+        <div className="sp-field">
           <span>{lang === 'ar' ? 'الجدار' : 'Wall'}</span>
-          <select
-            value={activeEdgeIdx}
-            onChange={(e) => {
-              const idx = Number(e.target.value);
+          <GlassSelect
+            ariaLabel={lang === 'ar' ? 'جدار الفتحة' : 'Opening Wall'}
+            value={String(activeEdgeIdx)}
+            options={edges.map((ed) => ({
+              value: String(ed.index),
+              label: lang === 'ar' ? `جدار ${ed.index + 1} (${ed.length.toFixed(1)}م)` : `Wall ${ed.index + 1} (${ed.length.toFixed(1)}m)`,
+            }))}
+            onChange={(val) => {
+              const idx = Number(val);
               const targetEdge = edges[idx];
               if (targetEdge) updateOp(activeOp.id, { wallIndex: idx, wall: targetEdge.wall, offset: clampOpeningOffset(activeOff, targetEdge.length, activeOp.width) });
             }}
-          >
-            {edges.map((ed) => (
-              <option key={ed.index} value={ed.index}>
-                {lang === 'ar' ? `جدار ${ed.index + 1} (${ed.length.toFixed(1)}م)` : `Wall ${ed.index + 1} (${ed.length.toFixed(1)}m)`}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
 
         <div className="sp-stepper-row">
           <span>{lang === 'ar' ? 'العرض' : 'Width'}</span>

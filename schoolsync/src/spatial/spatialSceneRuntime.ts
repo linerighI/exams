@@ -10,7 +10,8 @@ import { CampusEffectsController } from './campusEffects';
 import { createStudioGradientTexture } from './campusTextures';
 import { DroneCameraController } from './droneCamera';
 import { CampusEditorController, type EditorControllerCallbacks } from './editor/CampusEditorController';
-import { buildCampusGraph, disposeCampusGraph, type CampusSceneGraph } from './engine/proceduralCampusBuilder';
+import { patchCampusGraph } from './engine/campusPatcher';
+import { disposeCampusGraph, type CampusSceneGraph } from './engine/proceduralCampusBuilder';
 import { StudentPresenceLayer } from './figures/StudentPresenceLayer';
 import { TeacherPresenceLayer } from './figures/TeacherPresenceLayer';
 import { CampusHighlightController } from './highlightLayer';
@@ -123,11 +124,10 @@ export function createSpatialRuntime(options: {
     teacherFigures,
     editor,
     rebuildCampus: (layout, beacons, showBeacons) => {
-      disposeCampusGraph(engine.graph);
-      const next = buildCampusGraph(layout, beacons, showBeacons);
-      engine.graph = next;
-      scene.add(next.root);
-      return next;
+      const res = patchCampusGraph(engine.graph, layout, beacons, showBeacons);
+      engine.graph = res.graph;
+      if (res.fullRebuild) scene.add(res.graph.root);
+      return res.graph;
     },
     dispose: () => {},
   };

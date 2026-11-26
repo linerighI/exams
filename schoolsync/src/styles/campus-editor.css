@@ -10,9 +10,10 @@
   z-index: 44;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  max-width: calc(100vw - 32px);
+  justify-content: safe center;
+  gap: 6px;
+  padding: 5px 10px;
+  max-width: calc(100vw - 24px);
   overflow-x: auto;
   scrollbar-width: none;
   border-radius: 999px;
@@ -25,7 +26,7 @@
 
 .sp-editor-topbar::-webkit-scrollbar { display: none; }
 
-.sp-brand-mini { font-size: 0.84rem; font-weight: 700; letter-spacing: -0.02em; color: var(--sp-ink); padding-inline-start: 4px; white-space: nowrap; }
+.sp-brand-mini { font-size: 0.82rem; font-weight: 700; letter-spacing: -0.02em; color: var(--sp-ink); padding-inline: 4px; white-space: nowrap; flex-shrink: 0; }
 
 [data-window-id='editor-inspector'] {
   top: 74px !important;
@@ -37,6 +38,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .sp-editor-floors {

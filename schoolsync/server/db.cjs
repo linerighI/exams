@@ -72,6 +72,7 @@ function migrate(db) {
       status TEXT NOT NULL CHECK(status IN ('draft','published')),
       version INTEGER NOT NULL DEFAULT 1,
       payload_json TEXT NOT NULL,
+      sar_source TEXT,
       updated_by TEXT,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY(school_id, status)
@@ -127,6 +128,8 @@ function migrate(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_teacher_history ON teacher_location_history(school_id, teacher_id, recorded_at);
   `);
+  const layoutCols = db.prepare('PRAGMA table_info(campus_layouts)').all().map((c) => c.name);
+  if (!layoutCols.includes('sar_source')) db.exec('ALTER TABLE campus_layouts ADD COLUMN sar_source TEXT');
   syncAssignmentsFromExistingRows(db);
   syncClassSortOrders(db);
 }

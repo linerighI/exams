@@ -9,6 +9,7 @@ import { useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import type { Role, State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { GlassSelect } from './GlassSelect';
 import { SegmentedTabs } from './SegmentedTabs';
 
 interface PrincipalOfficeWindowProps {
@@ -253,23 +254,29 @@ export function PrincipalOfficeWindow({
           <form className="sp-inline-box" autoComplete="off" onSubmit={(e) => void addAccount(e)}>
             <div className="sp-row-2">
               <input required name="staff-full-name" autoComplete="off" placeholder={lang === 'ar' ? 'الاسم الكامل' : 'Full name'} value={accForm.name} onChange={(e) => setAccForm({ ...accForm, name: e.target.value })} />
-              <select value={accForm.role} onChange={(e) => setAccForm({ ...accForm, role: e.target.value as Role })}>
-                <option value="teacher">{lang === 'ar' ? 'معلم' : 'Teacher'}</option>
-                <option value="assistant">{lang === 'ar' ? 'مساعد المدير' : 'Assistant'}</option>
-                <option value="admin">{lang === 'ar' ? 'مدير' : 'Admin'}</option>
-                <option value="parent">{lang === 'ar' ? 'ولي أمر' : 'Parent'}</option>
-              </select>
+              <GlassSelect
+                ariaLabel={lang === 'ar' ? 'الصلاحية' : 'Role'}
+                value={accForm.role}
+                options={[
+                  { value: 'teacher', label: lang === 'ar' ? 'معلم' : 'Teacher' },
+                  { value: 'assistant', label: lang === 'ar' ? 'مساعد المدير' : 'Assistant' },
+                  { value: 'admin', label: lang === 'ar' ? 'مدير' : 'Admin' },
+                  { value: 'parent', label: lang === 'ar' ? 'ولي أمر' : 'Parent' },
+                ]}
+                onChange={(val) => setAccForm({ ...accForm, role: val as Role })}
+              />
             </div>
             <div className="sp-row-2">
               <input type="email" required name="staff-new-email" autoComplete="off" placeholder="name@school.edu" value={accForm.email} onChange={(e) => setAccForm({ ...accForm, email: e.target.value })} />
               <input type="password" required minLength={12} name="staff-new-password" autoComplete="new-password" placeholder={lang === 'ar' ? 'كلمة مرور (١٢+)' : 'Password (12+)'} value={accForm.password} onChange={(e) => setAccForm({ ...accForm, password: e.target.value })} />
             </div>
             {accForm.role === 'teacher' && (
-              <select value={accForm.section} onChange={(e) => setAccForm({ ...accForm, section: e.target.value })}>
-                {data.classes.map((c) => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
+              <GlassSelect
+                ariaLabel={lang === 'ar' ? 'الشعبة' : 'Section'}
+                value={accForm.section}
+                options={data.classes.map((c) => ({ value: c.name, label: c.name }))}
+                onChange={(val) => setAccForm({ ...accForm, section: val })}
+              />
             )}
             <button type="submit" className="sp-btn-primary" disabled={busy}>
               <Plus size={14} />

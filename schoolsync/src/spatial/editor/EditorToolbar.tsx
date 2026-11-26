@@ -6,7 +6,6 @@ import { useRef, type ReactNode } from 'react';
 import {
   Armchair,
   Check,
-  Code2,
   Columns2,
   DoorOpen,
   Eraser,
@@ -53,8 +52,6 @@ interface EditorToolbarProps {
   onOpenGeo: () => void;
   onLoadStarter: () => void;
   onClearBlank: () => void;
-  sarOpen: boolean;
-  onToggleSar: () => void;
   onPublish: () => void;
   onExit: () => void;
 }
@@ -75,7 +72,7 @@ const TOOLS: { id: EditorTool; ar: string; en: string; tipAr: string; tipEn: str
 export function EditorToolbar({
   draft, tool, activeFloorId, gridSnap, onionSkin, canUndo, canRedo, dirty, busy, measureDims, lang,
   onSelectTool, onSelectFloor, onAddFloor, onUndo, onRedo, onCycleSnap, onToggleOnion,
-  onOpenGeo, onLoadStarter, onClearBlank, sarOpen, onToggleSar, onPublish, onExit,
+  onOpenGeo, onLoadStarter, onClearBlank, onPublish, onExit,
 }: EditorToolbarProps) {
   const topbarRef = useRef<HTMLDivElement>(null);
   const floorTrackRef = useRef<HTMLDivElement>(null);
@@ -134,16 +131,6 @@ export function EditorToolbar({
             <Sparkles size={13} />
             <span>{lang === 'ar' ? 'نموذج جاهز' : 'Starter'}</span>
           </button>
-          <button
-            type="button"
-            data-action="sar-studio"
-            className={`sp-ed-pill ${sarOpen ? 'is-active' : ''}`}
-            onClick={(e) => { gsapPop(e.currentTarget); onToggleSar(); }}
-            title={lang === 'ar' ? 'محرر لغة SAR الهندسية' : 'SAR Architecture Code'}
-          >
-            <Code2 size={13} />
-            <span>SAR</span>
-          </button>
           <button type="button" className="sp-ed-icon" onClick={onClearBlank} title={lang === 'ar' ? 'مسح الكل' : 'Blank Canvas'}>
             <Eraser size={15} />
           </button>
@@ -199,10 +186,6 @@ export function EditorToolbar({
             <button type="button" className="sp-btn-soft" onClick={onLoadStarter}>
               <Sparkles size={14} />
               <span>{lang === 'ar' ? 'تحميل نموذج المدرسة' : 'Load Starter Campus'}</span>
-            </button>
-            <button type="button" className="sp-btn-soft" onClick={onToggleSar}>
-              <Code2 size={14} />
-              <span>SAR</span>
             </button>
           </div>
         </div>

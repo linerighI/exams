@@ -1,119 +1,50 @@
 /**
- * 3D Spatial Campus parametric layout CRUD, starter templates, geo-anchor calibration,
- * and room Wi-Fi/BLE/QR beacon persistence routes (Manager writes; Staff reads).
+ * 3D Spatial Campus parametric layout CRUD, silent SAR compilation & compact storage,
+ * geo-anchor calibration, and hardware beacon persistence routes.
  */
 const { z } = require('zod');
+const { layoutPayloadSchema } = require('./campus-layout-schema.cjs');
 const { id, fail } = require('./db.cjs');
+const { layoutToSar, sarToLayout } = require('./sar-codec.cjs');
 
-const openingSchema = z.object({
-  id: z.string().trim().min(1).max(64),
-  wall: z.enum(['N', 'S', 'E', 'W']),
-  wallIndex: z.number().int().min(0).max(15).optional(),
-  offset: z.number().min(-40).max(40),
-  width: z.number().min(0.6).max(12),
-  height: z.number().min(0.6).max(5),
-  type: z.enum(['door', 'double_door', 'window', 'arch']),
-});
+/** Resolve a DB layout row into compiled CampusLayout JSON + compact SAR string. */
+function decodeLayoutRow(row) {
+  if (!row) return { layout: null, sar: null };
+  let layout = null;
+  if (row.payload_json) {
+    try {
+      layout = JSON.parse(row.payload_json);
+    } catch {
+      layout = null;
+    }
+  }
+  if (!layout && row.sar_source) {
+    try {
+      layout = sarToLayout(row.sar_source);
+    } catch {
+      layout = null;
+    }
+  }
+  const sar = row.sar_source || (layout ? layoutToSar(layout) : null);
+  return { layout, sar };
+}
 
-const assignmentSchema = z.object({
-  id: z.string().trim().min(1).max(64),
-  title: z.string().trim().min(1).max(120),
-  type: z.enum(['duty', 'exam', 'homework_zone', 'event']).default('duty'),
-  assigneeId: z.string().trim().max(80).default(''),
-  dueAt: z.string().trim().max(40).default(''),
-  offsetX: z.number().min(-25).max(25).default(0),
-  offsetZ: z.number().min(-25).max(25).default(0),
-});
-
-const roomSchema = z.object({
-  id: z.string().trim().min(1).max(64),
-  floorId: z.string().trim().min(1).max(64),
-  wingId: z.string().trim().min(1).max(64),
-  kind: z.enum([
-    'classroom', 'principal', 'teachers', 'reception', 'counselor',
-    'auditorium', 'library', 'lab', 'courtyard', 'corridor',
-    'stairs', 'restroom', 'assignment_zone', 'custom',
-  ]),
-  label: z.string().trim().max(120).default(''),
-  className: z.string().trim().max(80).default(''),
-  x: z.number().min(-200).max(200),
-  z: z.number().min(-200).max(200),
-  width: z.number().min(1.5).max(100),
-  depth: z.number().min(1.5).max(100),
-  points: z
-    .array(z.object({ x: z.number().min(-60).max(60), z: z.number().min(-60).max(60) }))
-    .min(3)
-    .max(16)
-    .optional(),
-  rotationY: z.number().min(-Math.PI * 2).max(Math.PI * 2).default(0),
-  wallHeight: z.number().min(0.1).max(8).default(3.2),
-  wallThickness: z.number().min(0.08).max(0.8).default(0.2),
-  wallColor: z.string().trim().max(24).optional(),
-  floorColor: z.string().trim().max(24).optional(),
-  roomState: z.enum(['normal', 'highlight', 'note', 'alert', 'maintenance']).optional(),
-  stateNote: z.string().trim().max(180).optional(),
-  openEdges: z.array(z.number().int().min(0).max(15)).max(16).optional(),
-  openings: z.array(openingSchema).max(24).default([]),
-  assignments3D: z.array(assignmentSchema).max(24).default([]),
-});
-
-const floorSchema = z.object({
-  id: z.string().trim().min(1).max(64),
-  index: z.number().int().min(-3).max(12),
-  labelAr: z.string().trim().min(1).max(60),
-  labelEn: z.string().trim().min(1).max(60),
-  elevationY: z.number().min(-20).max(60),
-  ceilingHeight: z.number().min(2).max(8).default(3.4),
-});
-
-const wingSchema = z.object({
-  id: z.string().trim().min(1).max(64),
-  labelAr: z.string().trim().min(1).max(60),
-  labelEn: z.string().trim().min(1).max(60),
-  color: z.string().trim().max(24).default('#007aff'),
-  floorIds: z.array(z.string()).max(12).default([]),
-});
-
-const propSchema = z.object({
-  id: z.string().trim().min(1).max(64),
-  floorId: z.string().trim().min(1).max(64),
-  roomId: z.string().trim().max(64).optional(),
-  prefabId: z.string().trim().min(1).max(64),
-  category: z.enum(['furniture', 'nature', 'facilities', 'pins']).default('furniture'),
-  x: z.number().min(-200).max(200),
-  y: z.number().min(-20).max(60).default(0),
-  z: z.number().min(-200).max(200),
-  rotationY: z.number().min(-Math.PI * 2).max(Math.PI * 2).default(0),
-  scale: z.number().min(0.2).max(5).default(1),
-  colorTint: z.string().trim().max(24).optional(),
-});
-
-const layoutPayloadSchema = z.object({
-  meta: z.object({
-    version: z.number().int().min(1).default(1),
-    gridSize: z.number().min(0.1).max(5).default(0.5),
-    unit: z.string().default('m'),
-    theme: z.string().default('apple-clay'),
-    publishedAt: z.string().optional(),
-  }),
-  floors: z.array(floorSchema).min(1).max(10),
-  wings: z.array(wingSchema).min(1).max(24),
-  rooms: z.array(roomSchema).max(160),
-  props: z.array(propSchema).max(800),
-});
-
-/** Read and parse published campus blueprint for a school (returns null if blank). */
+/** Read compiled published campus blueprint for a school (returns null if blank). */
 function getPublishedLayoutPayload(one, schoolId) {
   const row = one(
-    "SELECT payload_json, version, updated_at FROM campus_layouts WHERE school_id=? AND status='published'",
+    "SELECT payload_json, sar_source, version, updated_at FROM campus_layouts WHERE school_id=? AND status='published'",
     schoolId,
   );
-  if (!row?.payload_json) return null;
-  try {
-    return JSON.parse(row.payload_json);
-  } catch {
-    return null;
-  }
+  return decodeLayoutRow(row).layout;
+}
+
+/** Read raw compact SAR source for the school's published 3D blueprint. */
+function getPublishedLayoutSar(one, schoolId) {
+  const row = one(
+    "SELECT payload_json, sar_source FROM campus_layouts WHERE school_id=? AND status='published'",
+    schoolId,
+  );
+  return decodeLayoutRow(row).sar;
 }
 
 /** Register `/api/campus-layout`, `/api/campus-geo`, and `/api/campus-beacons` routes. */
@@ -123,24 +54,25 @@ function registerCampusLayoutRoutes(app, ctx) {
   app.get('/api/campus-layout', async (req) => {
     const u = req.user;
     staff(u);
-    const published = getPublishedLayoutPayload(one, u.school_id);
+    const pubRow = one(
+      "SELECT payload_json, sar_source FROM campus_layouts WHERE school_id=? AND status='published'",
+      u.school_id,
+    );
+    const pub = decodeLayoutRow(pubRow);
     let draft = null;
+    let draftSar = null;
     if (['admin', 'assistant'].includes(u.role)) {
       const dRow = one(
-        "SELECT payload_json FROM campus_layouts WHERE school_id=? AND status='draft'",
+        "SELECT payload_json, sar_source FROM campus_layouts WHERE school_id=? AND status='draft'",
         u.school_id,
       );
-      if (dRow?.payload_json) {
-        try {
-          draft = JSON.parse(dRow.payload_json);
-        } catch {
-          draft = null;
-        }
-      }
+      const dec = decodeLayoutRow(dRow);
+      draft = dec.layout;
+      draftSar = dec.sar;
     }
     const geoAnchor = one('SELECT * FROM campus_geo_anchors WHERE school_id=?', u.school_id) || null;
     const beacons = all('SELECT * FROM campus_beacons WHERE school_id=?', u.school_id);
-    return { published, draft, geoAnchor, beacons };
+    return { published: pub.layout, publishedSar: pub.sar, draft, draftSar, geoAnchor, beacons };
   });
 
   app.post('/api/campus-layout', async (req) => {
@@ -149,9 +81,14 @@ function registerCampusLayoutRoutes(app, ctx) {
     const body = z
       .object({
         status: z.enum(['draft', 'published']).default('published'),
-        layout: layoutPayloadSchema,
+        sar: z.string().max(120000).optional(),
+        layout: layoutPayloadSchema.optional(),
       })
+      .refine((v) => Boolean(v.sar || v.layout), { message: 'Either sar or layout is required' })
       .parse(req.body);
+
+    const compiled = body.sar ? layoutPayloadSchema.parse(sarToLayout(body.sar)) : body.layout;
+    const sarSource = body.sar || layoutToSar(compiled);
 
     const existing = one(
       'SELECT version FROM campus_layouts WHERE school_id=? AND status=?',
@@ -161,35 +98,46 @@ function registerCampusLayoutRoutes(app, ctx) {
     const nextVersion = Number(existing?.version || 0) + 1;
     const nowIso = clock().toISOString();
     const payload = {
-      ...body.layout,
+      ...compiled,
       meta: {
-        ...body.layout.meta,
+        ...compiled.meta,
         version: nextVersion,
-        publishedAt: body.status === 'published' ? nowIso : body.layout.meta.publishedAt,
+        publishedAt: body.status === 'published' ? nowIso : compiled.meta.publishedAt,
       },
     };
+    const jsonText = JSON.stringify(payload);
 
     ctx.db.transaction(() => {
       run(
-        `INSERT INTO campus_layouts(school_id,status,version,payload_json,updated_by,updated_at)
-         VALUES(?,?,?,?,?,?)
+        `INSERT INTO campus_layouts(school_id,status,version,payload_json,sar_source,updated_by,updated_at)
+         VALUES(?,?,?,?,?,?,?)
          ON CONFLICT(school_id,status) DO UPDATE SET
            version=excluded.version,
            payload_json=excluded.payload_json,
+           sar_source=excluded.sar_source,
            updated_by=excluded.updated_by,
            updated_at=excluded.updated_at`,
         u.school_id,
         body.status,
         nextVersion,
-        JSON.stringify(payload),
+        jsonText,
+        sarSource,
         u.id,
         nowIso,
       );
-      audit(u, `Saved 3D campus ${body.status} layout v${nextVersion}`);
+      audit(u, `Compiled & saved SAR campus ${body.status} layout v${nextVersion}`);
     })();
 
     if (body.status === 'published') ctx.wsHub?.broadcastCampusLayout(u.school_id);
-    return { ok: true, status: body.status, version: nextVersion, layout: payload };
+    return {
+      ok: true,
+      status: body.status,
+      version: nextVersion,
+      sarBytes: Buffer.byteLength(sarSource, 'utf8'),
+      jsonBytes: Buffer.byteLength(jsonText, 'utf8'),
+      sar: sarSource,
+      layout: payload,
+    };
   });
 
   app.post('/api/campus-geo', async (req) => {
@@ -215,13 +163,7 @@ function registerCampusLayoutRoutes(app, ctx) {
          scale=excluded.scale,
          geofence_radius_m=excluded.geofence_radius_m,
          updated_at=excluded.updated_at`,
-      u.school_id,
-      v.origin_lat,
-      v.origin_lng,
-      v.bearing_deg,
-      v.scale,
-      v.geofence_radius_m,
-      nowIso,
+      u.school_id, v.origin_lat, v.origin_lng, v.bearing_deg, v.scale, v.geofence_radius_m, nowIso,
     );
     audit(u, 'Updated campus GPS geo-anchor calibration');
     return { ok: true };
@@ -251,16 +193,7 @@ function registerCampusLayoutRoutes(app, ctx) {
          room_id=excluded.room_id, floor_id=excluded.floor_id,
          beacon_type=excluded.beacon_type, identifier=excluded.identifier,
          rssi_ref=excluded.rssi_ref, x=excluded.x, y=excluded.y, z=excluded.z`,
-      bid,
-      u.school_id,
-      v.room_id,
-      v.floor_id,
-      v.beacon_type,
-      v.identifier,
-      v.rssi_ref,
-      v.x,
-      v.y,
-      v.z,
+      bid, u.school_id, v.room_id, v.floor_id, v.beacon_type, v.identifier, v.rssi_ref, v.x, v.y, v.z,
     );
     audit(u, `Configured ${v.beacon_type.toUpperCase()} beacon for room ${v.room_id}`);
     return { ok: true, id: bid };
@@ -275,4 +208,4 @@ function registerCampusLayoutRoutes(app, ctx) {
   });
 }
 
-module.exports = { registerCampusLayoutRoutes, getPublishedLayoutPayload };
+module.exports = { registerCampusLayoutRoutes, getPublishedLayoutPayload, getPublishedLayoutSar };

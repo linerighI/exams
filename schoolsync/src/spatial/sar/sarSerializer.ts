@@ -64,6 +64,13 @@ export function serializeLayoutToSar(layout: CampusLayout): string {
       if (r.roomState && r.roomState !== 'normal') {
         out.push(`    state ${r.roomState}${r.stateNote ? ` ${q(r.stateNote)}` : ''}`);
       }
+
+      for (const a of r.assignments3D || []) {
+        const tail = [`    assign ${q(a.title)}`, `type ${a.type}`, `at (${n(a.offsetX)}, ${n(a.offsetZ)})`];
+        if (a.dueAt) tail.push(`due ${q(a.dueAt)}`);
+        if (a.assigneeId) tail.push(`by ${q(a.assigneeId)}`);
+        out.push(tail.join(' '));
+      }
     }
 
     const roomMap = new Map(flRooms.map((r) => [r.id, r]));

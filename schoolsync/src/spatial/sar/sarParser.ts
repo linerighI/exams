@@ -223,6 +223,18 @@ export function parseSar(source: string): SarProgramAst {
     } else if (cmd === 'state' && tk[1]) {
       if (!curRoom) ast.diagnostics.push({ line, severity: 'warning', message: "'state' must follow a room" });
       else { curRoom.roomState = tk[1] as RoomStateKind; if (tk[2]) curRoom.stateNote = tk[2]; }
+    } else if (cmd === 'assign' && tk[1]) {
+      if (!curRoom) ast.diagnostics.push({ line, severity: 'warning', message: "'assign' must follow a room" });
+      else {
+        let type: 'duty' | 'exam' | 'homework_zone' | 'event' = 'duty', assigneeId = '', dueAt = '10:30', pos = { x: 0, z: 0 };
+        for (let i = 2; i < tk.length; i++) {
+          if (tk[i] === 'type' && tk[i + 1]) type = tk[++i] as typeof type;
+          else if (tk[i] === 'due' && tk[i + 1]) dueAt = tk[++i];
+          else if (tk[i] === 'by' && tk[i + 1]) assigneeId = tk[++i];
+          else if (tk[i] === 'at') { const p = parsePair(tk[++i]); if (p) pos = p; }
+        }
+        curRoom.assignments3D.push({ id: `${curRoom.id}-asg-${curRoom.assignments3D.length + 1}`, title: tk[1], type, assigneeId, dueAt, offsetX: pos.x, offsetZ: pos.z });
+      }
     } else if (cmd === 'row') {
       curRoom = null;
       const count = Math.max(1, Math.min(24, Math.round(parseNum(tk[1], 1) ?? 1)));

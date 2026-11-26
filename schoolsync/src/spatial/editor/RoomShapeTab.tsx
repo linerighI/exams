@@ -5,6 +5,7 @@
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import type { Language } from '../../i18n';
 import type { CampusLayout, CampusRoom, RoomKind, SchoolClass } from '../../types';
+import { GlassSelect } from '../../windows/GlassSelect';
 import { findRoomNeighbors } from '../engine/roomAdjacency';
 import { computePointsBounds, getRoomPoints, insertCornerOnLongestEdge } from '../engine/roomPolygon';
 import { EDITOR_ROOM_KINDS } from './EditorInspectorPanels';
@@ -52,37 +53,38 @@ export function RoomShapeTab({ room, draft, classes, lang, onUpdate, onToggleSha
           <input value={room.label} onChange={(e) => onUpdate({ label: e.target.value })} />
         </label>
         <div className="sp-row-2">
-          <label className="sp-field">
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'النوع' : 'Type'}</span>
-            <select value={room.kind} onChange={(e) => onUpdate({ kind: e.target.value as RoomKind })}>
-              {EDITOR_ROOM_KINDS.map((k) => (
-                <option key={k.value} value={k.value}>{lang === 'ar' ? k.ar : k.en}</option>
-              ))}
-            </select>
-          </label>
-          <label className="sp-field">
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'نوع الغرفة' : 'Room Type'}
+              value={room.kind}
+              options={EDITOR_ROOM_KINDS.map((k) => ({ value: k.value, label: lang === 'ar' ? k.ar : k.en }))}
+              onChange={(val) => onUpdate({ kind: val as RoomKind })}
+            />
+          </div>
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'الجناح' : 'Wing'}</span>
-            <select value={room.wingId} onChange={(e) => onUpdate({ wingId: e.target.value })}>
-              {draft.wings.map((w) => (
-                <option key={w.id} value={w.id}>{lang === 'ar' ? w.labelAr : w.labelEn}</option>
-              ))}
-            </select>
-          </label>
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'الجناح' : 'Wing'}
+              value={room.wingId}
+              options={draft.wings.map((w) => ({ value: w.id, label: lang === 'ar' ? w.labelAr : w.labelEn }))}
+              onChange={(val) => onUpdate({ wingId: val })}
+            />
+          </div>
         </div>
         {room.kind === 'classroom' && (
-          <label className="sp-field">
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'الشعبة المرتبطة' : 'Linked Class'}</span>
-            <select
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'الشعبة المرتبطة' : 'Linked Class'}
               value={room.className}
-              onChange={(e) => {
-                const cls = e.target.value;
-                onUpdate({ className: cls, label: cls || room.label });
-              }}
-            >
-              <option value="">{lang === 'ar' ? '— بدون ربط —' : '— None —'}</option>
-              {classes.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
-          </label>
+              options={[
+                { value: '', label: lang === 'ar' ? '— بدون ربط —' : '— None —' },
+                ...classes.map((c) => ({ value: c.name, label: c.name })),
+              ]}
+              onChange={(cls) => onUpdate({ className: cls, label: cls || room.label })}
+            />
+          </div>
         )}
       </div>
 

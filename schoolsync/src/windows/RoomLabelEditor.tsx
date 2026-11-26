@@ -6,8 +6,10 @@ import { useState, type FormEvent } from 'react';
 import { Check, MapPin } from 'lucide-react';
 import type { Language } from '../i18n';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
+import { serializeLayoutToSar } from '../spatial/sar/sarSerializer';
 import type { CampusLayout, RoomKind, State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { GlassSelect } from './GlassSelect';
 
 interface RoomLabelEditorProps {
   room: ResolvedSpatialRoom;
@@ -65,7 +67,7 @@ export function RoomLabelEditor({
     };
     const ok = await mutate(
       '/campus-layout',
-      { status: 'published', layout: nextLayout },
+      { status: 'published', sar: serializeLayoutToSar(nextLayout) },
       lang === 'ar' ? 'تم حفظ اسم القاعة على المجسم' : 'Room label saved',
     );
     if (ok) onClose();
@@ -93,38 +95,37 @@ export function RoomLabelEditor({
           />
         </label>
 
-        <label className="sp-field">
+        <div className="sp-field">
           <span>{lang === 'ar' ? 'وظيفة الغرفة' : 'Room Function'}</span>
-          <select value={kind} onChange={(e) => setKind(e.target.value as RoomKind)}>
-            {KIND_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {lang === 'ar' ? opt.ar : opt.en}
-              </option>
-            ))}
-          </select>
-        </label>
+          <GlassSelect
+            ariaLabel={lang === 'ar' ? 'وظيفة الغرفة' : 'Room Function'}
+            value={kind}
+            options={KIND_OPTIONS.map((opt) => ({ value: opt.value, label: lang === 'ar' ? opt.ar : opt.en }))}
+            onChange={(val) => setKind(val as RoomKind)}
+          />
+        </div>
 
         {kind === 'classroom' && (
-          <label className="sp-field">
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'ربط بشعبة دراسية' : 'Linked School Class'}</span>
-            <select
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'ربط بشعبة دراسية' : 'Linked School Class'}
               value={className}
-              onChange={(e) => {
-                const nextCls = e.target.value;
+              options={[
+                { value: '', label: lang === 'ar' ? '— قاعة فارغة / بدون ربط —' : '— Unlinked —' },
+                ...data.classes.map((c) => ({
+                  value: c.name,
+                  label: `${c.name}${c.grade_level ? ` (${c.grade_level})` : ''}`,
+                })),
+              ]}
+              onChange={(nextCls) => {
                 setClassName(nextCls);
                 if (nextCls && (!label || label === room.className || label.startsWith('قاعة'))) {
                   setLabel(nextCls);
                 }
               }}
-            >
-              <option value="">{lang === 'ar' ? '— قاعة فارغة / بدون ربط —' : '— Unlinked —'}</option>
-              {data.classes.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name} ({c.grade_level || lang === 'ar' ? c.grade_level : ''})
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
         )}
 
         <div className="sp-row-actions">

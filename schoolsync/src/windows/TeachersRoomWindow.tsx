@@ -10,6 +10,7 @@ import { gsapPop, useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import { isManagerRole, type CampusLayout, type State, type WingId } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { GlassSelect } from './GlassSelect';
 import { SegmentedTabs } from './SegmentedTabs';
 
 interface TeachersRoomWindowProps {
@@ -150,16 +151,15 @@ export function TeachersRoomWindow({
 
       {manager && tab === 'assign' && selectedTeacher && (
         <form className="sp-form" onSubmit={(e) => void handleSaveAssignments(e)}>
-          <label className="sp-field">
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'اختر المعلم' : 'Teacher'}</span>
-            <select value={selectedTeacher.id} onChange={(e) => setSelectedId(e.target.value)}>
-              {data.teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'اختر المعلم' : 'Teacher'}
+              value={selectedTeacher.id}
+              options={data.teachers.map((t) => ({ value: t.id, label: t.name }))}
+              onChange={setSelectedId}
+            />
+          </div>
 
           <div className="sp-chip-picker">
             <span>{lang === 'ar' ? 'الأجنحة المسموحة للمعلم (تُحجب بقية الأجنحة بضباب)' : 'Allowed 3D Wings (Others Fogged)'}</span>

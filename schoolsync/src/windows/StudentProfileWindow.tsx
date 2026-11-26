@@ -9,6 +9,7 @@ import { gsapPop, useGsapStagger } from '../spatial/editor/editorMotion';
 import { tr } from '../translations';
 import type { State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { GlassSelect } from './GlassSelect';
 import { SegmentedTabs } from './SegmentedTabs';
 
 interface StudentProfileWindowProps {
@@ -233,11 +234,16 @@ export function StudentProfileWindow({
             <div className="sp-tab-pane">
               <form className="sp-inline-box" onSubmit={(e) => void handleAddNote(e)}>
                 <div className="sp-row-2">
-                  <select value={noteCat} onChange={(e) => setNoteCat(e.target.value as typeof noteCat)}>
-                    <option value="behavior">{lang === 'ar' ? 'ملاحظة سلوكية' : 'Behavior'}</option>
-                    <option value="academic">{lang === 'ar' ? 'ملاحظة تعليمية' : 'Academic'}</option>
-                    <option value="general">{lang === 'ar' ? 'ملاحظة عامة' : 'General'}</option>
-                  </select>
+                  <GlassSelect
+                    ariaLabel={lang === 'ar' ? 'تصنيف الملاحظة' : 'Note Category'}
+                    value={noteCat}
+                    options={[
+                      { value: 'behavior', label: lang === 'ar' ? 'ملاحظة سلوكية' : 'Behavior' },
+                      { value: 'academic', label: lang === 'ar' ? 'ملاحظة تعليمية' : 'Academic' },
+                      { value: 'general', label: lang === 'ar' ? 'ملاحظة عامة' : 'General' },
+                    ]}
+                    onChange={(val) => setNoteCat(val as typeof noteCat)}
+                  />
                   <button type="submit" className="sp-btn-primary" disabled={busy}>
                     <Send size={13} />
                     <span>{lang === 'ar' ? 'إرسال' : 'Send'}</span>

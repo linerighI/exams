@@ -14,6 +14,7 @@ import {
   weekdayOfDate,
 } from '../jordanTime';
 import type { State } from '../types';
+import { GlassSelect } from './GlassSelect';
 
 interface ClassroomScheduleTabProps {
   className: string;
@@ -145,19 +146,18 @@ export function ClassroomScheduleTab({
       {manager && adding && (
         <form className="sp-inline-box" onSubmit={(e) => void handleAdd(e)}>
           <div className="sp-row-2">
-            <label className="sp-field">
+            <div className="sp-field">
               <span>{lang === 'ar' ? 'الحصة' : 'Period'}</span>
-              <select
-                value={periodNumber}
-                onChange={(e) => setPeriodNumber(Number(e.target.value))}
-              >
-                {slots.map((s) => (
-                  <option key={s.periodNumber} value={s.periodNumber}>
-                    {lang === 'ar' ? s.labelAr : s.labelEn} ({s.start})
-                  </option>
-                ))}
-              </select>
-            </label>
+              <GlassSelect
+                ariaLabel={lang === 'ar' ? 'الحصة' : 'Period'}
+                value={String(periodNumber)}
+                options={slots.map((s) => ({
+                  value: String(s.periodNumber),
+                  label: `${lang === 'ar' ? s.labelAr : s.labelEn} (${s.start})`,
+                }))}
+                onChange={(val) => setPeriodNumber(Number(val))}
+              />
+            </div>
             <label className="sp-field">
               <span>{lang === 'ar' ? 'المادة' : 'Subject'}</span>
               <input
@@ -173,16 +173,15 @@ export function ClassroomScheduleTab({
               </datalist>
             </label>
           </div>
-          <label className="sp-field">
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'المعلم' : 'Teacher'}</span>
-            <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} required>
-              {data.teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'المعلم' : 'Teacher'}
+              value={teacherId}
+              options={data.teachers.map((t) => ({ value: t.id, label: t.name }))}
+              onChange={setTeacherId}
+            />
+          </div>
           <div className="sp-row-actions">
             <button type="button" className="sp-btn-ghost" onClick={() => setAdding(false)}>
               {lang === 'ar' ? 'إلغاء' : 'Cancel'}

@@ -5,6 +5,7 @@
 import { useState, type FormEvent } from 'react';
 import { Plus, RotateCw, Trash2 } from 'lucide-react';
 import type { Language } from '../../i18n';
+import { GlassSelect } from '../../windows/GlassSelect';
 import type {
   CampusBeacon,
   CampusLayout,
@@ -98,34 +99,34 @@ export function AssignmentInspectorSection({
         />
       </label>
       <div className="sp-row-2">
-        <label className="sp-field">
+        <div className="sp-field">
           <span>{lang === 'ar' ? 'النوع' : 'Type'}</span>
-          <select
+          <GlassSelect
+            ariaLabel={lang === 'ar' ? 'نوع المهمة' : 'Assignment Type'}
             value={assignment.type}
-            onChange={(e) =>
-              onUpdateAssignment(roomId, assignment.id, { type: e.target.value as SpatialAssignment3D['type'] })
+            options={[
+              { value: 'duty', label: lang === 'ar' ? 'مناوبة' : 'Duty' },
+              { value: 'exam', label: lang === 'ar' ? 'قاعة امتحان' : 'Exam Zone' },
+              { value: 'homework_zone', label: lang === 'ar' ? 'نشاط / واجب' : 'Activity' },
+              { value: 'event', label: lang === 'ar' ? 'فعالية' : 'Event' },
+            ]}
+            onChange={(val) =>
+              onUpdateAssignment(roomId, assignment.id, { type: val as SpatialAssignment3D['type'] })
             }
-          >
-            <option value="duty">{lang === 'ar' ? 'مناوبة' : 'Duty'}</option>
-            <option value="exam">{lang === 'ar' ? 'قاعة امتحان' : 'Exam Zone'}</option>
-            <option value="homework_zone">{lang === 'ar' ? 'نشاط / واجب' : 'Activity'}</option>
-            <option value="event">{lang === 'ar' ? 'فعالية' : 'Event'}</option>
-          </select>
-        </label>
-        <label className="sp-field">
+          />
+        </div>
+        <div className="sp-field">
           <span>{lang === 'ar' ? 'المكلّف' : 'Assignee'}</span>
-          <select
+          <GlassSelect
+            ariaLabel={lang === 'ar' ? 'المكلّف' : 'Assignee'}
             value={assignment.assigneeId}
-            onChange={(e) => onUpdateAssignment(roomId, assignment.id, { assigneeId: e.target.value })}
-          >
-            <option value="">{lang === 'ar' ? 'عام' : 'General'}</option>
-            {data.teachers.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={[
+              { value: '', label: lang === 'ar' ? 'عام' : 'General' },
+              ...data.teachers.map((t) => ({ value: t.id, label: t.name })),
+            ]}
+            onChange={(val) => onUpdateAssignment(roomId, assignment.id, { assigneeId: val })}
+          />
+        </div>
       </div>
       <button type="button" className="sp-btn-ghost" onClick={onDelete}>
         <Trash2 size={14} />

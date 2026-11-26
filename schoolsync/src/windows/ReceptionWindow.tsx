@@ -8,6 +8,8 @@ import type { Language } from '../i18n';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import { isManagerRole, type State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { GlassSelect } from './GlassSelect';
+import { SegmentedTabs } from './SegmentedTabs';
 
 interface ReceptionWindowProps {
   room: ResolvedSpatialRoom;
@@ -81,15 +83,14 @@ export function ReceptionWindow({
       onClose={onClose}
     >
       {manager && (
-        <div className="sp-segmented">
-          <button type="button" className={tab === 'directory' ? 'is-active' : ''} onClick={() => setTab('directory')}>
-            {lang === 'ar' ? 'دليل الطلبة' : 'Directory'}
-          </button>
-          <button type="button" className={tab === 'enroll' ? 'is-active' : ''} onClick={() => setTab('enroll')}>
-            <UserPlus size={13} />
-            <span>{lang === 'ar' ? 'تسجيل طالب جديد' : 'Enroll Student'}</span>
-          </button>
-        </div>
+        <SegmentedTabs
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: 'directory', label: lang === 'ar' ? 'دليل الطلبة' : 'Directory' },
+            { id: 'enroll', label: <><UserPlus size={13} /><span>{lang === 'ar' ? 'تسجيل طالب جديد' : 'Enroll Student'}</span></> },
+          ]}
+        />
       )}
 
       {tab === 'directory' && (
@@ -144,14 +145,15 @@ export function ReceptionWindow({
             <span>{lang === 'ar' ? 'اسم الطالب الرباعي' : 'Student Full Name'}</span>
             <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </label>
-          <label className="sp-field">
+          <div className="sp-field">
             <span>{lang === 'ar' ? 'الشعبة الدراسية' : 'Section'}</span>
-            <select required value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}>
-              {data.classes.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-          </label>
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'الشعبة الدراسية' : 'Section'}
+              value={form.section}
+              options={data.classes.map((c) => ({ value: c.name, label: c.name }))}
+              onChange={(val) => setForm({ ...form, section: val })}
+            />
+          </div>
           <div className="sp-row-2">
             <label className="sp-field">
               <span>{lang === 'ar' ? 'هاتف ولي الأمر' : 'Guardian Phone'}</span>
