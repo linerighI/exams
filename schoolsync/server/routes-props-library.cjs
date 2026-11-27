@@ -78,7 +78,8 @@ function registerPropsLibraryRoutes(app, ctx) {
     if (!gltfRes.ok) return reply.code(502).send({ error: 'Failed to load GLTF' });
     const gltfJson = await gltfRes.json();
     const inc = gltfBranch.include || {};
-    const wrap = (u) => `/api/props-library/file?url=${encodeURIComponent(u)}`;
+    // Relative to `/api/props-library/polyhaven/:slug/model.gltf` so Three.js GLTFLoader never double-prefixes
+    const wrap = (u) => `file?url=${encodeURIComponent(u)}`;
 
     for (const buf of gltfJson.buffers || []) {
       if (buf.uri && inc[buf.uri]?.url) buf.uri = wrap(inc[buf.uri].url);
@@ -89,7 +90,7 @@ function registerPropsLibraryRoutes(app, ctx) {
     return reply.type('model/gltf+json').header('Cache-Control', 'public, max-age=86400').send(gltfJson);
   });
 
-  app.get('/api/props-library/file', async (req, reply) => {
+  const proxyAssetFile = async (req, reply) => {
     const raw = String(req.query?.url || '');
     if (!raw.startsWith('https://dl.polyhaven.org/') && !raw.startsWith('https://raw.githubusercontent.com/')) {
       return reply.code(403).send({ error: 'Host not allowed' });
@@ -99,7 +100,10 @@ function registerPropsLibraryRoutes(app, ctx) {
     const buf = Buffer.from(await upstream.arrayBuffer());
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
     return reply.type(ct).header('Cache-Control', 'public, max-age=86400').send(buf);
-  });
+  };
+
+  app.get('/api/props-library/file', proxyAssetFile);
+  app.get('/api/props-library/polyhaven/:slug/file', proxyAssetFile);
 }
 
 module.exports = { registerPropsLibraryRoutes };

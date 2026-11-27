@@ -94,6 +94,9 @@ function loadNormalizedGltf(url: string): Promise<THREE.Group> {
         }
       });
       return model;
+    }).catch((err) => {
+      gltfCache.delete(url);
+      throw err;
     });
     gltfCache.set(url, p);
   }
@@ -123,7 +126,12 @@ export function buildPropMesh(
         });
         root.add(clone);
       })
-      .catch(() => { /* keep lightweight placeholder if offline */ });
+      .catch(() => {
+        // Replace loading placeholder with a clean architectural fallback block if offline/404
+        placeholderMat.color.setHex(0xe2e8f0);
+        placeholderMat.opacity = 0.92;
+        placeholderMat.transparent = false;
+      });
     return { root, materials: [placeholderMat] };
   }
   return (
