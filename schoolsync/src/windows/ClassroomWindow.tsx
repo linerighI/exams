@@ -145,8 +145,14 @@ export function ClassroomWindow({
                 </>
               ) : (
                 <>
-                  <strong>{classTeachers[0]?.name || (lang === 'ar' ? 'لا توجد حصة جارية الآن' : 'No active lesson now')}</strong>
-                  <small>{lang === 'ar' ? 'يمكنك عرض الجدول أو تعديله من تبويب الجدول' : 'View or edit lessons in Schedule'}</small>
+                  <strong>
+                    {classTeachers[0]
+                      ? `${lang === 'ar' ? 'مربي الصف: ' : 'Class Lead Teacher: '}${classTeachers[0].name}`
+                      : lang === 'ar'
+                        ? 'لا توجد حصة جارية الآن'
+                        : 'No active lesson now'}
+                  </strong>
+                  <small>{lang === 'ar' ? 'معلم الصف الرئيسي · عرض أو تعديل الجدول من تبويب الجدول' : 'Class Lead Teacher · View or edit lessons in Schedule'}</small>
                 </>
               )}
             </div>

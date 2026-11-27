@@ -163,6 +163,75 @@ function registerLessonRoutes(app, ctx) {
     audit(u, `Deleted lesson ${l.id}`);
     return { ok: true };
   });
+
+  /** Apply a universal weekly schedule template across all classes in the school. */
+  app.post('/api/lessons/universal', async (req) => {
+    const u = req.user;
+    schoolManager(u);
+    const v = z
+      .object({
+        replaceExisting: z.boolean().default(true),
+        entries: z
+          .array(
+            z.object({
+              weekday: z.number().int().min(0).max(6),
+              periodNumber: z.number().int().min(1).max(10),
+              subject: text,
+              teacherId: z.string().optional(),
+            }),
+          )
+          .min(1)
+          .max(60),
+      })
+      .parse(req.body);
+
+    const school = one('SELECT * FROM schools WHERE id=?', u.school_id);
+    const classes = ctx.all('SELECT name, room FROM classes WHERE school_id=?', u.school_id);
+    if (!classes.length) fail('لا توجد صفوف دراسية بعد', 400);
+    const fallbackTeacher = one("SELECT id FROM users WHERE school_id=? AND role='teacher' LIMIT 1", u.school_id);
+    if (!fallbackTeacher) fail('أضف معلماً واحداً على الأقل أولاً', 400);
+
+    let createdCount = 0;
+    let maxEnd = school.end_time;
+    ctx.db.transaction(() => {
+      for (const cls of classes) {
+        const lead = one(
+          "SELECT u.id FROM users u WHERE u.school_id=? AND u.role='teacher' AND (u.section=? OR EXISTS(SELECT 1 FROM teacher_classes tc WHERE tc.teacher_id=u.id AND tc.class_name=?)) LIMIT 1",
+          u.school_id,
+          cls.name,
+          cls.name,
+        );
+        for (const entry of v.entries) {
+          const derived = periodWindow(school, entry.periodNumber);
+          if (!derived) continue;
+          const tid = entry.teacherId || lead?.id || fallbackTeacher.id;
+          if (v.replaceExisting) {
+            run(
+              'DELETE FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=? AND id NOT IN (SELECT COALESCE(lesson_id,"") FROM attendance)',
+              u.school_id, cls.name, entry.weekday, entry.periodNumber,
+            );
+          }
+          const exists = one(
+            'SELECT 1 FROM lessons WHERE school_id=? AND section=? AND weekday=? AND start<? AND end>?',
+            u.school_id, cls.name, entry.weekday, derived.end, derived.start,
+          );
+          if (exists) continue;
+          run(
+            'INSERT INTO lessons(id,school_id,section,teacher_id,subject,room,weekday,start,end,color,period_number) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+            id(), u.school_id, cls.name, tid, entry.subject, cls.room || cls.name,
+            entry.weekday, derived.start, derived.end, 'blue', entry.periodNumber,
+          );
+          run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', u.school_id, tid, cls.name);
+          run('INSERT OR IGNORE INTO teacher_subjects(school_id,teacher_id,subject) VALUES(?,?,?)', u.school_id, tid, entry.subject);
+          if (derived.end > maxEnd) maxEnd = derived.end;
+          createdCount++;
+        }
+      }
+      if (maxEnd > school.end_time) run('UPDATE schools SET end_time=? WHERE id=?', maxEnd, u.school_id);
+      audit(u, `Applied universal schedule (${createdCount} lessons) across ${classes.length} classes`);
+    })();
+    return { ok: true, createdCount, classCount: classes.length };
+  });
 }
 
 module.exports = { registerLessonRoutes };

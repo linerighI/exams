@@ -56,16 +56,23 @@ export function ClassroomTeachersTab({
 
   return (
     <div className="sp-tab-pane">
-      <h4 className="sp-subhead">{lang === 'ar' ? 'معلمو الشعبة' : 'Assigned Teachers'}</h4>
+      <h4 className="sp-subhead">{lang === 'ar' ? 'مربي الصف ومعلمو الشعبة' : 'Class Lead & Assigned Teachers'}</h4>
       <div className="sp-list-stack">
         {classTeachers.length === 0 ? (
-          <p className="sp-empty-note">{lang === 'ar' ? 'لا يوجد معلمون مرتبطون بعد' : 'No teachers assigned'}</p>
+          <p className="sp-empty-note">{lang === 'ar' ? 'لا يوجد مربي صف مرتبط بعد' : 'No class lead teacher assigned'}</p>
         ) : (
-          classTeachers.map((t) => (
+          classTeachers.map((t, idx) => (
             <div key={t.id} className="sp-info-row">
               <UserCheck size={15} className="is-blue" />
               <div>
-                <strong>{t.name}</strong>
+                <strong>
+                  {t.name}
+                  {idx === 0 && (
+                    <span className="sp-live-chip">
+                      {lang === 'ar' ? 'مربي الصف' : 'Class Lead'}
+                    </span>
+                  )}
+                </strong>
                 <small>{t.subjects.join(' · ') || t.email}</small>
               </div>
             </div>
