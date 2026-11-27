@@ -1,6 +1,6 @@
 /**
- * Hardened Schedule Service for SchoolSync: school-wide daily overview, conflict detection,
- * atomic universal template broadcast, batch upsert, and lesson period swapping.
+ * Hardened Schedule Service for SchoolSync: school-wide daily overview, live config/timing,
+ * cell upsert/cancel/clear, conflict barrier, absence optimizer, and schedule profiles.
  */
 const { id, fail } = require('./db.cjs');
 const { periodWindow } = require('./state.cjs');
@@ -25,30 +25,133 @@ function getLeadTeachersBySection(ctx, schoolId) {
 function buildScheduleOverview(ctx, schoolId, weekday) {
   const school = ctx.one('SELECT * FROM schools WHERE id=?', schoolId);
   const classes = ctx.all('SELECT id, name, grade_level, room, sort_order FROM classes WHERE school_id=? ORDER BY sort_order ASC, name ASC', schoolId);
+  const teachers = ctx.all("SELECT id, name, email, section, is_absent FROM users WHERE school_id=? AND role='teacher' ORDER BY name ASC", schoolId);
   const leadTeachers = getLeadTeachersBySection(ctx, schoolId);
   const lessons = ctx.all(
-    `SELECT l.id, l.section, l.teacher_id, u.name AS teacher, l.subject, l.room, l.weekday, l.start, l.end, l.color, l.period_number
+    `SELECT l.id, l.section, l.teacher_id, u.name AS teacher, u.is_absent AS teacher_absent,
+            l.subject, l.room, l.weekday, l.start, l.end, l.color, l.period_number, COALESCE(l.status,'active') AS status
      FROM lessons l JOIN users u ON u.id = l.teacher_id
      WHERE l.school_id=? AND l.weekday=?
-     ORDER BY l.start ASC, l.section ASC`,
+     ORDER BY l.period_number ASC, l.start ASC, l.section ASC`,
     schoolId, weekday,
   );
+  const profiles = ctx.all('SELECT id, name, created_at FROM schedule_profiles WHERE school_id=? ORDER BY created_at DESC', schoolId);
   const count = Math.max(1, Number(school.period_count || 7));
   const slots = [];
   for (let p = 1; p <= count; p++) {
     const win = periodWindow(school, p);
     if (win) slots.push({ periodNumber: p, start: win.start, end: win.end });
   }
-  return { weekday, school: { start_time: school.start_time, end_time: school.end_time, timezone: school.timezone }, slots, classes, leadTeachers, lessons };
+  return {
+    weekday,
+    school: {
+      start_time: school.start_time, end_time: school.end_time, timezone: school.timezone,
+      period_minutes: Number(school.period_minutes || 45), break_minutes: Number(school.break_minutes || 5),
+      period_count: count, schedule_mode: school.schedule_mode || 'manual',
+      active_period: school.active_period ?? null, duty_notes: school.duty_notes || '',
+    },
+    slots, classes, teachers, leadTeachers, lessons, profiles,
+  };
+}
+
+/** Update school day timing, manual/auto mode, active period, and duty notes. */
+function updateScheduleConfig(ctx, user, input) {
+  const school = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
+  const start = input.start_time ?? school.start_time;
+  const pMin = input.period_minutes ?? Number(school.period_minutes || 45);
+  const bMin = input.break_minutes ?? Number(school.break_minutes || 5);
+  const pCount = input.period_count ?? Number(school.period_count || 7);
+  const mode = input.schedule_mode ?? (school.schedule_mode || 'manual');
+  const activePeriod = input.active_period === undefined ? (school.active_period ?? null) : input.active_period;
+  const dutyNotes = input.duty_notes === undefined ? (school.duty_notes || '') : input.duty_notes;
+
+  ctx.db.transaction(() => {
+    ctx.run(
+      'UPDATE schools SET start_time=?,period_minutes=?,break_minutes=?,period_count=?,schedule_mode=?,active_period=?,duty_notes=? WHERE id=?',
+      start, pMin, bMin, pCount, mode, activePeriod, dutyNotes, user.school_id,
+    );
+    const updatedSchool = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
+    for (const l of ctx.all('SELECT id, period_number FROM lessons WHERE school_id=?', user.school_id)) {
+      const win = periodWindow(updatedSchool, l.period_number || 1);
+      if (win) ctx.run('UPDATE lessons SET start=?, end=? WHERE id=?', win.start, win.end, l.id);
+    }
+    ctx.audit(user, 'Updated master schedule configuration');
+  })();
+  return { ok: true };
+}
+
+/** Upsert, cancel/restore, or clear a single cell in the master schedule with conflict barrier. */
+function upsertScheduleCell(ctx, user, input) {
+  const school = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
+  const win = periodWindow(school, input.periodNumber);
+  if (!win) fail('Invalid period number', 400);
+
+  if (input.action === 'clear') {
+    const existing = ctx.one('SELECT id FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=?', user.school_id, input.section, input.weekday, input.periodNumber);
+    if (existing && ctx.one('SELECT 1 FROM attendance WHERE lesson_id=?', existing.id)) fail('لا يمكن مسح حصة مسجّل بها حضور', 409);
+    ctx.run('DELETE FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=?', user.school_id, input.section, input.weekday, input.periodNumber);
+    return { ok: true };
+  }
+
+  if (input.action === 'cancel' || input.action === 'restore') {
+    const nextStatus = input.action === 'cancel' ? 'canceled' : 'active';
+    ctx.run('UPDATE lessons SET status=? WHERE school_id=? AND section=? AND weekday=? AND period_number=?', nextStatus, user.school_id, input.section, input.weekday, input.periodNumber);
+    return { ok: true, status: nextStatus };
+  }
+
+  const teacherId = input.teacherId || getLeadTeachersBySection(ctx, user.school_id)[input.section]?.id;
+  if (!teacherId) fail('Choose a teacher', 400);
+  const conflict = ctx.one(
+    "SELECT section FROM lessons WHERE school_id=? AND weekday=? AND period_number=? AND section<>? AND teacher_id=? AND COALESCE(status,'active')='active'",
+    user.school_id, input.weekday, input.periodNumber, input.section, teacherId,
+  );
+  if (conflict) fail(`Schedule conflict: teacher already booked in ${conflict.section}`, 409);
+
+  ctx.db.transaction(() => {
+    const existing = ctx.one('SELECT id FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=?', user.school_id, input.section, input.weekday, input.periodNumber);
+    if (existing) {
+      ctx.run("UPDATE lessons SET subject=?,teacher_id=?,start=?,end=?,color=?,status='active' WHERE id=?", input.subject, teacherId, win.start, win.end, input.color || 'blue', existing.id);
+    } else {
+      ctx.run(
+        "INSERT INTO lessons(id,school_id,section,teacher_id,subject,room,weekday,start,end,color,period_number,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,'active')",
+        id(), user.school_id, input.section, teacherId, input.subject, input.section, input.weekday, win.start, win.end, input.color || 'blue', input.periodNumber,
+      );
+    }
+    ctx.run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', user.school_id, teacherId, input.section);
+    ctx.run('INSERT OR IGNORE INTO teacher_subjects(school_id,teacher_id,subject) VALUES(?,?,?)', user.school_id, teacherId, input.subject);
+  })();
+  return { ok: true };
+}
+
+/** Shift active lessons earlier and move absent-teacher lessons to the end of the day as canceled. */
+function optimizeSectionForAbsences(ctx, user, section, weekday) {
+  const school = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
+  const absentIds = new Set(ctx.all("SELECT id FROM users WHERE school_id=? AND role='teacher' AND is_absent=1", user.school_id).map((r) => r.id));
+  const secLessons = ctx.all('SELECT * FROM lessons WHERE school_id=? AND section=? AND weekday=? ORDER BY period_number ASC', user.school_id, section, weekday);
+  if (!secLessons.length) return { ok: true, moved: 0 };
+
+  const active = secLessons.filter((l) => !absentIds.has(l.teacher_id));
+  const absent = secLessons.filter((l) => absentIds.has(l.teacher_id));
+  if (!absent.length) return { ok: true, moved: 0 };
+
+  const ordered = [...active.map((l) => ({ ...l, nextStatus: 'active' })), ...absent.map((l) => ({ ...l, nextStatus: 'canceled' }))];
+  const count = Math.max(ordered.length, Number(school.period_count || 7));
+  ctx.db.transaction(() => {
+    for (let idx = 0; idx < ordered.length && idx < count; idx++) {
+      const p = idx + 1;
+      const win = periodWindow(school, p);
+      if (win) ctx.run('UPDATE lessons SET period_number=?,start=?,end=?,status=? WHERE id=?', p, win.start, win.end, ordered[idx].nextStatus, ordered[idx].id);
+    }
+    ctx.audit(user, `Optimized absences for ${section} (weekday ${weekday})`);
+  })();
+  return { ok: true, moved: absent.length };
 }
 
 /** Atomically broadcast a universal schedule template across target (or all) classes. */
 function applyUniversalSchedule(ctx, user, input) {
   const school = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
   const allClasses = ctx.all('SELECT name, room FROM classes WHERE school_id=? ORDER BY sort_order ASC, name ASC', user.school_id);
-  const classes = input.targetSections?.length
-    ? allClasses.filter((c) => input.targetSections.includes(c.name))
-    : allClasses;
+  const classes = input.targetSections?.length ? allClasses.filter((c) => input.targetSections.includes(c.name)) : allClasses;
   if (!classes.length) fail('لا توجد صفوف دراسية مستهدفة', 400);
   const fallbackTeacher = ctx.one("SELECT id FROM users WHERE school_id=? AND role='teacher' LIMIT 1", user.school_id);
   if (!fallbackTeacher) fail('أضف معلماً واحداً على الأقل أولاً', 400);
@@ -66,21 +169,11 @@ function applyUniversalSchedule(ctx, user, input) {
         if (!derived) continue;
         const tid = entry.teacherId || leadId;
         if (input.replaceExisting) {
-          ctx.run(
-            "DELETE FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=? AND id NOT IN (SELECT COALESCE(lesson_id,'') FROM attendance)",
-            user.school_id, cls.name, entry.weekday, entry.periodNumber,
-          );
+          ctx.run("DELETE FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=? AND id NOT IN (SELECT COALESCE(lesson_id,'') FROM attendance)", user.school_id, cls.name, entry.weekday, entry.periodNumber);
         }
-        const conflict = ctx.one(
-          'SELECT 1 FROM lessons WHERE school_id=? AND weekday=? AND start<? AND end>? AND (section=? OR teacher_id=?)',
-          user.school_id, entry.weekday, derived.end, derived.start, cls.name, tid,
-        );
+        const conflict = ctx.one('SELECT 1 FROM lessons WHERE school_id=? AND weekday=? AND start<? AND end>? AND (section=? OR teacher_id=?)', user.school_id, entry.weekday, derived.end, derived.start, cls.name, tid);
         if (conflict) { skippedConflicts++; continue; }
-        ctx.run(
-          'INSERT INTO lessons(id,school_id,section,teacher_id,subject,room,weekday,start,end,color,period_number) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-          id(), user.school_id, cls.name, tid, entry.subject, cls.room || cls.name,
-          entry.weekday, derived.start, derived.end, entry.color || 'blue', entry.periodNumber,
-        );
+        ctx.run("INSERT INTO lessons(id,school_id,section,teacher_id,subject,room,weekday,start,end,color,period_number,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,'active')", id(), user.school_id, cls.name, tid, entry.subject, cls.room || cls.name, entry.weekday, derived.start, derived.end, entry.color || 'blue', entry.periodNumber);
         ctx.run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', user.school_id, tid, cls.name);
         ctx.run('INSERT OR IGNORE INTO teacher_subjects(school_id,teacher_id,subject) VALUES(?,?,?)', user.school_id, tid, entry.subject);
         if (derived.end > maxEnd) maxEnd = derived.end;
@@ -99,14 +192,8 @@ function swapLessons(ctx, user, lessonIdA, lessonIdB) {
   const b = ctx.lesson(user, lessonIdB);
   if (a.id === b.id) return { ok: true };
   ctx.db.transaction(() => {
-    const clashA = ctx.one(
-      'SELECT 1 FROM lessons WHERE school_id=? AND weekday=? AND id NOT IN (?,?) AND start<? AND end>? AND (section=? OR teacher_id=?)',
-      user.school_id, b.weekday, a.id, b.id, b.end, b.start, a.section, a.teacher_id,
-    );
-    const clashB = ctx.one(
-      'SELECT 1 FROM lessons WHERE school_id=? AND weekday=? AND id NOT IN (?,?) AND start<? AND end>? AND (section=? OR teacher_id=?)',
-      user.school_id, a.weekday, a.id, b.id, a.end, a.start, b.section, b.teacher_id,
-    );
+    const clashA = ctx.one('SELECT 1 FROM lessons WHERE school_id=? AND weekday=? AND id NOT IN (?,?) AND start<? AND end>? AND (section=? OR teacher_id=?)', user.school_id, b.weekday, a.id, b.id, b.end, b.start, a.section, a.teacher_id);
+    const clashB = ctx.one('SELECT 1 FROM lessons WHERE school_id=? AND weekday=? AND id NOT IN (?,?) AND start<? AND end>? AND (section=? OR teacher_id=?)', user.school_id, a.weekday, a.id, b.id, a.end, a.start, b.section, b.teacher_id);
     if (clashA || clashB) fail('Schedule conflict: cannot swap overlapping teacher or class slot', 409);
     ctx.run('UPDATE lessons SET weekday=?,start=?,end=?,period_number=? WHERE id=?', b.weekday, b.start, b.end, b.period_number, a.id);
     ctx.run('UPDATE lessons SET weekday=?,start=?,end=?,period_number=? WHERE id=?', a.weekday, a.start, a.end, a.period_number, b.id);
@@ -115,4 +202,4 @@ function swapLessons(ctx, user, lessonIdA, lessonIdB) {
   return { ok: true };
 }
 
-module.exports = { buildScheduleOverview, applyUniversalSchedule, swapLessons };
+module.exports = { buildScheduleOverview, updateScheduleConfig, upsertScheduleCell, optimizeSectionForAbsences, applyUniversalSchedule, swapLessons };

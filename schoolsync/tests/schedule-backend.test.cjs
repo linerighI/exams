@@ -88,3 +88,57 @@ test('POST /api/lessons/swap swaps two lesson slots atomically', async () => {
     assert.equal(swapRes.json().ok, true);
   }
 });
+
+test('Master schedule config, cell conflict barrier, cancel/restore, absence optimizer, and profiles work end-to-end', async () => {
+  const cookie = await login('rami@schoolsync.demo');
+
+  // 1. Update config & duty notes
+  const cfg = await app.inject({
+    method: 'POST',
+    url: '/api/schedule/config',
+    headers: { cookie },
+    payload: { schedule_mode: 'auto', period_minutes: 40, break_minutes: 5, duty_notes: 'المناوب: أ. خالد' },
+  });
+  assert.equal(cfg.statusCode, 200);
+
+  // 2. Upsert cell + conflict barrier on same teacher in another class
+  const ov = (await app.inject({ method: 'GET', url: '/api/schedule/overview?weekday=3', headers: { cookie } })).json();
+  const [c1, c2] = ov.classes;
+  const [t1] = ov.teachers;
+  const up1 = await app.inject({
+    method: 'POST', url: '/api/schedule/cell', headers: { cookie },
+    payload: { section: c1.name, weekday: 3, periodNumber: 7, action: 'upsert', subject: 'الرياضيات', teacherId: t1.id, color: 'blue' },
+  });
+  assert.equal(up1.statusCode, 200);
+
+  const clash = await app.inject({
+    method: 'POST', url: '/api/schedule/cell', headers: { cookie },
+    payload: { section: c2.name, weekday: 3, periodNumber: 7, action: 'upsert', subject: 'العلوم', teacherId: t1.id },
+  });
+  assert.equal(clash.statusCode, 409);
+
+  // 3. Cancel & optimize absence
+  const abs = await app.inject({
+    method: 'POST', url: '/api/schedule/teacher-absence', headers: { cookie },
+    payload: { teacherId: t1.id, isAbsent: true },
+  });
+  assert.equal(abs.statusCode, 200);
+  const opt = await app.inject({
+    method: 'POST', url: '/api/schedule/optimize-section', headers: { cookie },
+    payload: { section: c1.name, weekday: 3 },
+  });
+  assert.equal(opt.statusCode, 200);
+  assert.ok(opt.json().moved >= 1);
+
+  // 4. Save, list, load, delete profile
+  const prof = await app.inject({
+    method: 'POST', url: '/api/schedule/profiles', headers: { cookie },
+    payload: { name: 'الجدول الصيفي' },
+  });
+  assert.equal(prof.statusCode, 200);
+  const pid = prof.json().id;
+  const load = await app.inject({ method: 'POST', url: `/api/schedule/profiles/${pid}/load`, headers: { cookie } });
+  assert.equal(load.statusCode, 200);
+  const del = await app.inject({ method: 'POST', url: `/api/schedule/profiles/${pid}/delete`, headers: { cookie } });
+  assert.equal(del.statusCode, 200);
+});

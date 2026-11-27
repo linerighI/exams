@@ -127,9 +127,21 @@ function migrate(db) {
       recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_teacher_history ON teacher_location_history(school_id, teacher_id, recorded_at);
+    CREATE TABLE IF NOT EXISTS schedule_profiles(
+      id TEXT PRIMARY KEY,
+      school_id TEXT NOT NULL REFERENCES schools(id),
+      name TEXT NOT NULL,
+      config_json TEXT NOT NULL,
+      cells_json TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
-  const layoutCols = db.prepare('PRAGMA table_info(campus_layouts)').all().map((c) => c.name);
-  if (!layoutCols.includes('sar_source')) db.exec('ALTER TABLE campus_layouts ADD COLUMN sar_source TEXT');
+  if (!hasColumn(db, 'campus_layouts', 'sar_source')) db.exec('ALTER TABLE campus_layouts ADD COLUMN sar_source TEXT');
+  if (!hasColumn(db, 'lessons', 'status')) db.exec("ALTER TABLE lessons ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+  if (!hasColumn(db, 'schools', 'schedule_mode')) db.exec("ALTER TABLE schools ADD COLUMN schedule_mode TEXT NOT NULL DEFAULT 'manual'");
+  if (!hasColumn(db, 'schools', 'active_period')) db.exec('ALTER TABLE schools ADD COLUMN active_period INTEGER');
+  if (!hasColumn(db, 'schools', 'duty_notes')) db.exec("ALTER TABLE schools ADD COLUMN duty_notes TEXT NOT NULL DEFAULT ''");
+  if (!hasColumn(db, 'users', 'is_absent')) db.exec('ALTER TABLE users ADD COLUMN is_absent INTEGER NOT NULL DEFAULT 0');
   syncAssignmentsFromExistingRows(db);
   syncClassSortOrders(db);
 }

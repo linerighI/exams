@@ -1,26 +1,25 @@
 /**
- * School-Wide Daily Schedule Window: opened from the right-side FloorPill schedule icon,
- * displaying all classes & periods for the selected day with live active period highlight,
- * Class Lead Teachers, and a Universal Schedule Template tab for managers.
+ * Master School Schedule Window (Zahaapp-inspired, Apple Liquid Glass):
+ * Live clock, Manual/Auto mode, timing controls, Duty Notes, Absent Staff banner,
+ * Profiles, Transpose, Print, Fullscreen, Interactive Matrix Grid, and Universal Template.
  */
-import { useEffect, useState } from 'react';
-import { CalendarDays, Compass } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ArrowRightLeft, Clock, FolderOpen, Maximize2, Minimize2,
+  Printer, RotateCw, UserCheck, UserX, X, Zap,
+} from 'lucide-react';
 import { api } from '../api';
 import type { Language } from '../i18n';
-import { JORDAN_WEEKDAYS, formatClock, minutesOf, nowMinutesInZone, weekdayOfDate } from '../jordanTime';
+import { JORDAN_WEEKDAYS, minutesOf, nowMinutesInZone, weekdayOfDate } from '../jordanTime';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
-import { isManagerRole, type Lesson, type State } from '../types';
+import { isManagerRole, type State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
+import { ScheduleCellModal } from './ScheduleCellModal';
+import { ScheduleGrid } from './ScheduleGrid';
+import { ScheduleProfilesModal, StaffAbsenceModal } from './ScheduleToolsPopovers';
+import type { ScheduleLessonItem, ScheduleOverview } from './scheduleTypes';
 import { SegmentedTabs } from './SegmentedTabs';
 import { UniversalSchedulePanel } from './UniversalScheduleWindow';
-
-interface OverviewResponse {
-  weekday: number;
-  slots: { periodNumber: number; start: string; end: string }[];
-  classes: { id: string; name: string; grade_level: string; room: string }[];
-  leadTeachers: Record<string, { id: string; name: string }>;
-  lessons: Lesson[];
-}
 
 interface SchoolScheduleWindowProps {
   data: State;
@@ -32,64 +31,140 @@ interface SchoolScheduleWindowProps {
   mutate: (url: string, body: unknown, success?: string) => Promise<boolean>;
 }
 
-/** Floating school-wide daily schedule grid + universal template editor. */
+/** Full-featured Master Schedule center for the entire school. */
 export function SchoolScheduleWindow({
-  data,
-  rooms,
-  lang,
-  busy,
-  onClose,
-  onSelectRoom,
-  mutate,
+  data, lang, busy, onClose, mutate,
 }: SchoolScheduleWindowProps) {
   const todayWd = weekdayOfDate(data.date);
   const [weekday, setWeekday] = useState(todayWd >= 0 && todayWd <= 4 ? todayWd : 0);
   const [tab, setTab] = useState<'daily' | 'universal'>('daily');
-  const [overview, setOverview] = useState<OverviewResponse | null>(null);
+  const [overview, setOverview] = useState<ScheduleOverview | null>(null);
+  const [isTransposed, setIsTransposed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [staffModal, setStaffModal] = useState(false);
+  const [profilesModal, setProfilesModal] = useState(false);
+  const [activeCell, setActiveCell] = useState<{ section: string; periodNumber: number; lesson?: ScheduleLessonItem } | null>(null);
+  const [swapSource, setSwapSource] = useState<{ section: string; periodNumber: number; lessonId?: string } | null>(null);
+  const [clockTick, setClockTick] = useState(0);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const manager = isManagerRole(data.user.role);
 
-  useEffect(() => {
-    let alive = true;
-    void api<OverviewResponse>(`/schedule/overview?weekday=${weekday}`)
-      .then((res) => { if (alive) setOverview(res); })
-      .catch(() => { if (alive) setOverview(null); });
-    return () => { alive = false; };
-  }, [weekday, data.lessons.length, data.schoolWorkspace?.lessons.length]);
+  const loadOverview = useCallback(async () => {
+    try {
+      const res = await api<ScheduleOverview>(`/schedule/overview?weekday=${weekday}`);
+      setOverview(res);
+    } catch { /* ignore */ }
+  }, [weekday]);
 
-  const nowMin = nowMinutesInZone(data.school.timezone);
-  const isToday = weekday === todayWd;
+  useEffect(() => { void loadOverview(); }, [loadOverview, data.lessons.length, data.schoolWorkspace?.lessons.length]);
+  useEffect(() => {
+    const id = setInterval(() => setClockTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const zone = overview?.school.timezone || data.school.timezone || 'Asia/Amman';
+  const liveClockStr = (() => {
+    void clockTick;
+    return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
+      timeZone: zone, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true,
+    }).format(new Date());
+  })();
+
+  const nowMin = nowMinutesInZone(zone);
+  const autoActiveSlot = overview?.slots.find((s) => minutesOf(s.start) <= nowMin && minutesOf(s.end) > nowMin) || null;
+  const absentTeachers = (overview?.teachers || []).filter((t) => t.is_absent);
+
+  const saveConfig = async (patch: Record<string, unknown>) => {
+    if (await mutate('/schedule/config', patch)) await loadOverview();
+  };
+
+  const handleCellClick = async (section: string, periodNumber: number, lesson?: ScheduleLessonItem) => {
+    if (!swapSource) {
+      setActiveCell({ section, periodNumber, lesson });
+      return;
+    }
+    if (swapSource.section === section && swapSource.periodNumber === periodNumber) {
+      setSwapSource(null);
+      return;
+    }
+    if (swapSource.lessonId && lesson?.id) {
+      if (await mutate('/lessons/swap', { lessonIdA: swapSource.lessonId, lessonIdB: lesson.id }, lang === 'ar' ? 'تم تبديل الحصتين' : 'Swapped')) {
+        await loadOverview();
+      }
+    }
+    setSwapSource(null);
+  };
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement && wrapRef.current) {
+      await wrapRef.current.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
 
   return (
     <FloatingWindow
       id="school-daily-schedule"
-      title={lang === 'ar' ? 'جدول المدرسة اليومي' : 'Daily School Schedule'}
-      subtitle={
-        overview
-          ? lang === 'ar'
-            ? `${overview.classes.length} صفاً · ${overview.lessons.length} حصة`
-            : `${overview.classes.length} classes · ${overview.lessons.length} lessons`
-          : undefined
-      }
+      title={lang === 'ar' ? 'الجدول الرئيسي للمدرسة' : 'Master School Schedule'}
+      subtitle={overview ? `${overview.classes.length} ${lang === 'ar' ? 'صفاً' : 'classes'} · ${overview.lessons.length} ${lang === 'ar' ? 'حصة' : 'lessons'}` : undefined}
       dock="center"
-      width={620}
+      width={940}
       zIndex={62}
       onFocus={() => {}}
       onClose={onClose}
     >
-      <div className="sp-tab-pane">
-        {manager && (
-          <SegmentedTabs
-            value={tab}
-            onChange={setTab}
-            items={[
-              { id: 'daily', label: lang === 'ar' ? 'جدول اليوم للمدرسة' : 'School Daily Grid' },
-              { id: 'universal', label: lang === 'ar' ? 'الجدول الموحد للكل' : 'Universal Template' },
-            ]}
-          />
-        )}
+      <div ref={wrapRef} className="sp-ms-wrap">
+        <div className="sp-ms-topbar">
+          <div className="sp-ms-clock">
+            <Clock size={14} className="is-blue" />
+            <strong>{liveClockStr}</strong>
+            {overview?.school.schedule_mode === 'auto' && autoActiveSlot && (
+              <span className="sp-live-chip"><Zap size={10} /> {lang === 'ar' ? `حصة ${autoActiveSlot.periodNumber}` : `P${autoActiveSlot.periodNumber}`}</span>
+            )}
+          </div>
 
-        {tab === 'daily' ? (
-          <>
+          {manager && overview && (
+            <div className="sp-ms-controls">
+              <div className="sp-ms-mode-toggle">
+                <button type="button" className={overview.school.schedule_mode === 'manual' ? 'is-active' : ''} onClick={() => void saveConfig({ schedule_mode: 'manual' })}>
+                  {lang === 'ar' ? 'يدوي' : 'Manual'}
+                </button>
+                <button type="button" className={overview.school.schedule_mode === 'auto' ? 'is-active' : ''} onClick={() => void saveConfig({ schedule_mode: 'auto' })}>
+                  {lang === 'ar' ? 'تلقائي' : 'Auto'}
+                </button>
+              </div>
+              <input type="time" value={overview.school.start_time} onChange={(e) => void saveConfig({ start_time: e.target.value })} title={lang === 'ar' ? 'وقت البدء' : 'Start Time'} />
+              <input type="number" className="sp-ms-num" min={15} max={90} value={overview.school.period_minutes} onChange={(e) => void saveConfig({ period_minutes: Number(e.target.value) || 45 })} title={lang === 'ar' ? 'مدة الحصة (د)' : 'Lesson (min)'} />
+              <input type="number" className="sp-ms-num" min={0} max={30} value={overview.school.break_minutes} onChange={(e) => void saveConfig({ break_minutes: Number(e.target.value) || 0 })} title={lang === 'ar' ? 'الاستراحة (د)' : 'Break (min)'} />
+            </div>
+          )}
+
+          <div className="sp-ms-actions">
+            {manager && (
+              <>
+                <button type="button" className="sp-icon-btn" onClick={() => setStaffModal(true)} title={lang === 'ar' ? 'غياب المعلمين' : 'Staff Attendance'}><UserCheck size={15} /></button>
+                <button type="button" className="sp-icon-btn" onClick={() => setProfilesModal(true)} title={lang === 'ar' ? 'الملفات المحفوظة' : 'Saved Profiles'}><FolderOpen size={15} /></button>
+              </>
+            )}
+            <button type="button" className={`sp-icon-btn ${isTransposed ? 'is-active' : ''}`} onClick={() => setIsTransposed((v) => !v)} title={lang === 'ar' ? 'قلب الجدول' : 'Flip Grid'}><RotateCw size={15} /></button>
+            <button type="button" className="sp-icon-btn" onClick={() => window.print()} title={lang === 'ar' ? 'طباعة' : 'Print'}><Printer size={15} /></button>
+            <button type="button" className="sp-icon-btn" onClick={() => void toggleFullscreen()} title={lang === 'ar' ? 'ملء الشاشة' : 'Fullscreen'}>{isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
+          </div>
+        </div>
+
+        {manager && (
+          <div className="sp-ms-tabs-row">
+            <SegmentedTabs
+              value={tab}
+              onChange={setTab}
+              items={[
+                { id: 'daily', label: lang === 'ar' ? 'الجدول الرئيسي' : 'Master Grid' },
+                { id: 'universal', label: lang === 'ar' ? 'تعبئة موحدة للكل' : 'Universal Fill' },
+              ]}
+            />
             <div className="sp-weekday-pills">
               {JORDAN_WEEKDAYS.map((d) => (
                 <button key={d.id} type="button" className={weekday === d.id ? 'is-active' : ''} onClick={() => setWeekday(d.id)}>
@@ -97,59 +172,106 @@ export function SchoolScheduleWindow({
                 </button>
               ))}
             </div>
+          </div>
+        )}
 
-            <div className="sp-sched-grid">
-              {!overview || overview.classes.length === 0 ? (
-                <p className="sp-empty-note">{lang === 'ar' ? 'لا توجد صفوف دراسية بعد' : 'No classes configured yet'}</p>
-              ) : (
-                overview.classes.map((cls) => {
-                  const clsLessons = overview.lessons.filter((l) => l.section === cls.name);
-                  const lead = overview.leadTeachers[cls.name];
-                  const room = rooms.find((r) => r.className === cls.name);
-                  return (
-                    <div key={cls.id} className="sp-sched-class-card">
-                      <div className="sp-sched-class-head">
-                        <div>
-                          <strong>{cls.name}</strong>
-                          <small>
-                            {lead
-                              ? `${lang === 'ar' ? 'مربي الصف: ' : 'Lead: '}${lead.name}`
-                              : lang === 'ar' ? 'بدون مربي صف' : 'No lead teacher'}
-                          </small>
-                        </div>
-                        {room && (
-                          <button type="button" className="sp-btn-soft" onClick={() => { onSelectRoom(room); onClose(); }}>
-                            <Compass size={13} />
-                            <span>{room.label}</span>
-                          </button>
-                        )}
-                      </div>
+        {tab === 'daily' && overview ? (
+          <>
+            {manager && (
+              <textarea
+                className="sp-ms-notes"
+                rows={1}
+                placeholder={lang === 'ar' ? 'أساتذة المناوبين والملاحظات اليومية (تظهر في الطباعة)…' : 'On-duty teachers & daily notes…'}
+                defaultValue={overview.school.duty_notes}
+                onBlur={(e) => {
+                  if (e.target.value !== overview.school.duty_notes) void saveConfig({ duty_notes: e.target.value });
+                }}
+              />
+            )}
 
-                      {clsLessons.length === 0 ? (
-                        <p className="sp-mini-hint">
-                          <CalendarDays size={12} /> {lang === 'ar' ? 'لا توجد حصص في هذا اليوم' : 'No lessons scheduled'}
-                        </p>
-                      ) : (
-                        <div className="sp-sched-periods">
-                          {clsLessons.map((l) => {
-                            const active = isToday && minutesOf(l.start) <= nowMin && minutesOf(l.end) > nowMin;
-                            return (
-                              <div key={l.id} className={`sp-sched-pill ${active ? 'is-live' : ''}`}>
-                                <strong>{l.subject}</strong>
-                                <small>{l.teacher} · {formatClock(l.start, lang)}</small>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            {absentTeachers.length > 0 && (
+              <div className="sp-ms-absent-bar">
+                <UserX size={13} />
+                <span>{lang === 'ar' ? 'الغائبون اليوم:' : 'Absent:'}</span>
+                {absentTeachers.map((t) => <em key={t.id}>{t.name}</em>)}
+              </div>
+            )}
+
+            {swapSource && (
+              <div className="sp-ms-swap-bar">
+                <span><ArrowRightLeft size={13} /> {lang === 'ar' ? 'اختر الحصة الهدف لتبديلها…' : 'Click target slot to swap…'}</span>
+                <button type="button" className="sp-icon-btn" onClick={() => setSwapSource(null)}><X size={13} /></button>
+              </div>
+            )}
+
+            <ScheduleGrid
+              overview={overview}
+              isTransposed={isTransposed}
+              isToday={weekday === todayWd}
+              autoActivePeriod={autoActiveSlot?.periodNumber ?? null}
+              swapSource={swapSource}
+              manager={manager}
+              lang={lang}
+              onStartPeriod={(p) => void saveConfig({ active_period: overview.school.active_period === p ? null : p })}
+              onOptimizeSection={(sec) => void mutate('/schedule/optimize-section', { section: sec, weekday }, lang === 'ar' ? 'تم ترتيب الحصص حسب الغيابات' : 'Optimized').then(() => loadOverview())}
+              onCellClick={(sec, p, l) => void handleCellClick(sec, p, l)}
+            />
           </>
-        ) : (
-          <UniversalSchedulePanel data={data} lang={lang} busy={busy} onDone={() => setTab('daily')} mutate={mutate} />
+        ) : tab === 'universal' ? (
+          <UniversalSchedulePanel data={data} lang={lang} busy={busy} onDone={() => { setTab('daily'); void loadOverview(); }} mutate={mutate} />
+        ) : null}
+
+        {activeCell && overview && (
+          <ScheduleCellModal
+            section={activeCell.section}
+            weekday={weekday}
+            periodNumber={activeCell.periodNumber}
+            lesson={activeCell.lesson}
+            subjects={data.subjects}
+            teachers={overview.teachers}
+            lang={lang}
+            busy={busy}
+            onClose={() => setActiveCell(null)}
+            onSaveCell={async (payload, msg) => {
+              if (await mutate('/schedule/cell', payload, msg)) { setActiveCell(null); await loadOverview(); }
+            }}
+            onStartSwap={() => {
+              setSwapSource({ section: activeCell.section, periodNumber: activeCell.periodNumber, lessonId: activeCell.lesson?.id });
+              setActiveCell(null);
+            }}
+            onToggleAbsent={async (tid, isAbsent) => {
+              if (await mutate('/schedule/teacher-absence', { teacherId: tid, isAbsent })) await loadOverview();
+            }}
+          />
+        )}
+
+        {staffModal && overview && (
+          <StaffAbsenceModal
+            teachers={overview.teachers}
+            lang={lang}
+            onClose={() => setStaffModal(false)}
+            onToggle={async (tid, isAbsent) => {
+              if (await mutate('/schedule/teacher-absence', { teacherId: tid, isAbsent })) await loadOverview();
+            }}
+          />
+        )}
+
+        {profilesModal && overview && (
+          <ScheduleProfilesModal
+            profiles={overview.profiles}
+            lang={lang}
+            busy={busy}
+            onClose={() => setProfilesModal(false)}
+            onSave={async (name) => {
+              if (await mutate('/schedule/profiles', { name }, lang === 'ar' ? 'تم حفظ نسخة الجدول' : 'Profile saved')) await loadOverview();
+            }}
+            onLoad={async (id) => {
+              if (await mutate(`/schedule/profiles/${id}/load`, {}, lang === 'ar' ? 'تم تحميل الجدول' : 'Profile loaded')) { setProfilesModal(false); await loadOverview(); }
+            }}
+            onDelete={async (id) => {
+              if (await mutate(`/schedule/profiles/${id}/delete`, {})) await loadOverview();
+            }}
+          />
         )}
       </div>
     </FloatingWindow>
