@@ -80,8 +80,37 @@
 .sp-ms-tpick-row strong { display: block; font-size: 0.78rem; }
 .sp-ms-tpick-row small { font-size: 0.68rem; color: var(--sp-muted); }
 .sp-ms-prof-link { flex: 1; cursor: pointer; }
+.sp-ms-ai-btn { min-height: 28px; padding: 0 11px; font-size: 0.72rem; border-radius: 999px; }
+.sp-ms-print-header { display: none; }
+
+.sp-ms-wrap:fullscreen { background: #f4f7fc; padding: 18px 22px; width: 100vw; height: 100vh; overflow: auto; }
+.sp-ms-wrap:fullscreen .sp-ms-scroll { max-height: calc(100vh - 180px); }
+
+.sp-mini-sched-btn {
+  display: flex; flex-direction: column; gap: 4px; padding: 6px; width: 52px;
+  border-radius: 14px; border: 1px solid var(--sp-border); background: var(--sp-surface);
+  backdrop-filter: blur(22px); box-shadow: var(--sp-shadow-sm); cursor: pointer; transition: transform 140ms ease, border-color 140ms ease;
+}
+.sp-mini-sched-btn:hover { transform: scale(1.04); border-color: var(--sp-blue); }
+.sp-mini-sched-btn.is-active { border-color: var(--sp-blue); box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.22); }
+.sp-mini-sched-head { display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 0.58rem; font-weight: 700; color: var(--sp-ink); }
+.sp-mini-sched-grid { display: flex; flex-direction: column; gap: 2px; }
+.sp-mini-sched-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.sp-mini-sched-row i { display: block; height: 5px; border-radius: 2px; background: rgba(118, 118, 128, 0.18); }
+.sp-mini-sched-row i.has-lesson { background: rgba(0, 122, 255, 0.65); }
+.sp-mini-sched-row i.is-live { background: #10b981; }
 
 @media print {
+  @page { size: landscape; margin: 0.5cm; }
+  .sp-canvas-host, .sp-hud, .sp-floor-dock, .sp-teachers-dock, .sp-callout-layer, .sp-orb-dock, .sp-toast-stack, .sp-win-head,
+  .sp-ms-topbar, .sp-ms-tabs-row, .sp-ms-notes, .sp-ms-absent-bar, .sp-ms-start-btn, .sp-icon-btn { display: none !important; }
+  [data-window-id='school-daily-schedule'] {
+    position: static !important; width: 100% !important; max-width: none !important; transform: none !important;
+    border: none !important; box-shadow: none !important; background: #ffffff !important; padding: 0 !important;
+  }
+  .sp-ms-print-header { display: flex !important; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
+  .sp-ms-print-header strong { display: block; font-size: 0.9rem; color: #000; }
+  .sp-ms-print-header small { display: block; font-size: 0.72rem; color: #1e293b; }
+  .sp-ms-print-title { text-align: center; }
   .sp-ms-scroll { max-height: none !important; overflow: visible !important; border: 1.5px solid #000 !important; }
-  .sp-ms-topbar button, .sp-ms-tabs-row, .sp-ms-start-btn { display: none !important; }
 }

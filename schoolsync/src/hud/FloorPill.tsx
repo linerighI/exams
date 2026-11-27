@@ -5,14 +5,16 @@
 import { useRef } from 'react';
 import { CalendarDays, Compass, Layers, Lock } from 'lucide-react';
 import type { Language } from '../i18n';
+import { minutesOf, nowMinutesInZone, weekdayOfDate } from '../jordanTime';
 import { gsapPop, useGsapEntrance } from '../spatial/editor/editorMotion';
-import type { CampusLayout } from '../types';
+import type { CampusLayout, State } from '../types';
 import type { FloorFilter, ResolvedSpatialRoom, TeacherAccess } from '../spatial/roomCatalog';
 
 interface FloorPillProps {
   floor: FloorFilter;
   layout: CampusLayout;
   rooms: ResolvedSpatialRoom[];
+  data?: State | null;
   showRoofs: boolean;
   scheduleOpen?: boolean;
   access: TeacherAccess;
@@ -28,6 +30,7 @@ export function FloorPill({
   floor,
   layout,
   rooms,
+  data,
   showRoofs,
   scheduleOpen = false,
   access,
@@ -110,20 +113,42 @@ export function FloorPill({
         >
           <Compass size={16} />
         </button>
-        {onToggleSchedule && (
-          <button
-            type="button"
-            className={`sp-tool-btn ${scheduleOpen ? 'is-active' : ''}`}
-            title={lang === 'ar' ? 'جدول المدرسة اليومي' : 'Daily School Schedule'}
-            onClick={(e) => {
-              gsapPop(e.currentTarget);
-              onToggleSchedule();
-            }}
-          >
-            <CalendarDays size={16} />
-          </button>
-        )}
       </div>
+
+      {onToggleSchedule && (
+        <button
+          type="button"
+          className={`sp-mini-sched-btn ${scheduleOpen ? 'is-active' : ''}`}
+          title={lang === 'ar' ? 'فتح الجدول الرئيسي للمدرسة' : 'Open Master Schedule'}
+          onClick={(e) => {
+            gsapPop(e.currentTarget);
+            onToggleSchedule();
+          }}
+        >
+          <div className="sp-mini-sched-head">
+            <CalendarDays size={11} />
+            <span>{lang === 'ar' ? 'الجدول' : 'Grid'}</span>
+          </div>
+          <div className="sp-mini-sched-grid" aria-hidden="true">
+            {(() => {
+              const allLessons = data?.schoolWorkspace?.lessons || data?.lessons || [];
+              const wd = data ? weekdayOfDate(data.date) : 0;
+              const nowMin = data ? nowMinutesInZone(data.school.timezone) : -1;
+              const secs = (data?.classes || []).slice(0, 3);
+              const rows = secs.length ? secs.map((c) => c.name) : ['1', '2', '3'];
+              return rows.map((sec) => (
+                <div key={sec} className="sp-mini-sched-row">
+                  {[1, 2, 3, 4].map((p) => {
+                    const hit = allLessons.find((l) => l.section === sec && l.weekday === wd && (l.period_number || 1) === p);
+                    const live = hit && nowMin >= 0 && minutesOf(hit.start) <= nowMin && minutesOf(hit.end) > nowMin;
+                    return <i key={p} className={`${hit ? 'has-lesson' : ''} ${live ? 'is-live' : ''}`} />;
+                  })}
+                </div>
+              ));
+            })()}
+          </div>
+        </button>
+      )}
     </div>
   );
 }

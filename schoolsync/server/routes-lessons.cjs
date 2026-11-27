@@ -10,6 +10,7 @@ const {
   updateScheduleConfig,
   upsertScheduleCell,
   optimizeSectionForAbsences,
+  rewriteScheduleForAbsences,
   applyUniversalSchedule,
   swapLessons,
 } = require('./schedule-service.cjs');
@@ -249,6 +250,12 @@ function registerLessonRoutes(app, ctx) {
     schoolManager(req.user);
     const v = z.object({ section: text, weekday: z.number().int().min(0).max(6) }).parse(req.body);
     return optimizeSectionForAbsences(ctx, req.user, v.section, v.weekday);
+  });
+
+  app.post('/api/schedule/rewrite-absences', async (req) => {
+    schoolManager(req.user);
+    const v = z.object({ weekday: z.number().int().min(0).max(6) }).parse(req.body);
+    return rewriteScheduleForAbsences(ctx, req.user, v.weekday);
   });
 
   app.post('/api/schedule/profiles', async (req) => {

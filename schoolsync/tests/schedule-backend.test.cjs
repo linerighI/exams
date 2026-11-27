@@ -130,6 +130,13 @@ test('Master schedule config, cell conflict barrier, cancel/restore, absence opt
   assert.equal(opt.statusCode, 200);
   assert.ok(opt.json().moved >= 1);
 
+  const rw = await app.inject({
+    method: 'POST', url: '/api/schedule/rewrite-absences', headers: { cookie },
+    payload: { weekday: 3 },
+  });
+  assert.equal(rw.statusCode, 200);
+  assert.equal(rw.json().ok, true);
+
   // 4. Save, list, load, delete profile
   const prof = await app.inject({
     method: 'POST', url: '/api/schedule/profiles', headers: { cookie },

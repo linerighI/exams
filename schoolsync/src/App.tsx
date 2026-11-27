@@ -209,6 +209,7 @@ export default function App() {
             floor={floor}
             layout={activeLayout}
             rooms={rooms}
+            data={s.data}
             showRoofs={showRoofs}
             scheduleOpen={scheduleOpen}
             access={access}

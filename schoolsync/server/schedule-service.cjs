@@ -147,6 +147,98 @@ function optimizeSectionForAbsences(ctx, user, section, weekday) {
   return { ok: true, moved: absent.length };
 }
 
+/**
+ * Constraint-satisfaction + load-balanced schedule rewriter for absent teachers:
+ * 1) Assigns qualified free substitute teachers (subject match + lowest daily load + zero clash).
+ * 2) Shifts/compacts remaining un-coverable slots to the end of the day & marks canceled.
+ */
+function rewriteScheduleForAbsences(ctx, user, weekday) {
+  const school = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
+  const allTeachers = ctx.all("SELECT id, name, section, is_absent FROM users WHERE school_id=? AND role='teacher'", user.school_id);
+  const absentIds = new Set(allTeachers.filter((t) => t.is_absent).map((t) => t.id));
+  if (!absentIds.size) return { ok: true, replacedCount: 0, shiftedCount: 0, canceledCount: 0 };
+
+  const activeTeachers = allTeachers.filter((t) => !t.is_absent);
+  const teacherSubjs = new Map();
+  for (const ts of ctx.all('SELECT teacher_id, subject FROM teacher_subjects WHERE school_id=?', user.school_id)) {
+    if (!teacherSubjs.has(ts.teacher_id)) teacherSubjs.set(ts.teacher_id, new Set());
+    teacherSubjs.get(ts.teacher_id).add(ts.subject);
+  }
+
+  const dayLessons = ctx.all(
+    "SELECT * FROM lessons WHERE school_id=? AND weekday=? ORDER BY period_number ASC, section ASC",
+    user.school_id, weekday,
+  );
+  // Track busy teachers per period & daily load for optimal substitute scoring
+  const busyAt = new Map();
+  const loadCount = new Map(activeTeachers.map((t) => [t.id, 0]));
+  for (const l of dayLessons) {
+    if (l.status === 'canceled' || absentIds.has(l.teacher_id)) continue;
+    const p = l.period_number || 1;
+    if (!busyAt.has(p)) busyAt.set(p, new Set());
+    busyAt.get(p).add(l.teacher_id);
+    loadCount.set(l.teacher_id, (loadCount.get(l.teacher_id) || 0) + 1);
+  }
+
+  let replacedCount = 0;
+  let shiftedCount = 0;
+  let canceledCount = 0;
+
+  ctx.db.transaction(() => {
+    // Phase 1: Best-fit substitute replacement
+    for (const l of dayLessons) {
+      if (!absentIds.has(l.teacher_id)) continue;
+      const p = l.period_number || 1;
+      const busy = busyAt.get(p) || new Set();
+      const candidates = activeTeachers
+        .filter((t) => !busy.has(t.id))
+        .map((t) => {
+          const sameSubj = teacherSubjs.get(t.id)?.has(l.subject) ? 100 : 0;
+          const sameSec = t.section === l.section ? 30 : 0;
+          const loadPenalty = (loadCount.get(t.id) || 0) * 5;
+          return { t, score: sameSubj + sameSec - loadPenalty };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      if (candidates.length > 0) {
+        const chosen = candidates[0].t;
+        ctx.run("UPDATE lessons SET teacher_id=?, status='active' WHERE id=?", chosen.id, l.id);
+        busy.add(chosen.id);
+        busyAt.set(p, busy);
+        loadCount.set(chosen.id, (loadCount.get(chosen.id) || 0) + 1);
+        l.teacher_id = chosen.id;
+        l.status = 'active';
+        replacedCount++;
+      }
+    }
+
+    // Phase 2: Compact remaining un-covered absent lessons to end of each section's day
+    const bySec = new Map();
+    for (const l of dayLessons) {
+      if (!bySec.has(l.section)) bySec.set(l.section, []);
+      bySec.get(l.section).push(l);
+    }
+    const maxP = Math.max(1, Number(school.period_count || 7));
+    for (const [, secList] of bySec) {
+      const stillAbsent = secList.filter((l) => absentIds.has(l.teacher_id));
+      if (!stillAbsent.length) continue;
+      const okList = secList.filter((l) => !absentIds.has(l.teacher_id));
+      const reordered = [...okList.map((l) => ({ ...l, st: 'active' })), ...stillAbsent.map((l) => ({ ...l, st: 'canceled' }))];
+      for (let i = 0; i < reordered.length && i < maxP; i++) {
+        const p = i + 1;
+        const win = periodWindow(school, p);
+        if (win) {
+          if (reordered[i].period_number !== p) shiftedCount++;
+          if (reordered[i].st === 'canceled') canceledCount++;
+          ctx.run('UPDATE lessons SET period_number=?,start=?,end=?,status=? WHERE id=?', p, win.start, win.end, reordered[i].st, reordered[i].id);
+        }
+      }
+    }
+    ctx.audit(user, `Smart-rewrote weekday ${weekday}: ${replacedCount} replaced, ${shiftedCount} shifted, ${canceledCount} canceled`);
+  })();
+  return { ok: true, replacedCount, shiftedCount, canceledCount };
+}
+
 /** Atomically broadcast a universal schedule template across target (or all) classes. */
 function applyUniversalSchedule(ctx, user, input) {
   const school = ctx.one('SELECT * FROM schools WHERE id=?', user.school_id);
@@ -202,4 +294,4 @@ function swapLessons(ctx, user, lessonIdA, lessonIdB) {
   return { ok: true };
 }
 
-module.exports = { buildScheduleOverview, updateScheduleConfig, upsertScheduleCell, optimizeSectionForAbsences, applyUniversalSchedule, swapLessons };
+module.exports = { buildScheduleOverview, updateScheduleConfig, upsertScheduleCell, optimizeSectionForAbsences, rewriteScheduleForAbsences, applyUniversalSchedule, swapLessons };

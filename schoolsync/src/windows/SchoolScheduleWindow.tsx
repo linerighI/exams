@@ -1,12 +1,12 @@
 /**
  * Master School Schedule Window (Zahaapp-inspired, Apple Liquid Glass):
  * Live clock, Manual/Auto mode, timing controls, Duty Notes, Absent Staff banner,
- * Profiles, Transpose, Print, Fullscreen, Interactive Matrix Grid, and Universal Template.
+ * Smart Math Absence Rewriter, Profiles, Transpose, Official Print, and Fullscreen.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRightLeft, Clock, FolderOpen, Maximize2, Minimize2,
-  Printer, RotateCw, UserCheck, UserX, X, Zap,
+  Printer, RotateCw, Sparkles, UserCheck, UserX, X, Zap,
 } from 'lucide-react';
 import { api } from '../api';
 import type { Language } from '../i18n';
@@ -18,8 +18,6 @@ import { ScheduleCellModal } from './ScheduleCellModal';
 import { ScheduleGrid } from './ScheduleGrid';
 import { ScheduleProfilesModal, StaffAbsenceModal } from './ScheduleToolsPopovers';
 import type { ScheduleLessonItem, ScheduleOverview } from './scheduleTypes';
-import { SegmentedTabs } from './SegmentedTabs';
-import { UniversalSchedulePanel } from './UniversalScheduleWindow';
 
 interface SchoolScheduleWindowProps {
   data: State;
@@ -37,7 +35,6 @@ export function SchoolScheduleWindow({
 }: SchoolScheduleWindowProps) {
   const todayWd = weekdayOfDate(data.date);
   const [weekday, setWeekday] = useState(todayWd >= 0 && todayWd <= 4 ? todayWd : 0);
-  const [tab, setTab] = useState<'daily' | 'universal'>('daily');
   const [overview, setOverview] = useState<ScheduleOverview | null>(null);
   const [isTransposed, setIsTransposed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -61,6 +58,11 @@ export function SchoolScheduleWindow({
     const id = setInterval(() => setClockTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
 
   const zone = overview?.school.timezone || data.school.timezone || 'Asia/Amman';
   const liveClockStr = (() => {
@@ -76,6 +78,15 @@ export function SchoolScheduleWindow({
 
   const saveConfig = async (patch: Record<string, unknown>) => {
     if (await mutate('/schedule/config', patch)) await loadOverview();
+  };
+
+  const handleSmartRewrite = async () => {
+    const res = await api<{ replacedCount: number; shiftedCount: number; canceledCount: number }>('/schedule/rewrite-absences', {
+      method: 'POST',
+      body: JSON.stringify({ weekday }),
+    }).catch(() => null);
+    if (res) await loadOverview();
+    else await mutate('/schedule/rewrite-absences', { weekday }, lang === 'ar' ? 'تمت إعادة بناء الجدول للغيابات' : 'Schedule rewritten');
   };
 
   const handleCellClick = async (section: string, periodNumber: number, lesson?: ScheduleLessonItem) => {
@@ -98,10 +109,8 @@ export function SchoolScheduleWindow({
   const toggleFullscreen = async () => {
     if (!document.fullscreenElement && wrapRef.current) {
       await wrapRef.current.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
     } else if (document.fullscreenElement) {
       await document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
     }
   };
 
@@ -117,6 +126,22 @@ export function SchoolScheduleWindow({
       onClose={onClose}
     >
       <div ref={wrapRef} className="sp-ms-wrap">
+        {/* Official Print-Only Header */}
+        <div className="sp-ms-print-header">
+          <div>
+            <strong>المملكة الأردنية الهاشمية · وزارة التربية والتعليم</strong>
+            <small>{data.school.name}</small>
+          </div>
+          <div className="sp-ms-print-title">
+            <strong>الجدول المدرسي العام</strong>
+            <small>{JORDAN_WEEKDAYS.find((d) => d.id === weekday)?.ar} · {data.date}</small>
+          </div>
+          <div className="sp-ms-print-meta">
+            {absentTeachers.length > 0 && <small>الغائبون: {absentTeachers.map((t) => t.name).join('، ')}</small>}
+            {overview?.school.duty_notes && <small>المناوبون والملاحظات: {overview.school.duty_notes}</small>}
+          </div>
+        </div>
+
         <div className="sp-ms-topbar">
           <div className="sp-ms-clock">
             <Clock size={14} className="is-blue" />
@@ -145,6 +170,10 @@ export function SchoolScheduleWindow({
           <div className="sp-ms-actions">
             {manager && (
               <>
+                <button type="button" className="sp-btn-primary sp-ms-ai-btn" disabled={busy || absentTeachers.length === 0} onClick={() => void handleSmartRewrite()} title={lang === 'ar' ? 'خوارزمية تعويض وإعادة جدولة المعلمين الغائبين' : 'Smart Absence Substitute & Compaction Solver'}>
+                  <Sparkles size={13} />
+                  <span>{lang === 'ar' ? 'إعادة بناء للغيابات' : 'Smart Rewrite'}</span>
+                </button>
                 <button type="button" className="sp-icon-btn" onClick={() => setStaffModal(true)} title={lang === 'ar' ? 'غياب المعلمين' : 'Staff Attendance'}><UserCheck size={15} /></button>
                 <button type="button" className="sp-icon-btn" onClick={() => setProfilesModal(true)} title={lang === 'ar' ? 'الملفات المحفوظة' : 'Saved Profiles'}><FolderOpen size={15} /></button>
               </>
@@ -155,27 +184,17 @@ export function SchoolScheduleWindow({
           </div>
         </div>
 
-        {manager && (
-          <div className="sp-ms-tabs-row">
-            <SegmentedTabs
-              value={tab}
-              onChange={setTab}
-              items={[
-                { id: 'daily', label: lang === 'ar' ? 'الجدول الرئيسي' : 'Master Grid' },
-                { id: 'universal', label: lang === 'ar' ? 'تعبئة موحدة للكل' : 'Universal Fill' },
-              ]}
-            />
-            <div className="sp-weekday-pills">
-              {JORDAN_WEEKDAYS.map((d) => (
-                <button key={d.id} type="button" className={weekday === d.id ? 'is-active' : ''} onClick={() => setWeekday(d.id)}>
-                  {lang === 'ar' ? d.ar : d.en}
-                </button>
-              ))}
-            </div>
+        <div className="sp-ms-tabs-row">
+          <div className="sp-weekday-pills">
+            {JORDAN_WEEKDAYS.map((d) => (
+              <button key={d.id} type="button" className={weekday === d.id ? 'is-active' : ''} onClick={() => setWeekday(d.id)}>
+                {lang === 'ar' ? d.ar : d.en}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
-        {tab === 'daily' && overview ? (
+        {overview && (
           <>
             {manager && (
               <textarea
@@ -217,21 +236,13 @@ export function SchoolScheduleWindow({
               onCellClick={(sec, p, l) => void handleCellClick(sec, p, l)}
             />
           </>
-        ) : tab === 'universal' ? (
-          <UniversalSchedulePanel data={data} lang={lang} busy={busy} onDone={() => { setTab('daily'); void loadOverview(); }} mutate={mutate} />
-        ) : null}
+        )}
 
         {activeCell && overview && (
           <ScheduleCellModal
-            section={activeCell.section}
-            weekday={weekday}
-            periodNumber={activeCell.periodNumber}
-            lesson={activeCell.lesson}
-            subjects={data.subjects}
-            teachers={overview.teachers}
-            lang={lang}
-            busy={busy}
-            onClose={() => setActiveCell(null)}
+            section={activeCell.section} weekday={weekday} periodNumber={activeCell.periodNumber}
+            lesson={activeCell.lesson} subjects={data.subjects} teachers={overview.teachers}
+            lang={lang} busy={busy} onClose={() => setActiveCell(null)}
             onSaveCell={async (payload, msg) => {
               if (await mutate('/schedule/cell', payload, msg)) { setActiveCell(null); await loadOverview(); }
             }}
@@ -247,9 +258,7 @@ export function SchoolScheduleWindow({
 
         {staffModal && overview && (
           <StaffAbsenceModal
-            teachers={overview.teachers}
-            lang={lang}
-            onClose={() => setStaffModal(false)}
+            teachers={overview.teachers} lang={lang} onClose={() => setStaffModal(false)}
             onToggle={async (tid, isAbsent) => {
               if (await mutate('/schedule/teacher-absence', { teacherId: tid, isAbsent })) await loadOverview();
             }}
@@ -258,10 +267,7 @@ export function SchoolScheduleWindow({
 
         {profilesModal && overview && (
           <ScheduleProfilesModal
-            profiles={overview.profiles}
-            lang={lang}
-            busy={busy}
-            onClose={() => setProfilesModal(false)}
+            profiles={overview.profiles} lang={lang} busy={busy} onClose={() => setProfilesModal(false)}
             onSave={async (name) => {
               if (await mutate('/schedule/profiles', { name }, lang === 'ar' ? 'تم حفظ نسخة الجدول' : 'Profile saved')) await loadOverview();
             }}
