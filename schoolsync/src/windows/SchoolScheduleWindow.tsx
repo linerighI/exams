@@ -81,12 +81,9 @@ export function SchoolScheduleWindow({
   };
 
   const handleSmartRewrite = async () => {
-    const res = await api<{ replacedCount: number; shiftedCount: number; canceledCount: number }>('/schedule/rewrite-absences', {
-      method: 'POST',
-      body: JSON.stringify({ weekday }),
-    }).catch(() => null);
-    if (res) await loadOverview();
-    else await mutate('/schedule/rewrite-absences', { weekday }, lang === 'ar' ? 'تمت إعادة بناء الجدول للغيابات' : 'Schedule rewritten');
+    if (await mutate('/schedule/rewrite-absences', { weekday }, lang === 'ar' ? 'تمت إعادة بناء الجدول للغيابات' : 'Schedule rewritten')) {
+      await loadOverview();
+    }
   };
 
   const handleCellClick = async (section: string, periodNumber: number, lesson?: ScheduleLessonItem) => {
