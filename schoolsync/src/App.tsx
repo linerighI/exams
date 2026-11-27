@@ -8,6 +8,7 @@ import { LoaderCircle } from 'lucide-react';
 import { useCampusShellState } from './hooks/useCampusShellState';
 import { useSchoolSync } from './hooks/useSchoolSync';
 import { FloorPill } from './hud/FloorPill';
+import { ActiveTeachersBar } from './hud/ActiveTeachersBar';
 import { SpatialHud } from './hud/SpatialHud';
 import type { OrbTone } from './Orb';
 import { CampusEditorHost } from './spatial/editor/CampusEditorHost';
@@ -154,6 +155,7 @@ export default function App() {
         editorFloorId={editor.activeFloorId}
         editorGridSnap={editor.gridSnap}
         editorOnionSkin={editor.onionSkin}
+        editorTransformMode={editor.transformMode}
         editorCallbacks={shell.editorCallbacks}
         teacherPresence={s.data?.teacherPresence || []}
         teacherTrail={teacherTrail}
@@ -218,6 +220,15 @@ export default function App() {
             onToggleRoofs={() => setShowRoofs((v) => !v)}
             onResetCamera={() => sceneHandleRef.current?.flyToFloor(floor)}
           />
+          {isManagerRole(s.data.user.role) && (
+            <ActiveTeachersBar
+              presence={s.data.teacherPresence || []}
+              rooms={rooms}
+              lang={s.lang}
+              onSelectTeacher={(tid) => { setOpenTeacherId(tid); focusWindow('teacher'); }}
+              onFlyToRoom={(room) => sceneHandleRef.current?.flyToRoom(room, true)}
+            />
+          )}
           <WindowManager
             data={s.data}
             layout={activeLayout}

@@ -78,13 +78,17 @@ const propSchema = z.object({
   floorId: z.string().trim().min(1).max(64),
   roomId: z.string().trim().max(64).optional(),
   prefabId: z.string().trim().min(1).max(64),
-  category: z.enum(['furniture', 'nature', 'facilities', 'pins']).default('furniture'),
+  category: z.enum(['furniture', 'nature', 'facilities', 'shapes', 'external', 'pins']).default('furniture'),
   x: z.number().min(-200).max(200),
   y: z.number().min(-20).max(60).default(0),
   z: z.number().min(-200).max(200),
   rotationY: z.number().min(-Math.PI * 2).max(Math.PI * 2).default(0),
-  scale: z.number().min(0.2).max(5).default(1),
+  scale: z.number().min(0.2).max(10).default(1),
+  scaleX: z.number().min(0.2).max(20).optional(),
+  scaleY: z.number().min(0.2).max(20).optional(),
+  scaleZ: z.number().min(0.2).max(20).optional(),
   colorTint: z.string().trim().max(24).optional(),
+  modelUrl: z.string().trim().max(500).optional(),
 });
 
 const layoutPayloadSchema = z.object({

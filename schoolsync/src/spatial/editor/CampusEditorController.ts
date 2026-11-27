@@ -27,7 +27,10 @@ export interface EditorControllerCallbacks {
   };
   onSelectEntity: (entity: SelectedEditorEntity) => void;
   onCreateRoom: (rect: { x: number; z: number; width: number; depth: number }) => void;
-  onTransformCommit: (entity: SelectedEditorEntity, x: number, z: number, rotationY: number) => void;
+  onTransformCommit: (
+    entity: SelectedEditorEntity, x: number, z: number, rotationY: number,
+    scale?: { x: number; y: number; z: number },
+  ) => void;
   onResizeCommit: (roomId: string, patch: Partial<CampusRoom>) => void;
   onAddOpening: (roomId: string, wall: WallOpening['wall'], offset: number, type: 'door' | 'double_door' | 'window', wallIndex: number) => void;
   onMoveOpening: (roomId: string, openingId: string, patch: Partial<WallOpening>) => void;
@@ -88,11 +91,13 @@ export class CampusEditorController {
       if (!dragging && this.transform.object && this.attachedEntity) {
         const obj = this.transform.object;
         const { gridSnap } = this.callbacks.getState();
+        const r2 = (n: number) => Number(Math.max(0.2, Math.min(20, n)).toFixed(2));
         this.callbacks.onTransformCommit(
           this.attachedEntity,
           snapCoord(obj.position.x, gridSnap),
           snapCoord(obj.position.z, gridSnap),
           obj.rotation.y,
+          this.transform.mode === 'scale' ? { x: r2(obj.scale.x), y: r2(obj.scale.y), z: r2(obj.scale.z) } : undefined,
         );
       }
     });
@@ -244,39 +249,26 @@ export class CampusEditorController {
     }
   };
 
-  /** Attach TransformControls & N/S/E/W wall resize bars to the active selected entity. */
+  /** Attach TransformControls (translate/rotate/scale) & N/S/E/W wall resize bars to the active entity. */
   sync(
     active: boolean, tool: EditorTool, selected: SelectedEditorEntity,
-    selectedRoom: CampusRoom | null, elevY: number, graph: CampusSceneGraph | null, gridSnap: number,
+    selectedRoom: CampusRoom | null, elevY: number, graph: CampusSceneGraph | null,
+    gridSnap: number, transformMode: 'translate' | 'rotate' | 'scale' = 'translate',
   ) {
     this.group.visible = active;
     this.drone.setEditorDrawMode(active && tool === 'draw_room');
     if (!this.resizeHandles.isDragging() && !this.openingHandles.isDragging() && !this.transform.dragging) this.drone.setOrbitEnabled(true);
-    this.transform.setTranslationSnap(gridSnap);
+    const mode = selected?.type === 'room' && transformMode === 'scale' ? 'translate' : transformMode;
+    this.transform.setMode(mode);
+    this.transform.showX = mode !== 'rotate'; this.transform.showY = mode !== 'translate'; this.transform.showZ = mode !== 'rotate';
+    this.transform.setTranslationSnap(gridSnap); this.transform.setRotationSnap(THREE.MathUtils.degToRad(15)); this.transform.setScaleSnap(0.1);
     const showHandles = active && tool === 'select' && selected?.type === 'room';
-    this.resizeHandles.sync(selectedRoom, elevY, showHandles);
-    this.openingHandles.sync(selectedRoom, elevY, showHandles);
-
-    if (!active || tool !== 'select' || !selected || !graph) {
-      this.transform.detach();
-      this.transform.getHelper().visible = false;
-      this.attachedEntity = null;
-      return;
-    }
-    const target = selected.type === 'room'
-      ? graph.roomsById.get(selected.id)?.group
-      : selected.type === 'prop'
-        ? graph.propsById.get(selected.id)?.group
-        : undefined;
-    if (target) {
-      this.attachedEntity = selected;
-      this.transform.attach(target);
-      this.transform.getHelper().visible = true;
-    } else {
-      this.transform.detach();
-      this.transform.getHelper().visible = false;
-      this.attachedEntity = null;
-    }
+    this.resizeHandles.sync(selectedRoom, elevY, showHandles); this.openingHandles.sync(selectedRoom, elevY, showHandles);
+    const target = active && tool === 'select' && selected && graph
+      ? (selected.type === 'room' ? graph.roomsById.get(selected.id)?.group : selected.type === 'prop' ? graph.propsById.get(selected.id)?.group : undefined)
+      : undefined;
+    if (target) { this.attachedEntity = selected; this.transform.attach(target); this.transform.getHelper().visible = true; }
+    else { this.transform.detach(); this.transform.getHelper().visible = false; this.attachedEntity = null; }
   }
 
   dispose() {

@@ -101,13 +101,17 @@ export interface CampusProp {
   floorId: string;
   roomId?: string;
   prefabId: string;
-  category: 'furniture' | 'nature' | 'facilities' | 'pins';
+  category: 'furniture' | 'nature' | 'facilities' | 'shapes' | 'external' | 'pins';
   x: number;
   y: number;
   z: number;
   rotationY: number;
   scale: number;
+  scaleX?: number;
+  scaleY?: number;
+  scaleZ?: number;
   colorTint?: string;
+  modelUrl?: string;
 }
 
 export interface CampusLayout {

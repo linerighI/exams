@@ -7,10 +7,16 @@ const CARDINALS = new Set(['N', 'E', 'S', 'W']);
 const CARD_IDX = { N: 0, E: 1, S: 2, W: 3 };
 const IDX_CARD = ['N', 'E', 'S', 'W'];
 const REL_DIRS = new Set(['east_of', 'west_of', 'north_of', 'south_of']);
-const NATURE_PROPS = new Set(['tree_round', 'tree_cypress', 'planter', 'bench', 'fountain']);
-const FAC_PROPS = new Set(['stairs', 'flagpole', 'basketball_hoop', 'pergola', 'gate']);
+const NATURE_PROPS = new Set(['tree_round', 'tree_cypress', 'planter', 'bench', 'fountain', 'palm_tree', 'flower_bed', 'hedge_row', 'stone_path', 'lamp_post']);
+const FAC_PROPS = new Set(['stairs', 'flagpole', 'basketball_hoop', 'pergola', 'gate', 'soccer_goal', 'bike_rack', 'water_cooler', 'bus_shelter', 'guard_booth']);
+const SHAPE_PROPS = new Set(['shape_cube', 'shape_pillar', 'shape_cylinder', 'shape_arch', 'shape_slab', 'shape_cone', 'shape_dome', 'shape_wall_divider']);
 const r2 = (n) => Number((n || 0).toFixed(2));
 const q = (s) => `"${String(s || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+const normRot = (degVal) => {
+  const rad = ((Number(degVal) || 0) * Math.PI) / 180;
+  const wrapped = Math.atan2(Math.sin(rad), Math.cos(rad));
+  return Number(wrapped.toFixed(4)) || 0;
+};
 
 function stripComment(raw) {
   let inQ = false;
@@ -49,7 +55,8 @@ function tokenize(raw) {
 }
 
 const pair = (t) => { const m = t && t.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$/); return m ? { x: +m[1], z: +m[2] } : null; };
-const sizeOf = (t) => { const m = t && t.match(/^(\d+(?:\.\d+)?)[xX×](\d+(?:\.\d+)?)$/); return m ? { w: Math.max(1.2, +m[1]), d: Math.max(1.2, +m[2]) } : null; };
+const vec3 = (t) => { const m = t && t.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$/); return m ? { x: +m[1], y: +m[2], z: +m[3] } : null; };
+const sizeOf = (t) => { const m = t && t.match(/^(\d+(?:\.\d+)?)[xX×](\d+(?:\.\d+)?)$/); return m ? { w: Math.max(1.5, +m[1]), d: Math.max(1.5, +m[2]) } : null; };
 
 function recenterPoly(x, z, rotY, pts, assigns) {
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -140,7 +147,9 @@ function sarToLayout(source) {
       const p = { prefabId: tk[1], floorId: curFloor, offset: { dx: 0, dz: 0 }, rotDeg: 0 };
       for (let i = 2; i < tk.length; i++) {
         if (tk[i] === 'at') p.at = pair(tk[++i]); else if (tk[i] === 'in') p.inRoomId = tk[++i]; else if (tk[i] === 'offset') { const o = pair(tk[++i]); if (o) p.offset = { dx: o.x, dz: o.z }; }
-        else if (tk[i] === 'floor') p.floorId = tk[++i]; else if (tk[i] === 'rot') p.rotDeg = Number(tk[++i]) || 0; else if (tk[i] === 'scale') p.scale = Number(tk[++i]); else if (tk[i] === 'tint') p.tint = tk[++i];
+        else if (tk[i] === 'floor') p.floorId = tk[++i]; else if (tk[i] === 'rot') p.rotDeg = Number(tk[++i]) || 0;
+        else if (tk[i] === 'scale') { const v = vec3(tk[i + 1]); if (v) { p.scale3 = v; i++; } else p.scale = Number(tk[++i]); }
+        else if (tk[i] === 'tint') p.tint = tk[++i]; else if (tk[i] === 'url') p.modelUrl = tk[++i];
       }
       props.push(p);
     }
@@ -171,7 +180,7 @@ function sarToLayout(source) {
   }
 
   const rooms = rawRooms.map((r) => {
-    const fl = fMap.get(r.floorId) || floors[0], d = dims.get(r.id) || { x: 0, z: 0 }, rotY = Number(((r.rotDeg * Math.PI) / 180).toFixed(4));
+    const fl = fMap.get(r.floorId) || floors[0], d = dims.get(r.id) || { x: 0, z: 0 }, rotY = normRot(r.rotDeg);
     let x = d.x, z = d.z, width = r.width, depth = r.depth, points = r.points, assignments3D = r.assignments3D;
     if (points?.length >= 3) { ({ x, z, width, depth, points, assignments3D } = recenterPoly(x, z, rotY, points, assignments3D)); }
     const openings = r.openings.map((op, oi) => ({ id: `${r.id}-op-${oi + 1}`, ...op }));
@@ -196,11 +205,13 @@ function sarToLayout(source) {
   const rMap = new Map(rooms.map((r) => [r.id, r]));
   const finalProps = props.map((p, idx) => {
     const tgt = p.inRoomId ? rMap.get(p.inRoomId) : null, fl = fMap.get(tgt ? tgt.floorId : p.floorId) || floors[0];
+    const cat = p.modelUrl ? 'external' : SHAPE_PROPS.has(p.prefabId) ? 'shapes' : NATURE_PROPS.has(p.prefabId) ? 'nature' : FAC_PROPS.has(p.prefabId) ? 'facilities' : 'furniture';
     return {
-      id: `sar-prop-${idx + 1}`, floorId: fl.id, ...(tgt ? { roomId: tgt.id } : {}), prefabId: p.prefabId,
-      category: NATURE_PROPS.has(p.prefabId) ? 'nature' : FAC_PROPS.has(p.prefabId) ? 'facilities' : 'furniture',
+      id: `sar-prop-${idx + 1}`, floorId: fl.id, ...(tgt ? { roomId: tgt.id } : {}), prefabId: p.prefabId, category: cat,
       x: r2(tgt ? tgt.x + p.offset.dx : (p.at?.x ?? 0)), y: fl.elevationY, z: r2(tgt ? tgt.z + p.offset.dz : (p.at?.z ?? 0)),
-      rotationY: Number(((p.rotDeg * Math.PI) / 180).toFixed(4)), scale: r2(p.scale ?? 1), ...(p.tint ? { colorTint: p.tint } : {}),
+      rotationY: normRot(p.rotDeg), scale: r2(p.scale ?? 1),
+      ...(p.scale3 ? { scaleX: r2(p.scale3.x), scaleY: r2(p.scale3.y), scaleZ: r2(p.scale3.z) } : {}),
+      ...(p.tint ? { colorTint: p.tint } : {}), ...(p.modelUrl ? { modelUrl: p.modelUrl } : {}),
     };
   });
 
@@ -227,7 +238,9 @@ function layoutToSar(layout) {
     const rMap = new Map(flRooms.map((r) => [r.id, r]));
     for (const p of (layout.props || []).filter((pr) => pr.floorId === fl.id)) {
       const h = p.roomId ? rMap.get(p.roomId) : null;
-      out.push(`  prop ${p.prefabId} ${h ? `in ${h.id} offset (${r2(p.x - h.x)}, ${r2(p.z - h.z)})` : `at (${r2(p.x)}, ${r2(p.z)})`}${deg(p.rotationY) ? ` rot ${deg(p.rotationY)}` : ''}${Math.abs((p.scale ?? 1) - 1) > 0.01 ? ` scale ${r2(p.scale)}` : ''}${p.colorTint ? ` tint ${p.colorTint}` : ''}`);
+      const hasV3 = p.scaleX !== undefined || p.scaleY !== undefined || p.scaleZ !== undefined;
+      const scStr = hasV3 ? ` scale (${r2(p.scaleX ?? p.scale ?? 1)},${r2(p.scaleY ?? p.scale ?? 1)},${r2(p.scaleZ ?? p.scale ?? 1)})` : (Math.abs((p.scale ?? 1) - 1) > 0.01 ? ` scale ${r2(p.scale)}` : '');
+      out.push(`  prop ${p.prefabId} ${h ? `in ${h.id} offset (${r2(p.x - h.x)}, ${r2(p.z - h.z)})` : `at (${r2(p.x)}, ${r2(p.z)})`}${deg(p.rotationY) ? ` rot ${deg(p.rotationY)}` : ''}${scStr}${p.colorTint ? ` tint ${p.colorTint}` : ''}${p.modelUrl ? ` url ${q(p.modelUrl)}` : ''}`);
     }
   }
   return `${out.join('\n')}\n`;

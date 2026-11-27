@@ -125,6 +125,59 @@ export function buildNatureProp(
       root.add(outer, water, col, upperBowl, jet);
       return { root, materials };
     }
+    case 'palm_tree': {
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.46, 0.42, 12), stone);
+      pot.position.y = 0.21;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.18, 2.5, 10), bark);
+      trunk.position.y = 1.65;
+      trunk.castShadow = true;
+      root.add(pot, trunk);
+      for (let i = 0; i < 6; i++) {
+        const frond = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.04, 1.25), i % 2 ? sage : deepLeaf);
+        const ang = (i * Math.PI) / 3;
+        frond.position.set(Math.cos(ang) * 0.55, 2.86, Math.sin(ang) * 0.55);
+        frond.rotation.y = -ang + Math.PI / 2;
+        frond.rotation.x = 0.35;
+        frond.castShadow = true;
+        root.add(frond);
+      }
+      return { root, materials };
+    }
+    case 'flower_bed': {
+      const coral = stdMat(0xf43f5e, 0.55);
+      const amber = stdMat(0xf59e0b, 0.55);
+      materials.push(coral, amber);
+      box(root, 2.4, 0.24, 1.1, 0, 0.12, 0, stone);
+      box(root, 2.2, 0.26, 0.9, 0, 0.15, 0, soil);
+      for (let x = -0.85; x <= 0.86; x += 0.42) {
+        const fl = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16, 0), x > 0 ? coral : amber);
+        fl.position.set(x, 0.36, 0);
+        root.add(fl);
+      }
+      return { root, materials };
+    }
+    case 'hedge_row': {
+      box(root, 3.0, 0.82, 0.68, 0, 0.41, 0, deepLeaf);
+      box(root, 2.94, 0.16, 0.62, 0, 0.86, 0, sage);
+      return { root, materials };
+    }
+    case 'stone_path': {
+      for (let z = -1.2; z <= 1.21; z += 0.6) box(root, 1.35, 0.06, 0.46, 0, 0.03, z, stone);
+      return { root, materials };
+    }
+    case 'lamp_post': {
+      const glow = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xfde047, emissiveIntensity: 0.7 });
+      materials.push(glow);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.24, 10), metal);
+      base.position.y = 0.12;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.8, 10), metal);
+      pole.position.y = 1.55;
+      pole.castShadow = true;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 12), glow);
+      head.position.y = 3.04;
+      root.add(base, pole, head);
+      return { root, materials };
+    }
     default:
       return null;
   }

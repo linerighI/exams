@@ -29,6 +29,8 @@ export const EDITOR_ROOM_KINDS: { value: RoomKind; ar: string; en: string }[] = 
   { value: 'custom', ar: 'مساحة مخصصة', en: 'Custom Zone' },
 ];
 
+const PROP_SWATCHES = ['#f1f5f9', '#e4d4bf', '#007aff', '#34c759', '#ff9500', '#64748b'];
+
 export function PropInspectorSection({
   prop,
   lang,
@@ -40,32 +42,78 @@ export function PropInspectorSection({
   onUpdateProp: (id: string, patch: Partial<CampusProp>) => void;
   onDelete: () => void;
 }) {
+  const sx = prop.scaleX ?? prop.scale;
+  const sy = prop.scaleY ?? prop.scale;
+  const sz = prop.scaleZ ?? prop.scale;
+
   return (
     <div className="sp-form">
-      <div className="sp-row-2">
-        <label className="sp-field">
-          <span>{lang === 'ar' ? 'الدوران' : 'Rotation'}</span>
-          <button
-            type="button"
-            className="sp-btn-soft"
-            onClick={() => onUpdateProp(prop.id, { rotationY: (prop.rotationY + Math.PI / 4) % (Math.PI * 2) })}
-          >
-            <RotateCw size={14} />
-            <span>+45°</span>
-          </button>
-        </label>
-        <label className="sp-field">
-          <span>{lang === 'ar' ? 'الحجم' : 'Scale'}</span>
-          <input
-            type="number"
-            step={0.1}
-            min={0.4}
-            max={3}
-            value={prop.scale}
-            onChange={(e) => onUpdateProp(prop.id, { scale: Math.max(0.4, Number(e.target.value)) })}
-          />
-        </label>
+      <div className="sp-ed-card">
+        <div className="sp-row-2">
+          <label className="sp-field">
+            <span>{lang === 'ar' ? 'الدوران' : 'Rotation'}</span>
+            <button
+              type="button"
+              className="sp-btn-soft"
+              onClick={() => onUpdateProp(prop.id, { rotationY: (prop.rotationY + Math.PI / 4) % (Math.PI * 2) })}
+            >
+              <RotateCw size={14} />
+              <span>+45°</span>
+            </button>
+          </label>
+          <label className="sp-field">
+            <span>{lang === 'ar' ? 'الحجم العام' : 'Uniform'}</span>
+            <input
+              type="number"
+              step={0.1}
+              min={0.2}
+              max={10}
+              value={prop.scale}
+              onChange={(e) => {
+                const v = Math.max(0.2, Math.min(10, Number(e.target.value) || 1));
+                onUpdateProp(prop.id, { scale: v, scaleX: v, scaleY: v, scaleZ: v });
+              }}
+            />
+          </label>
+        </div>
+        <div className="sp-row-3">
+          {([['X', sx, 'scaleX'], ['Y', sy, 'scaleY'], ['Z', sz, 'scaleZ']] as const).map(([lbl, val, key]) => (
+            <label key={key} className="sp-field">
+              <span>{lbl}</span>
+              <input
+                type="number"
+                step={0.1}
+                min={0.2}
+                max={20}
+                value={val}
+                onChange={(e) => onUpdateProp(prop.id, { [key]: Math.max(0.2, Math.min(20, Number(e.target.value) || 1)) })}
+              />
+            </label>
+          ))}
+        </div>
       </div>
+
+      <div className="sp-ed-card">
+        <span className="sp-field-lbl">{lang === 'ar' ? 'لون العنصر' : 'Color Tint'}</span>
+        <div className="sp-color-row">
+          {PROP_SWATCHES.map((hex) => (
+            <button
+              key={hex}
+              type="button"
+              className={`sp-color-dot ${prop.colorTint === hex ? 'is-active' : ''}`}
+              style={{ background: hex }}
+              onClick={() => onUpdateProp(prop.id, { colorTint: hex })}
+            />
+          ))}
+          <input
+            type="color"
+            className="sp-color-picker"
+            value={prop.colorTint || '#f1f5f9'}
+            onChange={(e) => onUpdateProp(prop.id, { colorTint: e.target.value })}
+          />
+        </div>
+      </div>
+
       <button type="button" className="sp-btn-ghost" onClick={onDelete}>
         <Trash2 size={14} />
         <span>{lang === 'ar' ? 'حذف العنصر' : 'Remove Prop'}</span>

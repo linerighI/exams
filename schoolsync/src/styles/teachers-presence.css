@@ -1,0 +1,132 @@
+/**
+ * Apple Liquid Glass live Teacher Presence pills, Active Teachers dock,
+ * and 3-mode SARE TransformControls pill (Move / Rotate / Scale).
+ */
+.sp-teacher-pill {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px) saturate(190%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
+  color: var(--sp-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.sp-teacher-pill em {
+  font-style: normal;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--sp-blue);
+  font-size: 0.66rem;
+}
+
+.sp-teacher-pill.is-mismatch {
+  border-color: rgba(255, 149, 0, 0.55);
+  background: rgba(255, 247, 237, 0.94);
+}
+
+.sp-transform-pill {
+  position: fixed;
+  top: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 43;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(22px) saturate(200%);
+  -webkit-backdrop-filter: blur(22px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow: var(--sp-shadow-sm);
+}
+
+.sp-transform-pill button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sp-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.sp-transform-pill button.is-active { background: var(--sp-blue); color: #ffffff; }
+
+.sp-teachers-dock {
+  position: fixed;
+  bottom: 18px;
+  inset-inline-start: 18px;
+  z-index: 24;
+  width: min(300px, calc(100vw - 36px));
+  border-radius: 20px;
+  background: var(--sp-surface);
+  backdrop-filter: blur(26px) saturate(200%);
+  -webkit-backdrop-filter: blur(26px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow: var(--sp-shadow);
+  overflow: hidden;
+}
+
+.sp-teachers-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 13px;
+  border: none;
+  background: transparent;
+  color: var(--sp-ink);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.sp-teachers-title { display: inline-flex; align-items: center; gap: 6px; }
+.sp-teachers-count { font-style: normal; padding: 1px 7px; border-radius: 999px; background: rgba(0, 122, 255, 0.12); color: var(--sp-blue); font-size: 0.7rem; font-weight: 700; }
+.sp-live-pulse, .sp-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: #10b981; }
+.sp-status-dot.is-blue { background: var(--sp-blue); }
+.sp-status-dot.is-amber { background: #ff9500; }
+.sp-status-dot.is-green { background: #10b981; }
+
+.sp-teachers-list { display: flex; flex-direction: column; gap: 4px; padding: 0 8px 8px; max-height: 210px; overflow-y: auto; }
+
+.sp-teacher-chip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.56);
+  text-align: start;
+  cursor: pointer;
+  transition: background 140ms ease, transform 120ms ease;
+}
+
+.sp-teacher-chip:hover { background: rgba(255, 255, 255, 0.94); transform: translateY(-0.5px); }
+.sp-teacher-chip-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sp-teacher-chip-meta strong { font-size: 0.76rem; color: var(--sp-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-teacher-chip-meta small { font-size: 0.68rem; color: var(--sp-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-teacher-chip-sig { color: var(--sp-blue); opacity: 0.75; }

@@ -11,12 +11,15 @@ import {
   Eraser,
   Layers,
   LocateFixed,
+  Maximize2,
   MousePointer2,
+  Move,
   Paintbrush,
   Pin,
   Plus,
   Radio,
   Redo2,
+  RotateCw,
   Sparkles,
   SquarePlus,
   Undo2,
@@ -25,12 +28,14 @@ import {
 } from 'lucide-react';
 import type { Language } from '../../i18n';
 import type { CampusLayout, SchoolClass } from '../../types';
-import type { EditorTool } from '../engine/campusSchema';
+import type { EditorTool, SelectedEditorEntity } from '../engine/campusSchema';
 import { gsapPop, useGsapEntrance, useGsapStagger, useSlidingPill, useVerticalSlideIndicator } from './editorMotion';
 
 interface EditorToolbarProps {
   draft: CampusLayout;
   tool: EditorTool;
+  selected: SelectedEditorEntity;
+  transformMode: 'translate' | 'rotate' | 'scale';
   activeFloorId: string;
   activeWingId: string;
   gridSnap: number;
@@ -43,6 +48,7 @@ interface EditorToolbarProps {
   classes: SchoolClass[];
   lang: Language;
   onSelectTool: (t: EditorTool) => void;
+  onSetTransformMode: (m: 'translate' | 'rotate' | 'scale') => void;
   onSelectFloor: (id: string) => void;
   onAddFloor: () => void;
   onUndo: () => void;
@@ -70,8 +76,8 @@ const TOOLS: { id: EditorTool; ar: string; en: string; tipAr: string; tipEn: str
 
 /** Floating unified SARE top capsule + icon-only tool ornament with GSAP motion. */
 export function EditorToolbar({
-  draft, tool, activeFloorId, gridSnap, onionSkin, canUndo, canRedo, dirty, busy, measureDims, lang,
-  onSelectTool, onSelectFloor, onAddFloor, onUndo, onRedo, onCycleSnap, onToggleOnion,
+  draft, tool, selected, transformMode, activeFloorId, gridSnap, onionSkin, canUndo, canRedo, dirty, busy, measureDims, lang,
+  onSelectTool, onSetTransformMode, onSelectFloor, onAddFloor, onUndo, onRedo, onCycleSnap, onToggleOnion,
   onOpenGeo, onLoadStarter, onClearBlank, onPublish, onExit,
 }: EditorToolbarProps) {
   const topbarRef = useRef<HTMLDivElement>(null);
@@ -163,6 +169,25 @@ export function EditorToolbar({
           </div>
         ))}
       </aside>
+
+      {tool === 'select' && selected && (selected.type === 'prop' || selected.type === 'room') && (
+        <div className="sp-transform-pill" role="group" aria-label="Transform Mode">
+          <button type="button" className={transformMode === 'translate' ? 'is-active' : ''} onClick={() => onSetTransformMode('translate')} title="G">
+            <Move size={13} />
+            <span>{lang === 'ar' ? 'تحريك' : 'Move'}</span>
+          </button>
+          <button type="button" className={transformMode === 'rotate' ? 'is-active' : ''} onClick={() => onSetTransformMode('rotate')} title="R">
+            <RotateCw size={13} />
+            <span>{lang === 'ar' ? 'تدوير' : 'Rotate'}</span>
+          </button>
+          {selected.type === 'prop' && (
+            <button type="button" className={transformMode === 'scale' ? 'is-active' : ''} onClick={() => onSetTransformMode('scale')} title="S">
+              <Maximize2 size={13} />
+              <span>{lang === 'ar' ? 'تحجيم' : 'Scale'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {measureDims && (
         <div className="sp-editor-measure">

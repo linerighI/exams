@@ -69,6 +69,12 @@ function parsePair(tok: string | undefined): { x: number; z: number } | null {
   return m ? { x: Number(m[1]), z: Number(m[2]) } : null;
 }
 
+function parseVec3(tok: string | undefined): { x: number; y: number; z: number } | null {
+  if (!tok) return null;
+  const m = tok.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$/);
+  return m ? { x: Number(m[1]), y: Number(m[2]), z: Number(m[3]) } : null;
+}
+
 function parseSize(tok: string | undefined): { w: number; d: number } | null {
   if (!tok) return null;
   const m = tok.match(/^(\d+(?:\.\d+)?)[xX×](\d+(?:\.\d+)?)$/);
@@ -265,6 +271,7 @@ export function parseSar(source: string): SarProgramAst {
       const prefabId = tk[1];
       let floorId = curFloor, at: { x: number; z: number } | undefined, inRoomId: string | undefined;
       let offset = { dx: 0, dz: 0 }, rotationDeg = 0, scale: number | undefined, colorTint: string | undefined;
+      let scale3: { x: number; y: number; z: number } | undefined, modelUrl: string | undefined;
       for (let i = 2; i < tk.length; i++) {
         const k = tk[i];
         if (k === 'at') { const p = parsePair(tk[++i]); if (p) at = p; else ast.diagnostics.push({ line, severity: 'error', message: 'prop at requires (x,z)' }); }
@@ -272,10 +279,11 @@ export function parseSar(source: string): SarProgramAst {
         else if (k === 'offset') { const p = parsePair(tk[++i]); if (p) offset = { dx: p.x, dz: p.z }; }
         else if (k === 'floor' && tk[i + 1]) floorId = tk[++i];
         else if (k === 'rot') rotationDeg = parseNum(tk[++i], 0) ?? 0;
-        else if (k === 'scale') scale = parseNum(tk[++i]);
+        else if (k === 'scale') { const v = parseVec3(tk[i + 1]); if (v) { scale3 = v; i++; } else scale = parseNum(tk[++i]); }
         else if (k === 'tint' && tk[i + 1]) colorTint = tk[++i];
+        else if (k === 'url' && tk[i + 1]) modelUrl = tk[++i];
       }
-      ast.props.push({ line, prefabId, floorId, at, inRoomId, offset, rotationDeg, scale, colorTint });
+      ast.props.push({ line, prefabId, floorId, at, inRoomId, offset, rotationDeg, scale, scale3, colorTint, modelUrl });
     } else {
       ast.diagnostics.push({ line, severity: 'error', message: `Unknown SAR statement '${cmd}'` });
     }

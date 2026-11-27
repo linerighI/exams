@@ -85,6 +85,8 @@ export function createSilhouetteFigure(options: {
   const head = new THREE.Mesh(headGeo, headMat);
   head.position.y = 0.89;
   head.castShadow = true;
+  // Render after room floor slabs (transparent: true at renderOrder 0) so back-row silhouettes aren't painted over
+  head.renderOrder = 11;
 
   const bodyMat = new THREE.ShaderMaterial({
     vertexShader: BODY_VERTEX_SHADER,
@@ -99,6 +101,7 @@ export function createSilhouetteFigure(options: {
   });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
   body.castShadow = true;
+  body.renderOrder = 10;
   group.add(body, head);
 
   let ringMat: THREE.MeshBasicMaterial | undefined;
@@ -114,6 +117,7 @@ export function createSilhouetteFigure(options: {
     ringMesh = new THREE.Mesh(new THREE.RingGeometry(0.24, 0.34, 32), ringMat);
     ringMesh.rotation.x = -Math.PI / 2;
     ringMesh.position.y = 0.03;
+    ringMesh.renderOrder = 9;
     group.add(ringMesh);
   }
 

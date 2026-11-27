@@ -29,6 +29,7 @@ const { registerClassroomRoutes } = require('./routes-classroom.cjs');
 const { registerDatabaseRoutes } = require('./routes-database.cjs');
 const { registerSpatialRoutes } = require('./routes-spatial.cjs');
 const { registerCampusLayoutRoutes } = require('./routes-campus-layout.cjs');
+const { registerPropsLibraryRoutes } = require('./routes-props-library.cjs');
 const { registerPresenceRoutes } = require('./routes-presence.cjs');
 const { createWsHub } = require('./ws-hub.cjs');
 
@@ -174,7 +175,7 @@ function createApp({
 
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof z.ZodError)
-      return reply.code(400).send({ error: err.issues.map((i) => i.message).join('. ') });
+      return reply.code(400).send({ error: err.issues.map((i) => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message)).join('. ') });
     const code = err.statusCode || 500;
     if (code >= 500) req.log.error(err);
     reply.code(code).send({ error: code >= 500 ? 'Unable to save. Please try again.' : err.message });
@@ -190,19 +191,11 @@ function createApp({
   registerDatabaseRoutes(app, ctx, { nationalHash });
   registerSpatialRoutes(app, ctx);
   registerCampusLayoutRoutes(app, ctx);
+  registerPropsLibraryRoutes(app, ctx);
   registerPresenceRoutes(app, ctx, { demo });
 
   const dist = path.resolve(__dirname, '../dist');
-  const mime = {
-    '.html': 'text/html; charset=utf-8',
-    '.js': 'text/javascript',
-    '.css': 'text/css',
-    '.svg': 'image/svg+xml',
-    '.webmanifest': 'application/manifest+json',
-    '.woff2': 'font/woff2',
-    '.woff': 'font/woff',
-    '.png': 'image/png',
-  };
+  const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.woff': 'font/woff', '.png': 'image/png' };
   app.get('/*', async (req, reply) => {
     if (req.url.startsWith('/api/')) return reply.code(404).send({ error: 'Endpoint not found' });
     let pathname;

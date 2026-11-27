@@ -110,6 +110,45 @@ export function buildFacilityProp(
       box(root, 1.4, 1.75, 0.06, 1.0, 0.96, 0.25, glass, 0, -0.35);
       return { root, materials };
     }
+    case 'soccer_goal': {
+      for (const sx of [-1.45, 1.45]) {
+        box(root, 0.09, 1.85, 0.09, sx, 0.92, 0, white);
+        box(root, 0.07, 0.07, 0.95, sx, 0.035, -0.45, white);
+      }
+      box(root, 3.0, 0.09, 0.09, 0, 1.85, 0, white);
+      box(root, 2.9, 1.75, 0.04, 0, 0.92, -0.9, glass);
+      return { root, materials };
+    }
+    case 'bike_rack': {
+      box(root, 2.2, 0.05, 0.65, 0, 0.025, 0, metal);
+      for (let x = -0.85; x <= 0.86; x += 0.42) {
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.025, 8, 16, Math.PI), metal);
+        hoop.position.set(x, 0.05, 0);
+        hoop.rotation.y = Math.PI / 2;
+        root.add(hoop);
+      }
+      return { root, materials };
+    }
+    case 'water_cooler': {
+      box(root, 0.46, 0.98, 0.46, 0, 0.49, 0, white);
+      const jug = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.44, 14), glass);
+      jug.position.y = 1.2;
+      root.add(jug);
+      return { root, materials };
+    }
+    case 'bus_shelter': {
+      for (const sx of [-1.6, 1.6]) box(root, 0.12, 2.35, 0.12, sx, 1.18, -0.5, metal);
+      box(root, 3.4, 2.1, 0.06, 0, 1.15, -0.5, glass);
+      box(root, 3.6, 0.12, 1.4, 0, 2.4, 0.05, white, -0.06);
+      box(root, 2.4, 0.08, 0.42, 0, 0.46, -0.18, birch);
+      return { root, materials };
+    }
+    case 'guard_booth': {
+      box(root, 2.1, 2.35, 2.1, 0, 1.18, 0, white);
+      box(root, 2.3, 0.16, 2.3, 0, 2.42, 0, blue);
+      box(root, 1.5, 0.85, 0.08, 0, 1.48, 1.04, glass);
+      return { root, materials };
+    }
     default:
       return null;
   }

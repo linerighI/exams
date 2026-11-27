@@ -78,26 +78,28 @@ export class StudentPresenceLayer {
         const targetPos = slots[i];
         if (targetPos) {
           const [tx, ty, tz] = targetPos;
+          // Kill any in-flight hide tween (and its onComplete) even when already visible during rapid re-sync
+          gsap.killTweensOf([fig.group.position, fig.opacityUniform, fig.headMat]);
           if (!fig.group.visible) {
             fig.group.visible = true;
             fig.group.position.set(tx, ty - 0.45, tz);
-            gsap.killTweensOf([fig.group.position, fig.opacityUniform, fig.headMat]);
-            gsap.to(fig.group.position, { y: ty, duration: 0.45, ease: 'power3.out' });
-            gsap.to(fig.opacityUniform, { value: 1, duration: 0.4, ease: 'power2.out' });
-            gsap.to(fig.headMat, { opacity: 1, duration: 0.4, ease: 'power2.out' });
+            gsap.to(fig.group.position, { y: ty, duration: 0.45, ease: 'power3.out', overwrite: 'auto' });
+            gsap.to(fig.opacityUniform, { value: 1, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
+            gsap.to(fig.headMat, { opacity: 1, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
           } else {
-            gsap.to(fig.group.position, { x: tx, y: ty, z: tz, duration: 0.35, ease: 'power2.out' });
-            gsap.to(fig.opacityUniform, { value: 1, duration: 0.25 });
-            gsap.to(fig.headMat, { opacity: 1, duration: 0.25 });
+            gsap.to(fig.group.position, { x: tx, y: ty, z: tz, duration: 0.35, ease: 'power2.out', overwrite: 'auto' });
+            gsap.to(fig.opacityUniform, { value: 1, duration: 0.25, overwrite: 'auto' });
+            gsap.to(fig.headMat, { opacity: 1, duration: 0.25, overwrite: 'auto' });
           }
         } else if (fig.group.visible) {
           gsap.killTweensOf([fig.group.position, fig.opacityUniform, fig.headMat]);
-          gsap.to(fig.group.position, { y: fig.group.position.y - 0.45, duration: 0.38, ease: 'power2.in' });
-          gsap.to(fig.headMat, { opacity: 0, duration: 0.32 });
+          gsap.to(fig.group.position, { y: fig.group.position.y - 0.45, duration: 0.38, ease: 'power2.in', overwrite: 'auto' });
+          gsap.to(fig.headMat, { opacity: 0, duration: 0.32, overwrite: 'auto' });
           gsap.to(fig.opacityUniform, {
             value: 0,
             duration: 0.35,
             ease: 'power2.in',
+            overwrite: 'auto',
             onComplete: () => {
               fig.group.visible = false;
             },

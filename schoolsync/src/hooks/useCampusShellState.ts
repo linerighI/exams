@@ -62,13 +62,16 @@ export function useCampusShellState(options: {
   const editorCallbacks: Omit<EditorControllerCallbacks, 'getState'> = {
     onSelectEntity: editor.setSelected,
     onCreateRoom: (r) => editor.addRoom(r),
-    onTransformCommit: (ent, x, z, rot) => {
+    onTransformCommit: (ent, x, z, rot, scale) => {
       if (ent?.type === 'room') {
         const orig = editor.draft.rooms.find((r) => r.id === ent.id);
         const snapped = orig ? snapRoomTranslationToNeighbors({ ...orig, x, z }, editor.draft.rooms) : { x, z };
         editor.updateRoom(ent.id, { x: snapped.x, z: snapped.z, rotationY: rot });
       } else if (ent?.type === 'prop') {
-        editor.updateProp(ent.id, { x, z, rotationY: rot });
+        editor.updateProp(ent.id, {
+          x, z, rotationY: rot,
+          ...(scale ? { scaleX: scale.x, scaleY: scale.y, scaleZ: scale.z } : {}),
+        });
       }
     },
     onResizeCommit: (rid, patch) => editor.updateRoom(rid, patch),

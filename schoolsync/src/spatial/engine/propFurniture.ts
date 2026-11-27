@@ -181,6 +181,62 @@ export function buildFurnitureProp(
       box(root, 0.06, 0.025, 0.02, 0.48, 2.3, 0.125, sage);
       return { root, materials };
     }
+    case 'podium': {
+      box(root, 0.72, 0.08, 0.56, 0, 0.04, 0, metal);
+      box(root, 0.62, 1.04, 0.44, 0, 0.6, 0, darkWood);
+      box(root, 0.74, 0.05, 0.56, 0, 1.14, 0.02, birch, 0.16);
+      cyl(root, 0.012, 0.012, 0.24, 0.18, 1.26, -0.05, screen);
+      return { root, materials };
+    }
+    case 'reception_desk': {
+      box(root, 2.6, 1.06, 0.78, 0, 0.53, 0, white);
+      box(root, 2.66, 0.06, 0.84, 0, 1.09, 0, birch);
+      box(root, 2.3, 0.14, 0.06, 0, 0.55, 0.4, blue);
+      box(root, 0.48, 0.3, 0.03, -0.5, 1.28, -0.1, screen);
+      return { root, materials };
+    }
+    case 'sofa': {
+      box(root, 2.1, 0.28, 0.86, 0, 0.24, 0, pad);
+      box(root, 2.1, 0.52, 0.22, 0, 0.58, -0.32, pad);
+      box(root, 0.2, 0.46, 0.86, -0.95, 0.44, 0, pad);
+      box(root, 0.2, 0.46, 0.86, 0.95, 0.44, 0, pad);
+      for (const lx of [-0.92, 0.92]) for (const lz of [-0.34, 0.34]) cyl(root, 0.025, 0.02, 0.12, lx, 0.06, lz, metal);
+      return { root, materials };
+    }
+    case 'cafeteria_table': {
+      box(root, 2.1, 0.06, 0.92, 0, 0.74, 0, birch);
+      for (const sx of [-0.8, 0.8]) box(root, 0.06, 0.72, 0.72, sx, 0.36, 0, metal);
+      for (const bz of [-0.68, 0.68]) {
+        box(root, 1.95, 0.05, 0.34, 0, 0.44, bz, birch);
+        for (const sx of [-0.75, 0.75]) box(root, 0.05, 0.42, 0.28, sx, 0.21, bz, metal);
+      }
+      return { root, materials };
+    }
+    case 'wall_tv': {
+      box(root, 1.84, 1.06, 0.06, 0, 1.65, 0, screen);
+      box(root, 1.76, 0.98, 0.07, 0, 1.65, 0.01, blue);
+      box(root, 0.32, 0.22, 0.08, 0, 1.65, -0.04, metal);
+      return { root, materials };
+    }
+    case 'trophy_case': {
+      box(root, 1.7, 2.0, 0.48, 0, 1.0, 0, darkWood);
+      for (let i = 0; i < 3; i++) box(root, 1.56, 0.04, 0.4, 0, 0.42 + i * 0.54, 0.02, white);
+      for (const tx of [-0.45, 0, 0.45]) cyl(root, 0.08, 0.04, 0.24, tx, 1.12, 0.04, blue);
+      return { root, materials };
+    }
+    case 'science_table': {
+      box(root, 2.2, 0.06, 1.0, 0, 0.82, 0, screen);
+      for (const lx of [-0.95, 0.95]) for (const lz of [-0.4, 0.4]) box(root, 0.06, 0.8, 0.06, lx, 0.4, lz, metal);
+      cyl(root, 0.06, 0.08, 0.28, -0.5, 0.98, 0.1, sage);
+      cyl(root, 0.05, 0.07, 0.22, 0.45, 0.95, -0.1, blue);
+      return { root, materials };
+    }
+    case 'projector_screen': {
+      box(root, 2.8, 0.12, 0.12, 0, 2.55, 0, metal);
+      box(root, 2.6, 1.55, 0.03, 0, 1.72, 0, white);
+      box(root, 2.66, 0.05, 0.05, 0, 0.94, 0, screen);
+      return { root, materials };
+    }
     default:
       return null;
   }

@@ -17,6 +17,7 @@ import './styles/family-stage.css';
 import './styles/orb-dock.css';
 import './styles/campus-editor.css';
 import './styles/editor-props.css';
+import './styles/teachers-presence.css';
 import './styles/liquid-glass.css';
 
 createRoot(document.getElementById('root')!).render(

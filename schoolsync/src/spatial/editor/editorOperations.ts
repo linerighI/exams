@@ -113,6 +113,7 @@ export function buildNewProp(
   z: number,
   rotationY: number,
   gridSnap: number,
+  modelUrl?: string,
 ): CampusProp {
   const catItem = PROP_CATALOG.find((c) => c.id === prefabId);
   const fl = draft.floors.find((f) => f.id === floorId);
@@ -120,12 +121,13 @@ export function buildNewProp(
     id: editorUid('prop'),
     floorId,
     prefabId,
-    category: catItem?.category || 'furniture',
+    category: modelUrl ? 'external' : catItem?.category || 'furniture',
     x: snapCoord(x, gridSnap * 0.5),
     y: fl?.elevationY || 0,
     z: snapCoord(z, gridSnap * 0.5),
     rotationY,
     scale: catItem?.defaultScale || 1,
+    ...(modelUrl ? { modelUrl } : {}),
   };
 }
 

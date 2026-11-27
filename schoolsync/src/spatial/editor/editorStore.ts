@@ -45,7 +45,9 @@ export function useCampusEditor(initialLayout: CampusLayout | null, lang: Langua
   const [activeFloorId, setActiveFloorId] = useState<string>(() => draft.floors[0]?.id || 'floor-1');
   const [activeWingId, setActiveWingId] = useState<string>(() => draft.wings[0]?.id || 'main');
   const [activePropId, setActivePropId] = useState<string>('desk_cluster');
+  const [activeModelUrl, setActiveModelUrl] = useState<string | undefined>(undefined);
   const [propRotation, setPropRotation] = useState<number>(0);
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [gridSnap, setGridSnap] = useState<number>(0.5);
   const [onionSkin, setOnionSkin] = useState<boolean>(true);
   const [geoCalibratorOpen, setGeoCalibratorOpen] = useState<boolean>(false);
@@ -167,12 +169,12 @@ export function useCampusEditor(initialLayout: CampusLayout | null, lang: Langua
   );
 
   const addProp = useCallback(
-    (prefabId: string, x: number, z: number) => {
-      const prop = buildNewProp(draft, prefabId, activeFloorId, x, z, propRotation, gridSnap);
+    (prefabId: string, x: number, z: number, modelUrl?: string) => {
+      const prop = buildNewProp(draft, prefabId, activeFloorId, x, z, propRotation, gridSnap, modelUrl ?? activeModelUrl);
       commit((prev) => ({ ...prev, props: [...prev.props, prop] }));
       setSelected({ type: 'prop', id: prop.id });
     },
-    [activeFloorId, commit, draft, gridSnap, propRotation],
+    [activeFloorId, activeModelUrl, commit, draft, gridSnap, propRotation],
   );
 
   const updateProp = useCallback(
@@ -271,7 +273,8 @@ export function useCampusEditor(initialLayout: CampusLayout | null, lang: Langua
 
   return {
     draft, tool, setTool, selected, setSelected, activeFloorId, setActiveFloorId,
-    activeWingId, setActiveWingId, activePropId, setActivePropId, propRotation, setPropRotation,
+    activeWingId, setActiveWingId, activePropId, setActivePropId, activeModelUrl, setActiveModelUrl,
+    propRotation, setPropRotation, transformMode, setTransformMode,
     gridSnap, setGridSnap, onionSkin, setOnionSkin, geoCalibratorOpen, setGeoCalibratorOpen,
     dirty, setDirty, canUndo: past.length > 0, canRedo: future.length > 0,
     syncLayoutFromServer, undo, redo, addRoom, updateRoom, toggleSharedWallMerge, addOpening, updateOpening, removeOpening, addProp, updateProp,

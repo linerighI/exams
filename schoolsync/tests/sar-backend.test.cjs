@@ -113,3 +113,27 @@ test('incremental dirty hash isolates edits to changed room only', () => {
   assert.notEqual(hashRoomForScene(r1, 0), hashRoomForScene(r1Edited, 0));
   assert.equal(hashRoomForScene(r2, 0), hashRoomForScene(r2, 0));
 });
+
+test('SAR compiles custom shapes, 3-axis scale, 360deg rotation normalization, and external modelUrl', () => {
+  const { sarToLayout, layoutToSar } = require('../server/sar-codec.cjs');
+  const { layoutPayloadSchema } = require('../server/campus-layout-schema.cjs');
+
+  const sar = [
+    'campus "Test" grid 0.5 theme apple-clay',
+    'floor f1 "Floor 1" y 0 height 3.4',
+    '  room r1 "Room 1" kind classroom wing main size 6x5 at (0,0) rot 360',
+    '  prop shape_pillar at (3,2) rot 360 scale (1.2,2.8,1.2) tint #e2e8f0',
+    '  prop ext_wooden_chair at (-2,1) rot 45 scale (1,1,1) url "https://example.com/chair.glb"',
+  ].join('\n');
+
+  const compiled = layoutPayloadSchema.parse(sarToLayout(sar));
+  assert.equal(compiled.rooms[0].rotationY, 0);
+  assert.equal(compiled.props[0].category, 'shapes');
+  assert.equal(compiled.props[0].scaleY, 2.8);
+  assert.equal(compiled.props[1].category, 'external');
+  assert.equal(compiled.props[1].modelUrl, 'https://example.com/chair.glb');
+
+  const reEncoded = layoutToSar(compiled);
+  assert.ok(reEncoded.includes('scale (1.2,2.8,1.2)'));
+  assert.ok(reEncoded.includes('url "https://example.com/chair.glb"'));
+});

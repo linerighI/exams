@@ -196,13 +196,15 @@ export function compileSarToLayout(source: string, lang: Language = 'ar'): SarCo
       floorId: fl.id,
       ...(roomId ? { roomId } : {}),
       prefabId: p.prefabId,
-      category: meta.cat,
+      category: p.modelUrl ? 'external' : meta.cat,
       x: round2(x),
       y: fl.elevationY,
       z: round2(z),
-      rotationY: Number(((p.rotationDeg * Math.PI) / 180).toFixed(4)),
+      rotationY: Number(Math.atan2(Math.sin((p.rotationDeg * Math.PI) / 180), Math.cos((p.rotationDeg * Math.PI) / 180)).toFixed(4)) || 0,
       scale: round2(p.scale ?? meta.scale),
+      ...(p.scale3 ? { scaleX: round2(p.scale3.x), scaleY: round2(p.scale3.y), scaleZ: round2(p.scale3.z) } : {}),
       ...(p.colorTint ? { colorTint: p.colorTint } : {}),
+      ...(p.modelUrl ? { modelUrl: p.modelUrl } : {}),
     };
   });
 

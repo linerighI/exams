@@ -68,7 +68,7 @@ export function hashRoomForScene(room: CampusRoom, elev: number, extras?: RoomEd
 }
 
 export function hashPropForScene(prop: CampusProp, elev: number, wingId: string): string {
-  return JSON.stringify([prop.prefabId, prop.floorId, wingId, prop.roomId, prop.x, prop.z, prop.rotationY, prop.scale, prop.colorTint, elev]);
+  return JSON.stringify([prop.prefabId, prop.floorId, wingId, prop.roomId, prop.x, prop.z, prop.rotationY, prop.scale, prop.scaleX, prop.scaleY, prop.scaleZ, prop.colorTint, prop.modelUrl, elev]);
 }
 
 export function hashBeaconsForScene(beacons: CampusBeacon[], showBeacons: boolean): string {
@@ -104,10 +104,10 @@ export function populateBeaconMarkers(
 }
 
 export function buildWrappedPropMesh(p: CampusProp, elev: number) {
-  const built = buildPropMesh(p.prefabId, p.colorTint);
+  const built = buildPropMesh(p.prefabId, p.colorTint, p.modelUrl);
   built.root.position.set(p.x, elev, p.z);
   built.root.rotation.y = p.rotationY || 0;
-  built.root.scale.setScalar(p.scale || 1);
+  built.root.scale.set(p.scaleX ?? p.scale ?? 1, p.scaleY ?? p.scale ?? 1, p.scaleZ ?? p.scale ?? 1);
   built.root.userData = { editorEntity: { type: 'prop', id: p.id }, propId: p.id };
   built.root.traverse((c) => {
     c.userData = { ...c.userData, editorEntity: { type: 'prop', id: p.id } };

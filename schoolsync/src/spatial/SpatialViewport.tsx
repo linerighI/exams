@@ -45,6 +45,7 @@ interface SpatialViewportProps {
   editorFloorId: string;
   editorGridSnap: number;
   editorOnionSkin: boolean;
+  editorTransformMode: 'translate' | 'rotate' | 'scale';
   editorCallbacks: Omit<EditorControllerCallbacks, 'getState'>;
   teacherPresence: TeacherPresenceRecord[];
   teacherTrail: TrailPoint[];
@@ -75,6 +76,7 @@ export function SpatialViewport({
   editorFloorId,
   editorGridSnap,
   editorOnionSkin,
+  editorTransformMode,
   editorCallbacks,
   teacherPresence,
   teacherTrail,
@@ -162,7 +164,7 @@ export function SpatialViewport({
         },
         onSelectEntity: (e) => edRef.current.onSelectEntity(e),
         onCreateRoom: (r) => edRef.current.onCreateRoom(r),
-        onTransformCommit: (en, x, z, rot) => edRef.current.onTransformCommit(en, x, z, rot),
+        onTransformCommit: (en, x, z, rot, sc) => edRef.current.onTransformCommit(en, x, z, rot, sc),
         onResizeCommit: (rid, patch) => edRef.current.onResizeCommit(rid, patch),
         onAddOpening: (rid, w, off, t, wi) => edRef.current.onAddOpening(rid, w, off, t, wi),
         onMoveOpening: (rid, oid, patch) => edRef.current.onMoveOpening(rid, oid, patch),
@@ -212,8 +214,8 @@ export function SpatialViewport({
       editorSelected?.type === 'room'
         ? layout.rooms.find((r) => r.id === editorSelected.id) || null
         : null;
-    eng.editor.sync(editorMode, editorTool, editorSelected, selRoom, elev, eng.graph, editorGridSnap);
-  }, [graphReady, rooms, data, layout, floor, showRoofs, access, teacherPresence, editorMode, editorTool, editorSelected, editorFloorId, editorGridSnap, editorOnionSkin]);
+    eng.editor.sync(editorMode, editorTool, editorSelected, selRoom, elev, eng.graph, editorGridSnap, editorTransformMode);
+  }, [graphReady, rooms, data, layout, floor, showRoofs, access, teacherPresence, editorMode, editorTool, editorSelected, editorFloorId, editorGridSnap, editorOnionSkin, editorTransformMode]);
 
   useEffect(() => {
     const eng = engineRef.current;
@@ -255,21 +257,25 @@ export function SpatialViewport({
           {teacherPresence
             .filter((t) => t.room_id || t.status !== 'offline')
             .filter((t) => floor === 'all' || !t.floor_id || t.floor_id === floor)
-            .map((t) => (
-              <button
-                key={t.teacher_id}
-                type="button"
-                ref={(el) => {
-                  if (el) teacherPillRefs.current.set(t.teacher_id, el);
-                  else teacherPillRefs.current.delete(t.teacher_id);
-                }}
-                className={`sp-teacher-pill ${t.mismatch ? 'is-mismatch' : ''}`}
-                onClick={() => onSelectTeacher(t.teacher_id)}
-              >
-                <Radio size={10} />
-                <span>{t.teacher_name || t.teacher_id}</span>
-              </button>
-            ))}
+            .map((t) => {
+              const roomLbl = t.room_id ? rooms.find((r) => r.roomId === t.room_id)?.label : null;
+              return (
+                <button
+                  key={t.teacher_id}
+                  type="button"
+                  ref={(el) => {
+                    if (el) teacherPillRefs.current.set(t.teacher_id, el);
+                    else teacherPillRefs.current.delete(t.teacher_id);
+                  }}
+                  className={`sp-teacher-pill ${t.mismatch ? 'is-mismatch' : ''}`}
+                  onClick={() => onSelectTeacher(t.teacher_id)}
+                >
+                  <span className={`sp-status-dot ${t.mismatch ? 'is-amber' : t.status === 'in_class' ? 'is-blue' : 'is-green'}`} />
+                  <span>{t.teacher_name || t.teacher_id}</span>
+                  {roomLbl && <em>{roomLbl}</em>}
+                </button>
+              );
+            })}
         </div>
       )}
     </div>

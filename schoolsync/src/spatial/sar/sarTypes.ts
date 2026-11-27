@@ -1,6 +1,7 @@
 /**
  * AST, diagnostic, compiler output, and template contracts for SAR
  * (Spatial Architectural Representation) in the SARE 3D School Engine.
+ * Rule: Every new 3D builder shape, prop, transform, or external model MUST be represented in SAR.
  */
 import type {
   CampusLayout,
@@ -102,7 +103,9 @@ export interface SarPropAst {
   offset: { dx: number; dz: number };
   rotationDeg: number;
   scale?: number;
+  scale3?: { x: number; y: number; z: number };
   colorTint?: string;
+  modelUrl?: string;
 }
 
 export interface SarProgramAst {

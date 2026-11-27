@@ -82,8 +82,11 @@ export function serializeLayoutToSar(layout: CampusLayout): string {
         : `at (${n(p.x)}, ${n(p.z)})`;
       const rp = [`  prop ${p.prefabId} ${anchor}`];
       if (deg(p.rotationY) !== 0) rp.push(`rot ${deg(p.rotationY)}`);
-      if (Math.abs((p.scale ?? 1) - 1) > 0.01) rp.push(`scale ${n(p.scale)}`);
+      const hasV3 = p.scaleX !== undefined || p.scaleY !== undefined || p.scaleZ !== undefined;
+      if (hasV3) rp.push(`scale (${n(p.scaleX ?? p.scale ?? 1)},${n(p.scaleY ?? p.scale ?? 1)},${n(p.scaleZ ?? p.scale ?? 1)})`);
+      else if (Math.abs((p.scale ?? 1) - 1) > 0.01) rp.push(`scale ${n(p.scale)}`);
       if (p.colorTint) rp.push(`tint ${p.colorTint}`);
+      if (p.modelUrl) rp.push(`url ${q(p.modelUrl)}`);
       out.push(rp.join(' '));
     }
     out.push('');

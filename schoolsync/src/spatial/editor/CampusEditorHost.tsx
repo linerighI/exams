@@ -56,6 +56,12 @@ export function CampusEditorHost({
         editor.deleteSelected();
       } else if (e.key.toLowerCase() === 'r' && editor.tool === 'prop') {
         editor.setPropRotation((r) => (r + Math.PI / 2) % (Math.PI * 2));
+      } else if (e.key.toLowerCase() === 'g' && editor.selected) {
+        editor.setTransformMode('translate');
+      } else if (e.key.toLowerCase() === 'r' && editor.selected) {
+        editor.setTransformMode('rotate');
+      } else if (e.key.toLowerCase() === 's' && editor.selected?.type === 'prop') {
+        editor.setTransformMode('scale');
       } else if (e.key === 'Escape') {
         editor.setTool('select');
         editor.setSelected(null);
@@ -110,6 +116,8 @@ export function CampusEditorHost({
       <EditorToolbar
         draft={editor.draft}
         tool={editor.tool}
+        selected={editor.selected}
+        transformMode={editor.transformMode}
         activeFloorId={editor.activeFloorId}
         activeWingId={editor.activeWingId}
         gridSnap={editor.gridSnap}
@@ -122,6 +130,7 @@ export function CampusEditorHost({
         classes={data.classes}
         lang={lang}
         onSelectTool={editor.setTool}
+        onSetTransformMode={editor.setTransformMode}
         onSelectFloor={editor.setActiveFloorId}
         onAddFloor={() => editor.addFloor()}
         onUndo={editor.undo}
@@ -157,9 +166,13 @@ export function CampusEditorHost({
       {editor.tool === 'prop' && (
         <EditorPropDrawer
           activePropId={editor.activePropId}
+          activeModelUrl={editor.activeModelUrl}
           propRotation={editor.propRotation}
           lang={lang}
-          onSelectProp={editor.setActivePropId}
+          onSelectProp={(id, modelUrl) => {
+            editor.setActivePropId(id);
+            editor.setActiveModelUrl(modelUrl);
+          }}
           onRotate={() => editor.setPropRotation((r) => (r + Math.PI / 4) % (Math.PI * 2))}
         />
       )}
