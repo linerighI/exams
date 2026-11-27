@@ -136,6 +136,10 @@ test('Master schedule config, cell conflict barrier, cancel/restore, absence opt
   });
   assert.equal(rw.statusCode, 200);
   assert.equal(rw.json().ok, true);
+  assert.ok(rw.json().canceledCount >= 1);
+  const afterOv = (await app.inject({ method: 'GET', url: '/api/schedule/overview?weekday=3', headers: { cookie } })).json();
+  const canceledInC1 = afterOv.lessons.filter((l) => l.section === c1.name && l.status === 'canceled');
+  assert.ok(canceledInC1.length >= 1);
 
   // 4. Save, list, load, delete profile
   const prof = await app.inject({
