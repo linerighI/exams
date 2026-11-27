@@ -126,24 +126,29 @@ export class CampusEditorController {
     this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hits = this.raycaster.intersectObjects(graph.pickables, true);
+    let roomFallback: { entity: SelectedEditorEntity; point: THREE.Vector3 } | null = null;
     for (const h of hits) {
       let cur: THREE.Object3D | null = h.object;
       while (cur) {
         const ent = cur.userData?.editorEntity as SelectedEditorEntity | undefined;
         if (ent) {
           const entFloor = ent.type === 'room' ? graph.roomsById.get(ent.id)?.floorId : ent.type === 'prop' ? graph.propsById.get(ent.id)?.floorId : ent.type === 'assignment' ? graph.roomsById.get(ent.roomId)?.floorId : activeFloorId;
-          if (!entFloor || entFloor === activeFloorId) return { entity: ent, point: h.point };
+          if (!entFloor || entFloor === activeFloorId) {
+            // Prioritize props/assignments/beacons over enclosing rooms so props inside rooms are always selectable
+            if (ent.type !== 'room') return { entity: ent, point: h.point };
+            if (!roomFallback) roomFallback = { entity: ent, point: h.point };
+          }
           break;
         }
         cur = cur.parent;
       }
     }
-    return null;
+    return roomFallback;
   }
 
   private onDown = (e: PointerEvent) => {
     const st = this.callbacks.getState();
-    if (!st.active || e.button !== 0 || this.transform.dragging) return;
+    if (!st.active || e.button !== 0 || (this.transform.dragging && this.transform.axis !== null)) return;
     if (st.tool === 'select') {
       if (this.openingHandles.tryStartDrag(e.clientX, e.clientY, st.graph) || this.resizeHandles.tryStartDrag(e.clientX, e.clientY)) {
         this.transform.getHelper().visible = false;

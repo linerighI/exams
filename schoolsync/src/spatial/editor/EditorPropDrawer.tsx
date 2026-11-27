@@ -60,6 +60,7 @@ export function EditorPropDrawer({
   const [cat, setCat] = useState<DrawerCat>('furniture');
   const [query, setQuery] = useState('');
   const [onlineItems, setOnlineItems] = useState<OnlinePropItem[]>([]);
+  const [onlineTotal, setOnlineTotal] = useState<number>(0);
   const [loadingOnline, setLoadingOnline] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
   const segTrackRef = useRef<HTMLDivElement>(null);
@@ -75,8 +76,8 @@ export function EditorPropDrawer({
     let alive = true;
     setLoadingOnline(true);
     const t = setTimeout(() => {
-      void api<{ items: OnlinePropItem[] }>(`/props-library/search?q=${encodeURIComponent(query)}`)
-        .then((res) => { if (alive) setOnlineItems(res.items || []); })
+      void api<{ items: OnlinePropItem[]; total?: number }>(`/props-library/search?q=${encodeURIComponent(query)}`)
+        .then((res) => { if (alive) { setOnlineItems(res.items || []); setOnlineTotal(res.total || res.items?.length || 0); } })
         .catch(() => { if (alive) setOnlineItems([]); })
         .finally(() => { if (alive) setLoadingOnline(false); });
     }, 180);
@@ -109,7 +110,7 @@ export function EditorPropDrawer({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={lang === 'ar' ? 'ابحث في PolyHaven 3D…' : 'Search PolyHaven 3D…'}
+              placeholder={lang === 'ar' ? `ابحث في ${onlineTotal || '300+'} مجسم 3D…` : `Search ${onlineTotal || '300+'} 3D models…`}
             />
           </label>
         )}

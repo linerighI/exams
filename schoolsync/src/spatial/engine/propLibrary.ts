@@ -72,6 +72,7 @@ export const PROP_CATALOG: PropCatalogItem[] = [
 
 const gltfCache = new Map<string, Promise<THREE.Group>>();
 const gltfLoader = new GLTFLoader();
+gltfLoader.setCrossOrigin('anonymous');
 
 function loadNormalizedGltf(url: string): Promise<THREE.Group> {
   let p = gltfCache.get(url);
