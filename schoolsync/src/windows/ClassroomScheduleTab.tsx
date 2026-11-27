@@ -3,7 +3,7 @@
  * highlights the active period live, and lets managers add or remove lessons cleanly.
  */
 import { useState, type FormEvent } from 'react';
-import { CalendarRange, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import type { Language } from '../i18n';
 import {
   JORDAN_WEEKDAYS,
@@ -15,7 +15,6 @@ import {
 } from '../jordanTime';
 import type { State } from '../types';
 import { GlassSelect } from './GlassSelect';
-import { UniversalScheduleWindow } from './UniversalScheduleWindow';
 
 interface ClassroomScheduleTabProps {
   className: string;
@@ -40,7 +39,6 @@ export function ClassroomScheduleTab({
   const todayWd = weekdayOfDate(data.date);
   const [weekday, setWeekday] = useState(todayWd >= 0 && todayWd <= 4 ? todayWd : 0);
   const [adding, setAdding] = useState(false);
-  const [universalOpen, setUniversalOpen] = useState(false);
 
   const slots = buildPeriodSlots(data.school);
   const [periodNumber, setPeriodNumber] = useState(1);
@@ -139,26 +137,10 @@ export function ClassroomScheduleTab({
       </div>
 
       {manager && !adding && (
-        <div className="sp-row-actions">
-          <button type="button" className="sp-btn-soft" onClick={() => setAdding(true)}>
-            <Plus size={14} />
-            <span>{lang === 'ar' ? 'إضافة حصة في هذا اليوم' : 'Add Lesson'}</span>
-          </button>
-          <button type="button" className="sp-btn-primary" onClick={() => setUniversalOpen(true)}>
-            <CalendarRange size={14} />
-            <span>{lang === 'ar' ? 'جدول موحد للجميع' : 'Universal Schedule'}</span>
-          </button>
-        </div>
-      )}
-
-      {universalOpen && (
-        <UniversalScheduleWindow
-          data={data}
-          lang={lang}
-          busy={busy}
-          onClose={() => setUniversalOpen(false)}
-          mutate={mutate}
-        />
+        <button type="button" className="sp-btn-soft" onClick={() => setAdding(true)}>
+          <Plus size={14} />
+          <span>{lang === 'ar' ? 'إضافة حصة في هذا اليوم' : 'Add Lesson'}</span>
+        </button>
       )}
 
       {manager && adding && (

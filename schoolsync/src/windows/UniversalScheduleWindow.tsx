@@ -7,7 +7,6 @@ import { CalendarRange, Check, Plus, Trash2 } from 'lucide-react';
 import type { Language } from '../i18n';
 import { JORDAN_WEEKDAYS, buildPeriodSlots } from '../jordanTime';
 import type { State } from '../types';
-import { FloatingWindow } from './FloatingWindow';
 import { GlassSelect } from './GlassSelect';
 
 interface UniversalEntry {
@@ -18,22 +17,22 @@ interface UniversalEntry {
   teacherId: string;
 }
 
-interface UniversalScheduleWindowProps {
+interface UniversalSchedulePanelProps {
   data: State;
   lang: Language;
   busy: boolean;
-  onClose: () => void;
+  onDone: () => void;
   mutate: (url: string, body: unknown, success?: string) => Promise<boolean>;
 }
 
-/** Modal window for authoring & broadcasting a universal schedule across all school classes. */
-export function UniversalScheduleWindow({
+/** Inline universal timetable template editor used inside SchoolScheduleWindow. */
+export function UniversalSchedulePanel({
   data,
   lang,
   busy,
-  onClose,
+  onDone,
   mutate,
-}: UniversalScheduleWindowProps) {
+}: UniversalSchedulePanelProps) {
   const slots = buildPeriodSlots(data.school);
   const [weekday, setWeekday] = useState<number>(0);
   const [periodNumber, setPeriodNumber] = useState<number>(1);
@@ -82,7 +81,7 @@ export function UniversalScheduleWindow({
         ? `تم تطبيق الجدول الموحد على جميع الصفوف (${data.classes.length})`
         : `Universal schedule applied to all ${data.classes.length} classes`,
     );
-    if (ok) onClose();
+    if (ok) onDone();
   };
 
   const dayEntries = entries
@@ -90,20 +89,6 @@ export function UniversalScheduleWindow({
     .sort((a, b) => a.periodNumber - b.periodNumber);
 
   return (
-    <FloatingWindow
-      id="universal-schedule"
-      title={lang === 'ar' ? 'الجدول الموحد لجميع الصفوف' : 'Universal School Schedule'}
-      subtitle={
-        lang === 'ar'
-          ? `يطبق على ${data.classes.length} صفاً دفعة واحدة`
-          : `Applies across all ${data.classes.length} classes`
-      }
-      dock="center"
-      width={490}
-      zIndex={65}
-      onFocus={() => {}}
-      onClose={onClose}
-    >
       <div className="sp-tab-pane">
         <div className="sp-weekday-pills">
           {JORDAN_WEEKDAYS.map((d) => (
@@ -195,6 +180,5 @@ export function UniversalScheduleWindow({
           <span>{lang === 'ar' ? `تطبيق على جميع الصفوف (${entries.length} حصة)` : `Apply to All Classes (${entries.length})`}</span>
         </button>
       </div>
-    </FloatingWindow>
   );
 }

@@ -5,6 +5,7 @@
 const { z } = require('zod');
 const { id, text, time, fail } = require('./db.cjs');
 const { periodWindow } = require('./state.cjs');
+const { buildScheduleOverview, applyUniversalSchedule, swapLessons } = require('./schedule-service.cjs');
 
 function registerLessonRoutes(app, ctx) {
   const { one, run, audit, schoolManager, lesson } = ctx;
@@ -164,13 +165,20 @@ function registerLessonRoutes(app, ctx) {
     return { ok: true };
   });
 
-  /** Apply a universal weekly schedule template across all classes in the school. */
+  /** Return full school-wide daily schedule overview + lead teachers + period slots. */
+  app.get('/api/schedule/overview', async (req) => {
+    ctx.staff(req.user);
+    const wd = Math.max(0, Math.min(6, Number(req.query?.weekday ?? 0) || 0));
+    return buildScheduleOverview(ctx, req.user.school_id, wd);
+  });
+
+  /** Apply a universal weekly schedule template across all (or targeted) classes. */
   app.post('/api/lessons/universal', async (req) => {
-    const u = req.user;
-    schoolManager(u);
+    schoolManager(req.user);
     const v = z
       .object({
         replaceExisting: z.boolean().default(true),
+        targetSections: z.array(text).max(40).optional(),
         entries: z
           .array(
             z.object({
@@ -178,59 +186,21 @@ function registerLessonRoutes(app, ctx) {
               periodNumber: z.number().int().min(1).max(10),
               subject: text,
               teacherId: z.string().optional(),
+              color: z.enum(['blue', 'peach', 'mint', 'lilac', 'pink', 'yellow']).optional(),
             }),
           )
           .min(1)
           .max(60),
       })
       .parse(req.body);
+    return applyUniversalSchedule(ctx, req.user, v);
+  });
 
-    const school = one('SELECT * FROM schools WHERE id=?', u.school_id);
-    const classes = ctx.all('SELECT name, room FROM classes WHERE school_id=?', u.school_id);
-    if (!classes.length) fail('لا توجد صفوف دراسية بعد', 400);
-    const fallbackTeacher = one("SELECT id FROM users WHERE school_id=? AND role='teacher' LIMIT 1", u.school_id);
-    if (!fallbackTeacher) fail('أضف معلماً واحداً على الأقل أولاً', 400);
-
-    let createdCount = 0;
-    let maxEnd = school.end_time;
-    ctx.db.transaction(() => {
-      for (const cls of classes) {
-        const lead = one(
-          "SELECT u.id FROM users u WHERE u.school_id=? AND u.role='teacher' AND (u.section=? OR EXISTS(SELECT 1 FROM teacher_classes tc WHERE tc.teacher_id=u.id AND tc.class_name=?)) LIMIT 1",
-          u.school_id,
-          cls.name,
-          cls.name,
-        );
-        for (const entry of v.entries) {
-          const derived = periodWindow(school, entry.periodNumber);
-          if (!derived) continue;
-          const tid = entry.teacherId || lead?.id || fallbackTeacher.id;
-          if (v.replaceExisting) {
-            run(
-              'DELETE FROM lessons WHERE school_id=? AND section=? AND weekday=? AND period_number=? AND id NOT IN (SELECT COALESCE(lesson_id,"") FROM attendance)',
-              u.school_id, cls.name, entry.weekday, entry.periodNumber,
-            );
-          }
-          const exists = one(
-            'SELECT 1 FROM lessons WHERE school_id=? AND section=? AND weekday=? AND start<? AND end>?',
-            u.school_id, cls.name, entry.weekday, derived.end, derived.start,
-          );
-          if (exists) continue;
-          run(
-            'INSERT INTO lessons(id,school_id,section,teacher_id,subject,room,weekday,start,end,color,period_number) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-            id(), u.school_id, cls.name, tid, entry.subject, cls.room || cls.name,
-            entry.weekday, derived.start, derived.end, 'blue', entry.periodNumber,
-          );
-          run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', u.school_id, tid, cls.name);
-          run('INSERT OR IGNORE INTO teacher_subjects(school_id,teacher_id,subject) VALUES(?,?,?)', u.school_id, tid, entry.subject);
-          if (derived.end > maxEnd) maxEnd = derived.end;
-          createdCount++;
-        }
-      }
-      if (maxEnd > school.end_time) run('UPDATE schools SET end_time=? WHERE id=?', maxEnd, u.school_id);
-      audit(u, `Applied universal schedule (${createdCount} lessons) across ${classes.length} classes`);
-    })();
-    return { ok: true, createdCount, classCount: classes.length };
+  /** Swap two existing lessons' time slots atomically with conflict checks. */
+  app.post('/api/lessons/swap', async (req) => {
+    schoolManager(req.user);
+    const v = z.object({ lessonIdA: text, lessonIdB: text }).parse(req.body);
+    return swapLessons(ctx, req.user, v.lessonIdA, v.lessonIdB);
   });
 }
 

@@ -3,7 +3,7 @@
  * with teacher access locking, roof cutaway toggle, and camera reset.
  */
 import { useRef } from 'react';
-import { Compass, Layers, Lock } from 'lucide-react';
+import { CalendarDays, Compass, Layers, Lock } from 'lucide-react';
 import type { Language } from '../i18n';
 import { gsapPop, useGsapEntrance } from '../spatial/editor/editorMotion';
 import type { CampusLayout } from '../types';
@@ -14,11 +14,13 @@ interface FloorPillProps {
   layout: CampusLayout;
   rooms: ResolvedSpatialRoom[];
   showRoofs: boolean;
+  scheduleOpen?: boolean;
   access: TeacherAccess;
   lang: Language;
   onChangeFloor: (next: FloorFilter) => void;
   onToggleRoofs: () => void;
   onResetCamera: () => void;
+  onToggleSchedule?: () => void;
 }
 
 /** Vertical Apple floor selector dynamically synced with CampusLayout.floors. */
@@ -27,11 +29,13 @@ export function FloorPill({
   layout,
   rooms,
   showRoofs,
+  scheduleOpen = false,
   access,
   lang,
   onChangeFloor,
   onToggleRoofs,
   onResetCamera,
+  onToggleSchedule,
 }: FloorPillProps) {
   const orderedFloors = [...layout.floors].sort((a, b) => b.index - a.index);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -106,6 +110,19 @@ export function FloorPill({
         >
           <Compass size={16} />
         </button>
+        {onToggleSchedule && (
+          <button
+            type="button"
+            className={`sp-tool-btn ${scheduleOpen ? 'is-active' : ''}`}
+            title={lang === 'ar' ? 'جدول المدرسة اليومي' : 'Daily School Schedule'}
+            onClick={(e) => {
+              gsapPop(e.currentTarget);
+              onToggleSchedule();
+            }}
+          >
+            <CalendarDays size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

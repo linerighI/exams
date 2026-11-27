@@ -10,17 +10,12 @@ import { useSchoolSync } from './hooks/useSchoolSync';
 import { FloorPill } from './hud/FloorPill';
 import { ActiveTeachersBar } from './hud/ActiveTeachersBar';
 import { SpatialHud } from './hud/SpatialHud';
+import { SchoolScheduleWindow } from './windows/SchoolScheduleWindow';
 import type { OrbTone } from './Orb';
 import { CampusEditorHost } from './spatial/editor/CampusEditorHost';
 import { useCampusEditor } from './spatial/editor/editorStore';
 import type { TrailPoint } from './spatial/figures/TeacherLiveWindow';
-import {
-  computeTeacherAccess,
-  createBlankCampusLayout,
-  resolveSpatialRooms,
-  type FloorFilter,
-  type ResolvedSpatialRoom,
-} from './spatial/roomCatalog';
+import { computeTeacherAccess, createBlankCampusLayout, resolveSpatialRooms, type FloorFilter, type ResolvedSpatialRoom } from './spatial/roomCatalog';
 import { SpatialViewport, type SpatialSceneHandle } from './spatial/SpatialViewport';
 import { useTeacherTracker } from './tracking/teacherTracker';
 import { tr } from './translations';
@@ -36,6 +31,7 @@ export default function App() {
   const [floor, setFloor] = useState<FloorFilter>('floor-1');
   const [showRoofs, setShowRoofs] = useState(false);
   const [hoveredRoom, setHoveredRoom] = useState<ResolvedSpatialRoom | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [openRoomSlotId, setOpenRoomSlotId] = useState<string | null>(null);
   const [openStudentId, setOpenStudentId] = useState<string | null>(null);
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
@@ -214,12 +210,17 @@ export default function App() {
             layout={activeLayout}
             rooms={rooms}
             showRoofs={showRoofs}
+            scheduleOpen={scheduleOpen}
             access={access}
             lang={s.lang}
             onChangeFloor={(next) => { setFloor(next); sceneHandleRef.current?.flyToFloor(next); }}
             onToggleRoofs={() => setShowRoofs((v) => !v)}
             onResetCamera={() => sceneHandleRef.current?.flyToFloor(floor)}
+            onToggleSchedule={() => setScheduleOpen((v) => !v)}
           />
+          {scheduleOpen && (
+            <SchoolScheduleWindow data={s.data} rooms={rooms} lang={s.lang} busy={s.busy} onClose={() => setScheduleOpen(false)} onSelectRoom={handleSelectRoom} mutate={s.mutate} />
+          )}
           {isManagerRole(s.data.user.role) && (
             <ActiveTeachersBar
               presence={s.data.teacherPresence || []}

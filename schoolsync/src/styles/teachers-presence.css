@@ -130,3 +130,15 @@
 .sp-teacher-chip-meta strong { font-size: 0.76rem; color: var(--sp-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp-teacher-chip-meta small { font-size: 0.68rem; color: var(--sp-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp-teacher-chip-sig { color: var(--sp-blue); opacity: 0.75; }
+
+.sp-sched-grid { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 2px; }
+.sp-sched-class-card { padding: 10px 12px; border-radius: 15px; background: rgba(255, 255, 255, 0.72); border: 1px solid rgba(255, 255, 255, 0.9); display: flex; flex-direction: column; gap: 8px; }
+.sp-sched-class-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sp-sched-class-head strong { display: block; font-size: 0.86rem; color: var(--sp-ink); }
+.sp-sched-class-head small { font-size: 0.72rem; color: var(--sp-muted); }
+.sp-sched-periods { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-sched-pill { padding: 5px 10px; border-radius: 10px; background: rgba(118, 118, 128, 0.08); border: 1px solid rgba(15, 23, 42, 0.06); display: flex; flex-direction: column; }
+.sp-sched-pill strong { font-size: 0.75rem; color: var(--sp-ink); }
+.sp-sched-pill small { font-size: 0.67rem; color: var(--sp-muted); }
+.sp-sched-pill.is-live { background: rgba(0, 122, 255, 0.12); border-color: rgba(0, 122, 255, 0.38); }
+.sp-sched-pill.is-live strong { color: var(--sp-blue); }
