@@ -12,6 +12,7 @@ import type {
 export type * from './spatial/engine/spatialTypes';
 
 export type Role = 'student' | 'parent' | 'teacher' | 'assistant' | 'admin';
+export type DemoRole = 'admin' | 'assistant' | 'teacher' | 'teacher2' | 'parent' | 'student';
 export type LayoutMode = 'auto' | 'phone' | 'tablet' | 'desktop';
 
 export interface LoginRequest {
@@ -56,6 +57,7 @@ export interface SchoolClass {
   location: string;
   room: string;
   sort_order?: number;
+  lead_teacher_id?: string | null;
 }
 
 export interface SubjectItem {
@@ -73,6 +75,8 @@ export interface TeacherProfile {
   classes: string[];
   subjects: string[];
   wings?: WingId[];
+  homeroomSection?: string | null;
+  isAbsent?: boolean;
 }
 
 export interface Student {
@@ -205,3 +209,29 @@ export interface State {
 }
 
 export type { RoomKind };
+
+/** Normalize optional arrays from `/api/state` so downstream spatial modules never crash. */
+export function normalizeState(raw: State): State {
+  return {
+    ...raw,
+    students: raw.students ?? [],
+    classes: raw.classes ?? [],
+    subjects: raw.subjects ?? [],
+    teachers: raw.teachers ?? [],
+    teacherWings: raw.teacherWings ?? [],
+    spatialRooms: raw.spatialRooms ?? [],
+    lessons: raw.lessons ?? [],
+    homework: raw.homework ?? [],
+    grades: raw.grades ?? [],
+    attendance: raw.attendance ?? [],
+    incidents: raw.incidents ?? [],
+    notes: raw.notes ?? [],
+    announcements: raw.announcements ?? [],
+    notifications: raw.notifications ?? [],
+    messages: raw.messages ?? [],
+    contacts: raw.contacts ?? [],
+    accounts: raw.accounts ?? [],
+    rosterAttendance: raw.rosterAttendance ?? [],
+    familyAccess: raw.familyAccess ?? [],
+  };
+}

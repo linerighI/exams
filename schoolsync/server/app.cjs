@@ -36,6 +36,7 @@ const { createWsHub } = require('./ws-hub.cjs');
 function createApp({
   database = ':memory:',
   demo = false,
+  sandbox = false,
   logger = false,
   allowSetup = false,
   clock = () => new Date(),
@@ -47,6 +48,8 @@ function createApp({
     'capacitor://localhost',
     'http://127.0.0.1:5180',
     'http://localhost:5180',
+    'http://127.0.0.1:5185',
+    'http://localhost:5185',
     'https://app.schoolsync.invalid',
     'http://app.schoolsync.invalid',
     'https://linerighi.github.io',
@@ -60,6 +63,7 @@ function createApp({
   if (demo) {
     seed(db);
     require('./demo-arabic.cjs')(db);
+    if (sandbox) require('./seed-sandbox-campus.cjs').seedSandboxCampus(db);
     syncAssignmentsFromExistingRows(db);
   }
 
@@ -153,7 +157,7 @@ function createApp({
       }
       if (host !== req.headers.host) fail('Cross-origin request denied');
     }
-    if (['/api/login', '/api/family-login', '/api/config', '/api/setup'].includes(routePath)) return;
+    if (['/api/login', '/api/family-login', '/api/config', '/api/setup'].includes(routePath) || (demo && routePath === '/api/demo/switch-role')) return;
     const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : '';
     const queryToken = ['/api/live', '/api/notifications/stream'].includes(routePath) ? String(req.query?.token || '') : '';
     const cookieToken = (req.headers.cookie || '')
@@ -223,21 +227,24 @@ function createApp({
 module.exports = { createApp, seed, day, hash };
 
 if (require.main === module) {
+  const isSandbox = process.argv.includes('--sandbox');
+  const isDemo = isSandbox || process.argv.includes('--demo');
+  const inMemory = isSandbox || process.argv.includes('--memory');
   const dataDir = process.env.SCHOOLSYNC_DATA_DIR || path.join(__dirname, '../.data');
-  mkdirSync(dataDir, { recursive: true });
+  if (!inMemory) mkdirSync(dataDir, { recursive: true });
+  const portFlagIdx = process.argv.indexOf('--port');
+  const cliPort = portFlagIdx !== -1 ? Number(process.argv[portFlagIdx + 1]) : NaN;
   const { app } = createApp({
-    database:
-      process.env.SCHOOLSYNC_DB ||
-      path.join(
-        dataDir,
-        process.argv.includes('--demo') ? 'schoolsync.sqlite' : 'schoolsync-live.sqlite',
-      ),
-    demo: process.argv.includes('--demo'),
-    logger: true,
-    allowSetup: process.argv.includes('--setup') || process.env.SCHOOLSYNC_ALLOW_SETUP === '1',
+    database: inMemory
+      ? ':memory:'
+      : process.env.SCHOOLSYNC_DB || path.join(dataDir, isDemo ? 'schoolsync.sqlite' : 'schoolsync-live.sqlite'),
+    demo: isDemo,
+    sandbox: isSandbox,
+    logger: !isSandbox,
+    allowSetup: !isSandbox && (process.argv.includes('--setup') || process.env.SCHOOLSYNC_ALLOW_SETUP === '1'),
   });
   const cloudMode = process.argv.includes('--cloud') || process.argv.includes('--tunnel') || process.argv.includes('--ngrok');
-  const listenPort = Number(process.env.SCHOOLSYNC_PORT || 4320);
+  const listenPort = Number.isFinite(cliPort) ? cliPort : Number(process.env.SCHOOLSYNC_PORT || 4320);
   const listenHost = process.env.SCHOOLSYNC_HOST || (process.argv.includes('--lan') || cloudMode ? '0.0.0.0' : '127.0.0.1');
   app
     .listen({

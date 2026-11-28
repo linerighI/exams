@@ -8,6 +8,7 @@ import { CheckCheck, Pencil, Search } from 'lucide-react';
 import type { Language } from '../i18n';
 import { formatClock, minutesOf, nowMinutesInZone } from '../jordanTime';
 import { gsapPop, useGsapStagger } from '../spatial/editor/editorMotion';
+import { resolveClassLeadTeacher } from '../spatial/leadTeacher';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
 import { getRoomLiveSnapshot } from '../spatial/RoomCalloutLayer';
 import { isManagerRole, type State } from '../types';
@@ -64,9 +65,9 @@ export function ClassroomWindow({
         .filter((s) => !filter.trim() || s.name.toLowerCase().includes(filter.trim().toLowerCase())),
     [data.students, room.className, filter],
   );
-  const classTeachers = useMemo(
-    () => data.teachers.filter((t) => t.classes.includes(room.className)),
-    [data.teachers, room.className],
+  const leadTeacher = useMemo(
+    () => resolveClassLeadTeacher(data, room.className),
+    [data, room.className],
   );
 
   useGsapStagger(paneRef, '.sp-student-row, .sp-lesson-card, .sp-info-row', [tab, filter, room.slotId], {
@@ -146,8 +147,8 @@ export function ClassroomWindow({
               ) : (
                 <>
                   <strong>
-                    {classTeachers[0]
-                      ? `${lang === 'ar' ? 'مربي الصف: ' : 'Class Lead Teacher: '}${classTeachers[0].name}`
+                    {leadTeacher
+                      ? `${lang === 'ar' ? 'مربي الصف: ' : 'Class Lead Teacher: '}${leadTeacher.name}`
                       : lang === 'ar'
                         ? 'لا توجد حصة جارية الآن'
                         : 'No active lesson now'}

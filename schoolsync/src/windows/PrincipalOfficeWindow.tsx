@@ -1,20 +1,25 @@
 /**
- * Principal's Office floating command window: school & Jordanian bell schedule settings,
- * class creation & 3D room slot labeling overview, subjects, and staff accounts.
+ * Principal's Office floating command center: modular KPI header and 4 spacious tabs
+ * covering Classes/Lead Teachers/3D Rooms, Teachers & Wings, Student Enrollment & Directory,
+ * and School Subjects & Bell Timings.
  */
-import { useRef, useState, type FormEvent } from 'react';
-import { Check, Compass, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { CalendarDays } from 'lucide-react';
 import type { Language } from '../i18n';
 import { useGsapStagger } from '../spatial/editor/editorMotion';
 import type { ResolvedSpatialRoom } from '../spatial/roomCatalog';
-import type { Role, State } from '../types';
+import type { CampusLayout, State } from '../types';
 import { FloatingWindow } from './FloatingWindow';
-import { GlassSelect } from './GlassSelect';
 import { SegmentedTabs } from './SegmentedTabs';
+import { PrincipalClassesTab } from './principal/PrincipalClassesTab';
+import { PrincipalSchoolTab } from './principal/PrincipalSchoolTab';
+import { PrincipalStudentsTab } from './principal/PrincipalStudentsTab';
+import { PrincipalTeachersTab } from './principal/PrincipalTeachersTab';
 
 interface PrincipalOfficeWindowProps {
   room: ResolvedSpatialRoom;
   rooms: ResolvedSpatialRoom[];
+  layout: CampusLayout;
   data: State;
   lang: Language;
   busy: boolean;
@@ -23,13 +28,18 @@ interface PrincipalOfficeWindowProps {
   onClose: () => void;
   onFlyToRoom: (room: ResolvedSpatialRoom) => void;
   onEditRoom: (room: ResolvedSpatialRoom) => void;
+  onOpenStudentProfile: (studentId: string) => void;
+  onOpenSchedule?: () => void;
   mutate: (url: string, body: unknown, success?: string) => Promise<boolean>;
 }
 
-/** Principal command window for school hours, 3D room mapping, subjects, and accounts. */
+type PrincipalTab = 'classes' | 'teachers' | 'students' | 'school';
+
+/** Clean, spacious Apple-grade Principal Command Center over the 3D campus. */
 export function PrincipalOfficeWindow({
   room,
   rooms,
+  layout,
   data,
   lang,
   busy,
@@ -38,253 +48,105 @@ export function PrincipalOfficeWindow({
   onClose,
   onFlyToRoom,
   onEditRoom,
+  onOpenStudentProfile,
+  onOpenSchedule,
   mutate,
 }: PrincipalOfficeWindowProps) {
-  const [tab, setTab] = useState<'school' | 'rooms' | 'accounts'>('rooms');
+  const ar = lang === 'ar';
+  const [tab, setTab] = useState<PrincipalTab>('classes');
   const paneRef = useRef<HTMLDivElement>(null);
-  useGsapStagger(paneRef, '.sp-info-row, .sp-inline-box, .sp-field', [tab], {
+
+  useGsapStagger(paneRef, '.sp-info-row, .sp-inline-box, .sp-po-teacher-card', [tab], {
     y: 8,
     stagger: 0.02,
-    duration: 0.24,
+    duration: 0.22,
   });
 
-  const [schoolForm, setSchoolForm] = useState({
-    name: data.school.name,
-    timezone: data.school.timezone,
-    start: data.school.start_time,
-    end: data.school.end_time,
-    periodMinutes: Number(data.school.period_minutes || 45),
-    breakMinutes: Number(data.school.break_minutes || 5),
-    periodCount: Number(data.school.period_count || 7),
-  });
-
-  const [newClass, setNewClass] = useState({ name: '', gradeLevel: '' });
-  const [newSub, setNewSub] = useState('');
-  const [accForm, setAccForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'teacher' as Role,
-    section: data.classes[0]?.name || '',
-  });
-
-  const saveSchool = async (e: FormEvent) => {
-    e.preventDefault();
-    await mutate('/school', schoolForm, 'Saved successfully');
-  };
-
-  const addClass = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!newClass.name.trim()) return;
-    const ok = await mutate(
-      '/classes',
-      { name: newClass.name.trim(), gradeLevel: newClass.gradeLevel.trim(), room: newClass.name.trim() },
-      lang === 'ar' ? 'تمت إضافة الشعبة' : 'Class created',
-    );
-    if (ok) setNewClass({ name: '', gradeLevel: '' });
-  };
-
-  const addSubject = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!newSub.trim()) return;
-    const ok = await mutate('/subjects', { name: newSub.trim(), color: 'blue' }, 'Saved successfully');
-    if (ok) setNewSub('');
-  };
-
-  const addAccount = async (e: FormEvent) => {
-    e.preventDefault();
-    const ok = await mutate(
-      '/accounts',
-      {
-        name: accForm.name,
-        email: accForm.email,
-        password: accForm.password,
-        role: accForm.role,
-        sections: accForm.role === 'teacher' && accForm.section ? [accForm.section] : undefined,
-      },
-      lang === 'ar' ? 'تم إنشاء الحساب بنجاح' : 'Account created',
-    );
-    if (ok) setAccForm({ ...accForm, name: '', email: '', password: '' });
-  };
+  const kpis: { id: PrincipalTab; count: number; label: string }[] = [
+    { id: 'classes', count: data.classes.length, label: ar ? 'الشعب' : 'Classes' },
+    { id: 'teachers', count: data.teachers.length, label: ar ? 'المعلمون' : 'Teachers' },
+    { id: 'students', count: data.students.length, label: ar ? 'الطلبة' : 'Students' },
+    { id: 'school', count: data.subjects.length, label: ar ? 'المواد' : 'Subjects' },
+  ];
 
   return (
     <FloatingWindow
       id={`room-${room.slotId}`}
-      title={room.label}
-      subtitle={lang === 'ar' ? 'إدارة المدرسة والمبنى التفاعلي' : 'School & Spatial Management'}
+      title={ar ? 'مكتب المدير — القيادة المدرسية' : `${room.label} — Command Center`}
+      subtitle={data.school.name}
       dock="right"
-      width={470}
+      width={590}
       zIndex={zIndex}
       onFocus={onFocus}
       onClose={onClose}
+      headerActions={
+        onOpenSchedule ? (
+          <button
+            type="button"
+            className="sp-btn-soft"
+            onClick={onOpenSchedule}
+            title={ar ? 'فتح الجدول الرئيسي للمدرسة' : 'Open Master Schedule'}
+          >
+            <CalendarDays size={14} />
+            <span>{ar ? 'الجدول الرئيسي' : 'Schedule'}</span>
+          </button>
+        ) : undefined
+      }
     >
+      <div className="sp-po-kpi-strip">
+        {kpis.map((k) => (
+          <button
+            key={k.id}
+            type="button"
+            className={`sp-po-kpi-btn ${tab === k.id ? 'is-active' : ''}`}
+            onClick={() => setTab(k.id)}
+          >
+            <strong>{k.count}</strong>
+            <small>{k.label}</small>
+          </button>
+        ))}
+      </div>
+
       <SegmentedTabs
         value={tab}
         onChange={setTab}
         items={[
-          { id: 'rooms', label: lang === 'ar' ? 'الغرف والشعب' : 'Rooms & Classes' },
-          { id: 'school', label: lang === 'ar' ? 'الدوام والجرس' : 'Bell & Hours' },
-          { id: 'accounts', label: lang === 'ar' ? 'المواد والحسابات' : 'Subjects & Staff' },
+          { id: 'classes', label: ar ? 'الشعب والغرف' : 'Classes & 3D' },
+          { id: 'teachers', label: ar ? 'المعلمون' : 'Teachers' },
+          { id: 'students', label: ar ? 'الطلبة' : 'Students' },
+          { id: 'school', label: ar ? 'المواد والدوام' : 'School & Bell' },
         ]}
       />
 
       <div ref={paneRef} className="sp-tab-pane">
-
-      {tab === 'rooms' && (
-        <div className="sp-tab-pane">
-          <form className="sp-inline-box" onSubmit={(e) => void addClass(e)}>
-            <div className="sp-row-2">
-              <input
-                required
-                placeholder={lang === 'ar' ? 'اسم الشعبة الجديدة (مثل: العاشر هـ)' : 'New class name'}
-                value={newClass.name}
-                onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
-              />
-              <input
-                placeholder={lang === 'ar' ? 'المرحلة (الصف العاشر)' : 'Grade level'}
-                value={newClass.gradeLevel}
-                onChange={(e) => setNewClass({ ...newClass, gradeLevel: e.target.value })}
-              />
-            </div>
-            <button type="submit" className="sp-btn-primary" disabled={busy}>
-              <Plus size={14} />
-              <span>{lang === 'ar' ? 'إضافة شعبة' : 'Add Class'}</span>
-            </button>
-          </form>
-
-          <h4 className="sp-subhead">{lang === 'ar' ? 'مسميات الغرف على المجسم (٢٥ موقعاً)' : '3D Spatial Rooms (25)'}</h4>
-          <div className="sp-list-stack">
-            {rooms.map((r) => (
-              <div key={r.slotId} className="sp-info-row">
-                <div>
-                  <strong>{r.label}</strong>
-                  <small>
-                    {r.slotId} · {r.className || (lang === 'ar' ? `طابق ${r.floor}` : `Floor ${r.floor}`)}
-                  </small>
-                </div>
-                <div className="sp-row-actions">
-                  <button type="button" className="sp-icon-btn" onClick={() => onFlyToRoom(r)} title={lang === 'ar' ? 'انتقال' : 'Fly'}>
-                    <Compass size={14} />
-                  </button>
-                  <button type="button" className="sp-icon-btn" onClick={() => onEditRoom(r)} title={lang === 'ar' ? 'تسمية' : 'Label'}>
-                    <Pencil size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <h4 className="sp-subhead">{lang === 'ar' ? 'الشعب المسجلة' : 'Registered Classes'}</h4>
-          <div className="sp-list-stack">
-            {data.classes.map((c) => (
-              <div key={c.id} className="sp-info-row">
-                <div>
-                  <strong>{c.name}</strong>
-                  <small>{c.grade_level || c.room}</small>
-                </div>
-                <button
-                  type="button"
-                  className="sp-icon-btn is-danger"
-                  onClick={() => void mutate(`/classes/${c.id}/delete`, {}, lang === 'ar' ? 'تم حذف الشعبة' : 'Deleted')}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {tab === 'school' && (
-        <form className="sp-form" onSubmit={(e) => void saveSchool(e)}>
-          <label className="sp-field">
-            <span>{lang === 'ar' ? 'اسم المدرسة' : 'School Name'}</span>
-            <input required value={schoolForm.name} onChange={(e) => setSchoolForm({ ...schoolForm, name: e.target.value })} />
-          </label>
-          <div className="sp-row-2">
-            <label className="sp-field">
-              <span>{lang === 'ar' ? 'بداية الدوام' : 'Start'}</span>
-              <input type="time" required value={schoolForm.start} onChange={(e) => setSchoolForm({ ...schoolForm, start: e.target.value })} />
-            </label>
-            <label className="sp-field">
-              <span>{lang === 'ar' ? 'نهاية الدوام' : 'End'}</span>
-              <input type="time" required value={schoolForm.end} onChange={(e) => setSchoolForm({ ...schoolForm, end: e.target.value })} />
-            </label>
-          </div>
-          <div className="sp-row-3">
-            <label className="sp-field">
-              <span>{lang === 'ar' ? 'مدة الحصة (د)' : 'Period (m)'}</span>
-              <input type="number" min={20} max={90} value={schoolForm.periodMinutes} onChange={(e) => setSchoolForm({ ...schoolForm, periodMinutes: Number(e.target.value) })} />
-            </label>
-            <label className="sp-field">
-              <span>{lang === 'ar' ? 'الاستراحة (د)' : 'Break (m)'}</span>
-              <input type="number" min={0} max={30} value={schoolForm.breakMinutes} onChange={(e) => setSchoolForm({ ...schoolForm, breakMinutes: Number(e.target.value) })} />
-            </label>
-            <label className="sp-field">
-              <span>{lang === 'ar' ? 'عدد الحصص' : 'Periods'}</span>
-              <input type="number" min={1} max={10} value={schoolForm.periodCount} onChange={(e) => setSchoolForm({ ...schoolForm, periodCount: Number(e.target.value) })} />
-            </label>
-          </div>
-          <button type="submit" className="sp-btn-primary" disabled={busy}>
-            <Check size={15} />
-            <span>{lang === 'ar' ? 'حفظ إعدادات المدرسة' : 'Save School Settings'}</span>
-          </button>
-        </form>
-      )}
-
-      {tab === 'accounts' && (
-        <div className="sp-tab-pane">
-          <h4 className="sp-subhead">{lang === 'ar' ? 'إضافة مادة دراسية' : 'Add Subject'}</h4>
-          <form className="sp-inline-box" onSubmit={(e) => void addSubject(e)}>
-            <div className="sp-row-actions">
-              <input
-                required
-                placeholder={lang === 'ar' ? 'اسم المادة الجديدة…' : 'New subject name…'}
-                value={newSub}
-                onChange={(e) => setNewSub(e.target.value)}
-              />
-              <button type="submit" className="sp-btn-soft" disabled={busy}>
-                <Plus size={14} />
-                <span>{lang === 'ar' ? 'إضافة' : 'Add'}</span>
-              </button>
-            </div>
-          </form>
-
-          <h4 className="sp-subhead">{lang === 'ar' ? 'إنشاء حساب معلم أو إدارة' : 'Create Staff Account'}</h4>
-          <form className="sp-inline-box" autoComplete="off" onSubmit={(e) => void addAccount(e)}>
-            <div className="sp-row-2">
-              <input required name="staff-full-name" autoComplete="off" placeholder={lang === 'ar' ? 'الاسم الكامل' : 'Full name'} value={accForm.name} onChange={(e) => setAccForm({ ...accForm, name: e.target.value })} />
-              <GlassSelect
-                ariaLabel={lang === 'ar' ? 'الصلاحية' : 'Role'}
-                value={accForm.role}
-                options={[
-                  { value: 'teacher', label: lang === 'ar' ? 'معلم' : 'Teacher' },
-                  { value: 'assistant', label: lang === 'ar' ? 'مساعد المدير' : 'Assistant' },
-                  { value: 'admin', label: lang === 'ar' ? 'مدير' : 'Admin' },
-                  { value: 'parent', label: lang === 'ar' ? 'ولي أمر' : 'Parent' },
-                ]}
-                onChange={(val) => setAccForm({ ...accForm, role: val as Role })}
-              />
-            </div>
-            <div className="sp-row-2">
-              <input type="email" required name="staff-new-email" autoComplete="off" placeholder="name@school.edu" value={accForm.email} onChange={(e) => setAccForm({ ...accForm, email: e.target.value })} />
-              <input type="password" required minLength={12} name="staff-new-password" autoComplete="new-password" placeholder={lang === 'ar' ? 'كلمة مرور (١٢+)' : 'Password (12+)'} value={accForm.password} onChange={(e) => setAccForm({ ...accForm, password: e.target.value })} />
-            </div>
-            {accForm.role === 'teacher' && (
-              <GlassSelect
-                ariaLabel={lang === 'ar' ? 'الشعبة' : 'Section'}
-                value={accForm.section}
-                options={data.classes.map((c) => ({ value: c.name, label: c.name }))}
-                onChange={(val) => setAccForm({ ...accForm, section: val })}
-              />
-            )}
-            <button type="submit" className="sp-btn-primary" disabled={busy}>
-              <Plus size={14} />
-              <span>{lang === 'ar' ? 'إنشاء الحساب' : 'Create Account'}</span>
-            </button>
-          </form>
-        </div>
-      )}
+        {tab === 'classes' && (
+          <PrincipalClassesTab
+            rooms={rooms}
+            data={data}
+            lang={lang}
+            busy={busy}
+            onFlyToRoom={onFlyToRoom}
+            onEditRoom={onEditRoom}
+            mutate={mutate}
+          />
+        )}
+        {tab === 'teachers' && (
+          <PrincipalTeachersTab layout={layout} data={data} lang={lang} busy={busy} mutate={mutate} />
+        )}
+        {tab === 'students' && (
+          <PrincipalStudentsTab
+            rooms={rooms}
+            data={data}
+            lang={lang}
+            busy={busy}
+            onFlyToRoom={onFlyToRoom}
+            onOpenStudentProfile={onOpenStudentProfile}
+            mutate={mutate}
+          />
+        )}
+        {tab === 'school' && (
+          <PrincipalSchoolTab data={data} lang={lang} busy={busy} mutate={mutate} />
+        )}
       </div>
     </FloatingWindow>
   );

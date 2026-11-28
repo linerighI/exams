@@ -1,0 +1,200 @@
+/**
+ * Upgraded Blue Orb Command Hub & Dock styles: floating status chip alongside the orb,
+ * 3-metric pulse strip, Quick Action tile grid, period timeline, and Sandbox role preview cards.
+ */
+.sp-orb-dock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-orb-dock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sp-ink);
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.sp-orb-dock-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.sp-orb-dock-chip.is-sandbox {
+  border-color: rgba(0, 122, 255, 0.3);
+  color: var(--sp-blue);
+}
+
+.sp-orb-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.08), rgba(52, 199, 89, 0.06));
+  border: 1px solid rgba(0, 122, 255, 0.14);
+}
+
+.sp-orb-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sp-orb-hero-meta strong {
+  font-size: 0.94rem;
+  color: var(--sp-ink);
+}
+
+.sp-orb-hero-meta small {
+  font-size: 0.76rem;
+  color: var(--sp-muted);
+}
+
+.sp-orb-role-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--sp-blue);
+}
+
+.sp-orb-cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.sp-orb-cmd-tile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: var(--sp-surface-card);
+  text-align: start;
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.sp-orb-cmd-tile:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.sp-orb-cmd-tile:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  border-color: rgba(0, 122, 255, 0.28);
+}
+
+.sp-orb-cmd-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--sp-blue-soft);
+  color: var(--sp-blue);
+  flex-shrink: 0;
+}
+
+.sp-orb-cmd-icon.is-emerald {
+  background: var(--sp-emerald-soft);
+  color: #047857;
+}
+
+.sp-orb-cmd-icon.is-amber {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.sp-orb-cmd-tile strong {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--sp-ink);
+}
+
+.sp-orb-cmd-tile small {
+  display: block;
+  font-size: 0.69rem;
+  color: var(--sp-muted);
+}
+
+.sp-orb-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-orb-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  font-size: 0.8rem;
+}
+
+.sp-orb-slot.is-now {
+  background: var(--sp-blue-soft);
+  border-color: rgba(0, 122, 255, 0.3);
+}
+
+.sp-sandbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.sp-sandbox-role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  background: var(--sp-surface-card);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.sp-sandbox-role-btn:hover {
+  border-color: rgba(0, 122, 255, 0.35);
+  background: #ffffff;
+}
+
+.sp-sandbox-role-btn.is-active {
+  background: var(--sp-blue-soft);
+  border-color: var(--sp-blue);
+}
+
+.sp-sandbox-role-btn strong {
+  font-size: 0.82rem;
+  color: var(--sp-ink);
+}
+
+.sp-sandbox-role-btn small {
+  font-size: 0.7rem;
+  color: var(--sp-muted);
+}

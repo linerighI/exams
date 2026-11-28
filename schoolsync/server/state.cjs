@@ -198,15 +198,8 @@ function buildState(ctx, u, requestedStudentId, demo) {
     : [];
 
   const teachers = isStaff
-    ? all("SELECT id,name,email,section FROM users WHERE school_id=? AND role='teacher' ORDER BY name", u.school_id).map(
-        (t) => ({
-          id: t.id,
-          name: t.name,
-          email: t.email,
-          classes: ctx.teacherClasses(t),
-          subjects: ctx.teacherSubjects(t),
-          wings: ctx.teacherWings(t),
-        }),
+    ? all("SELECT id,name,email,section,is_absent FROM users WHERE school_id=? AND role='teacher' ORDER BY name", u.school_id).map(
+        (t) => ({ id: t.id, name: t.name, email: t.email, homeroomSection: t.section || null, isAbsent: Boolean(t.is_absent), classes: ctx.teacherClasses(t), subjects: ctx.teacherSubjects(t), wings: ctx.teacherWings(t) }),
       )
     : [];
 

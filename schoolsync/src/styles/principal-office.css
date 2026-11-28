@@ -1,0 +1,215 @@
+/**
+ * Redesigned Principal Office command center styles: KPI quick-jump strip,
+ * spacious labeled cards, lead-teacher pickers, teacher assignment editors, and student directory.
+ */
+.sp-po-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.sp-po-kpi-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: var(--sp-surface-card);
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.sp-po-kpi-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.sp-po-kpi-btn.is-active {
+  background: var(--sp-blue-soft);
+  border-color: rgba(0, 122, 255, 0.35);
+}
+
+.sp-po-kpi-btn strong {
+  font-size: 1.05rem;
+  color: var(--sp-ink);
+  line-height: 1.1;
+}
+
+.sp-po-kpi-btn small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+}
+
+.sp-po-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sp-po-card-head strong {
+  font-size: 0.88rem;
+  color: var(--sp-ink);
+}
+
+.sp-po-subswitch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(118, 118, 128, 0.1);
+}
+
+.sp-po-subswitch button {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sp-muted);
+}
+
+.sp-po-subswitch button.is-active {
+  background: #ffffff;
+  color: var(--sp-ink);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.sp-po-lead-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sp-po-lead-picker {
+  min-width: 170px;
+}
+
+.sp-po-teacher-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: 15px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.055);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.sp-po-teacher-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sp-po-teacher-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sp-po-teacher-id strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--sp-ink);
+}
+
+.sp-po-teacher-id small {
+  display: block;
+  font-size: 0.73rem;
+  color: var(--sp-muted);
+}
+
+.sp-po-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sp-po-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(118, 118, 128, 0.1);
+  color: var(--sp-ink);
+}
+
+.sp-po-badge.is-blue {
+  background: var(--sp-blue-soft);
+  color: var(--sp-blue);
+}
+
+.sp-po-badge.is-emerald {
+  background: var(--sp-emerald-soft);
+  color: #047857;
+}
+
+.sp-po-absent-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(52, 199, 89, 0.12);
+  color: #047857;
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sp-po-absent-btn.is-absent {
+  background: var(--sp-coral-soft);
+  border-color: rgba(244, 63, 94, 0.28);
+  color: #be123c;
+}
+
+.sp-po-teacher-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(60, 60, 67, 0.14);
+}
+
+.sp-po-subject-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.sp-po-subj-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--sp-surface-card);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sp-po-subj-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.sp-po-hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--sp-muted);
+  line-height: 1.45;
+}

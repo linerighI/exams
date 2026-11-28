@@ -6,10 +6,11 @@ import type { Dispatch, SetStateAction } from 'react';
 import { Box } from 'lucide-react';
 import type { Language } from '../i18n';
 import type { OrbTone } from '../Orb';
-import type { CampusLayout, State } from '../types';
+import type { CampusLayout, DemoRole, State } from '../types';
 import { AuthWindow } from './AuthWindow';
 import type { FamilyPanelSection } from './FamilyDetailWindow';
 import { FamilySummaryWindow } from './FamilySummaryWindow';
+import type { OrbCompanionActions } from './OrbCommandGrid';
 import { OrbOverlayHost } from './OrbOverlayHost';
 
 interface CampusOverlayLayerProps {
@@ -29,6 +30,7 @@ interface CampusOverlayLayerProps {
   data: State | null;
   orbTone: OrbTone;
   connectionOpen: boolean;
+  orbActions: OrbCompanionActions;
   familySection: FamilyPanelSection | null;
   setOrbTone: (t: OrbTone) => void;
   setConnectionOpen: (v: boolean) => void;
@@ -40,6 +42,7 @@ interface CampusOverlayLayerProps {
   reloadConfig: () => Promise<void>;
   refresh: () => Promise<void>;
   signIn: (input: { portal: 'staff' | 'family'; email?: string; nationalId?: string; password: string }) => Promise<void>;
+  switchDemoRole?: (role: DemoRole) => Promise<void>;
   loadStudentState: (id: string) => Promise<unknown>;
   mutate: (url: string, body: unknown, success?: string) => Promise<boolean>;
 }
@@ -61,6 +64,7 @@ export function CampusOverlayLayer(p: CampusOverlayLayerProps) {
           onOpenConnectionOrb={() => p.setConnectionOpen(true)}
           onReloadConfig={p.reloadConfig}
           onSignIn={p.signIn}
+          onSwitchDemoRole={p.switchDemoRole}
           onSetupComplete={async () => {
             p.setSetupRequired(false);
             await p.refresh();
@@ -99,12 +103,14 @@ export function CampusOverlayLayer(p: CampusOverlayLayerProps) {
 
       <OrbOverlayHost
         auth={p.auth}
+        demo={p.demo}
         data={p.data}
         schoolName={p.schoolName}
         lang={p.lang}
         offline={p.offline}
         orbTone={p.orbTone}
         connectionOpen={p.connectionOpen}
+        orbActions={p.orbActions}
         onOrbToneChange={p.setOrbTone}
         onCloseConnection={() => p.setConnectionOpen(false)}
         onOpenConnection={() => p.setConnectionOpen(true)}

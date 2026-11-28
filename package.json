@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "schoolsync:dev": "concurrently -k \"node schoolsync/server/app.cjs --setup\" \"vite --config schoolsync/vite.config.ts\"",
+    "schoolsync:sandbox": "node schoolsync/scripts/run-sandbox.cjs",
     "schoolsync:build": "tsc -p schoolsync/tsconfig.json && vite build --config schoolsync/vite.config.ts",
     "schoolsync:test": "node --test schoolsync/tests/*.test.cjs",
     "schoolsync:start": "node schoolsync/server/app.cjs --setup",

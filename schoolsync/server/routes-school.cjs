@@ -62,18 +62,25 @@ function registerSchoolRoutes(app, ctx) {
         gradeLevel: z.string().trim().max(60).optional(),
         location: z.string().trim().max(120).optional(),
         room: z.string().trim().max(60).optional(),
+        leadTeacherId: z.string().nullable().optional(),
       })
       .parse(req.body);
+    if (v.leadTeacherId) {
+      const lt = one("SELECT id FROM users WHERE id=? AND school_id=? AND role='teacher'", v.leadTeacherId, u.school_id);
+      if (!lt) fail('Teacher not found', 404);
+    }
     ctx.db.transaction(() => {
       if (v.id) {
         const existing = one('SELECT * FROM classes WHERE id=? AND school_id=?', v.id, u.school_id);
         if (!existing) fail('Class not found', 404);
+        const nextLead = v.leadTeacherId !== undefined ? v.leadTeacherId : existing.lead_teacher_id;
         run(
-          'UPDATE classes SET name=?,grade_level=?,location=?,room=? WHERE id=?',
+          'UPDATE classes SET name=?,grade_level=?,location=?,room=?,lead_teacher_id=? WHERE id=?',
           v.name,
           v.gradeLevel || '',
           v.location || '',
           v.room || '',
+          nextLead || null,
           v.id,
         );
         if (existing.name !== v.name) {
@@ -81,12 +88,15 @@ function registerSchoolRoutes(app, ctx) {
           run('UPDATE lessons SET section=? WHERE school_id=? AND section=?', v.name, u.school_id, existing.name);
           run('UPDATE teacher_classes SET class_name=? WHERE school_id=? AND class_name=?', v.name, u.school_id, existing.name);
         }
+        if (v.leadTeacherId) {
+          run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', u.school_id, v.leadTeacherId, v.name);
+        }
       } else {
         if (one('SELECT 1 FROM classes WHERE school_id=? AND name=?', u.school_id, v.name))
           fail('توجد شعبة بهذا الاسم بالفعل', 409);
         const maxOrder = one('SELECT COALESCE(MAX(sort_order),0) m FROM classes WHERE school_id=?', u.school_id)?.m || 0;
         run(
-          'INSERT INTO classes(id,school_id,name,grade_level,location,room,sort_order) VALUES(?,?,?,?,?,?,?)',
+          'INSERT INTO classes(id,school_id,name,grade_level,location,room,sort_order,lead_teacher_id) VALUES(?,?,?,?,?,?,?,?)',
           id(),
           u.school_id,
           v.name,
@@ -94,9 +104,34 @@ function registerSchoolRoutes(app, ctx) {
           v.location || '',
           v.room || '',
           maxOrder + 1,
+          v.leadTeacherId || null,
         );
+        if (v.leadTeacherId) {
+          run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', u.school_id, v.leadTeacherId, v.name);
+        }
       }
       audit(u, `Saved class ${v.name}`);
+    })();
+    return { ok: true };
+  });
+
+  app.post('/api/classes/:id/lead-teacher', async (req) => {
+    const u = req.user;
+    schoolManager(u);
+    const cls = one('SELECT * FROM classes WHERE id=? AND school_id=?', req.params.id, u.school_id);
+    if (!cls) fail('Class not found', 404);
+    const v = z.object({ teacherId: z.string().nullable() }).parse(req.body);
+    if (v.teacherId) {
+      const teacher = one("SELECT id FROM users WHERE id=? AND school_id=? AND role='teacher'", v.teacherId, u.school_id);
+      if (!teacher) fail('Teacher not found', 404);
+    }
+    ctx.db.transaction(() => {
+      run('UPDATE classes SET lead_teacher_id=? WHERE id=?', v.teacherId || null, cls.id);
+      if (v.teacherId) {
+        run('INSERT OR IGNORE INTO teacher_classes(school_id,teacher_id,class_name) VALUES(?,?,?)', u.school_id, v.teacherId, cls.name);
+        run("UPDATE users SET section=? WHERE id=? AND (section IS NULL OR section='')", cls.name, v.teacherId);
+      }
+      audit(u, `Set lead teacher for ${cls.name}`);
     })();
     return { ok: true };
   });

@@ -1,11 +1,13 @@
 /**
- * Teachers & homework tab inside ClassroomWindow: lists assigned class teachers,
- * homework items, and inline homework assignment form.
+ * Teachers & homework tab inside ClassroomWindow: displays locked Class Lead Teacher,
+ * manager lead-teacher reassignment selector, subject teachers, and homework creation.
  */
 import { useMemo, useState, type FormEvent } from 'react';
 import { BookOpen, UserCheck } from 'lucide-react';
 import type { Language } from '../i18n';
-import type { State } from '../types';
+import { sortClassTeachers } from '../spatial/leadTeacher';
+import { isManagerRole, type State } from '../types';
+import { GlassSelect } from './GlassSelect';
 
 interface ClassroomTeachersTabProps {
   className: string;
@@ -15,7 +17,7 @@ interface ClassroomTeachersTabProps {
   mutate: (url: string, body: unknown, success?: string) => Promise<boolean>;
 }
 
-/** Displays class teachers and lets staff publish new class homework. */
+/** Displays locked class lead teacher, subject teachers, and inline homework form. */
 export function ClassroomTeachersTab({
   className,
   data,
@@ -25,15 +27,27 @@ export function ClassroomTeachersTab({
 }: ClassroomTeachersTabProps) {
   const [hwOpen, setHwOpen] = useState(false);
   const [hwForm, setHwForm] = useState({ subject: '', title: '', description: '', due: data.date });
+  const manager = isManagerRole(data.user.role);
+  const cls = useMemo(() => data.classes.find((c) => c.name === className), [data.classes, className]);
 
-  const classTeachers = useMemo(
-    () => data.teachers.filter((t) => t.classes.includes(className)),
-    [data.teachers, className],
+  const { lead, others } = useMemo(
+    () => sortClassTeachers(data, className),
+    [data, className],
   );
+  const orderedTeachers = lead ? [lead, ...others] : others;
   const classHomework = useMemo(
     () => (data.schoolWorkspace?.homework || []).filter((h) => h.section === className),
     [data.schoolWorkspace, className],
   );
+
+  const handleAssignLead = async (teacherId: string) => {
+    if (!cls) return;
+    await mutate(
+      `/classes/${cls.id}/lead-teacher`,
+      { teacherId: teacherId || null },
+      lang === 'ar' ? 'تم تثبيت مربي الصف' : 'Class lead teacher updated',
+    );
+  };
 
   const handleCreateHomework = async (e: FormEvent) => {
     e.preventDefault();
@@ -56,27 +70,46 @@ export function ClassroomTeachersTab({
 
   return (
     <div className="sp-tab-pane">
-      <h4 className="sp-subhead">{lang === 'ar' ? 'مربي الصف ومعلمو الشعبة' : 'Class Lead & Assigned Teachers'}</h4>
+      <div className="sp-section-split">
+        <h4 className="sp-subhead">{lang === 'ar' ? 'مربي الصف ومعلمو الشعبة' : 'Class Lead & Teachers'}</h4>
+        {manager && cls && data.teachers.length > 0 && (
+          <div style={{ minWidth: 185 }}>
+            <GlassSelect
+              ariaLabel={lang === 'ar' ? 'تعيين مربي الصف' : 'Assign Lead Teacher'}
+              value={lead?.id || ''}
+              options={[
+                { value: '', label: lang === 'ar' ? '— تعيين مربي الصف —' : '— Select Lead —' },
+                ...data.teachers.map((t) => ({ value: t.id, label: t.name })),
+              ]}
+              onChange={(val) => void handleAssignLead(val)}
+            />
+          </div>
+        )}
+      </div>
+
       <div className="sp-list-stack">
-        {classTeachers.length === 0 ? (
-          <p className="sp-empty-note">{lang === 'ar' ? 'لا يوجد مربي صف مرتبط بعد' : 'No class lead teacher assigned'}</p>
+        {orderedTeachers.length === 0 ? (
+          <p className="sp-empty-note">{lang === 'ar' ? 'لا يوجد معلمون مرتبطون بهذه الشعبة بعد' : 'No assigned teachers yet'}</p>
         ) : (
-          classTeachers.map((t, idx) => (
-            <div key={t.id} className="sp-info-row">
-              <UserCheck size={15} className="is-blue" />
-              <div>
-                <strong>
-                  {t.name}
-                  {idx === 0 && (
-                    <span className="sp-live-chip">
-                      {lang === 'ar' ? 'مربي الصف' : 'Class Lead'}
-                    </span>
-                  )}
-                </strong>
-                <small>{t.subjects.join(' · ') || t.email}</small>
+          orderedTeachers.map((t) => {
+            const isLead = lead?.id === t.id;
+            return (
+              <div key={t.id} className="sp-info-row">
+                <UserCheck size={15} className="is-blue" />
+                <div>
+                  <strong>
+                    {t.name}
+                    {isLead && (
+                      <span className="sp-live-chip">
+                        {lang === 'ar' ? 'مربي الصف' : 'Class Lead'}
+                      </span>
+                    )}
+                  </strong>
+                  <small>{t.subjects.join(' · ') || t.email}</small>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

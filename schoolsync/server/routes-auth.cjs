@@ -153,6 +153,38 @@ function registerAuthRoutes(app, ctx, { allowSetup, demo, nationalHash }) {
     return session(reply, u, req);
   });
 
+  if (demo) {
+    const DEMO_ROLE_USER_IDS = {
+      admin: 'admin-demo',
+      assistant: 'assistant-demo',
+      teacher: 'teacher-demo',
+      teacher2: 'teacher-sibling',
+      parent: 'parent-demo',
+      student: 'student-demo',
+    };
+    app.post('/api/demo/switch-role', async (req, reply) => {
+      const { role } = z
+        .object({ role: z.enum(['admin', 'assistant', 'teacher', 'teacher2', 'parent', 'student']) })
+        .parse(req.body);
+      const targetId = DEMO_ROLE_USER_IDS[role];
+      const u = one('SELECT * FROM users WHERE id=?', targetId);
+      if (!u) fail('Demo role account not found', 404);
+      const oldToken = readSessionToken(req);
+      if (oldToken) run('DELETE FROM sessions WHERE token=?', digest(oldToken));
+      const payload = session(reply, u, req);
+      if (role === 'parent' || role === 'student') {
+        const linked = one(
+          role === 'student'
+            ? 'SELECT id FROM students WHERE user_id=? LIMIT 1'
+            : 'SELECT student_id AS id FROM guardian_links WHERE guardian_id=? LIMIT 1',
+          u.id,
+        );
+        if (linked?.id) payload.entryStudentId = linked.id;
+      }
+      return payload;
+    });
+  }
+
   app.post('/api/logout', async (req, reply) => {
     const token = readSessionToken(req);
     if (token) run('DELETE FROM sessions WHERE token=?', digest(token));

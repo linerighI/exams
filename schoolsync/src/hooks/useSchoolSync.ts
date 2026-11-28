@@ -9,33 +9,7 @@ import { resetNativeAlertsMemory, syncNativeAlerts } from '../nativeNotify';
 import { discoverAndSwitchServer, getAutoDiscoverEnabled, SERVER_UPDATED_EVENT } from '../registry';
 import { setLanguage, tr } from '../translations';
 import { handleLiveSocketMessage } from '../tracking/teacherTracker';
-import type { LoginRequest, State } from '../types';
-
-/** Normalize optional arrays from `/api/state` so downstream spatial modules never crash. */
-export function normalizeState(raw: State): State {
-  return {
-    ...raw,
-    students: raw.students ?? [],
-    classes: raw.classes ?? [],
-    subjects: raw.subjects ?? [],
-    teachers: raw.teachers ?? [],
-    teacherWings: raw.teacherWings ?? [],
-    spatialRooms: raw.spatialRooms ?? [],
-    lessons: raw.lessons ?? [],
-    homework: raw.homework ?? [],
-    grades: raw.grades ?? [],
-    attendance: raw.attendance ?? [],
-    incidents: raw.incidents ?? [],
-    notes: raw.notes ?? [],
-    announcements: raw.announcements ?? [],
-    notifications: raw.notifications ?? [],
-    messages: raw.messages ?? [],
-    contacts: raw.contacts ?? [],
-    accounts: raw.accounts ?? [],
-    rosterAttendance: raw.rosterAttendance ?? [],
-    familyAccess: raw.familyAccess ?? [],
-  };
-}
+import { normalizeState, type DemoRole, type LoginRequest, type State } from '../types';
 
 /** Root React hook managing live SchoolSync session, WebSocket updates, and mutations. */
 export function useSchoolSync() {
@@ -273,6 +247,30 @@ export function useSchoolSync() {
     [setData],
   );
 
+  const switchDemoRole = useCallback(
+    async (role: DemoRole) => {
+      setBusy(true);
+      setError('');
+      try {
+        const result = await api<{ entryStudentId?: string }>('/demo/switch-role', { role });
+        pendingAttRef.current.clear();
+        ++requestNumber.current;
+        const state = await api<State>(`/state${result.entryStudentId ? `?student=${encodeURIComponent(result.entryStudentId)}` : ''}`);
+        setChild(result.entryStudentId || '');
+        setData(state, true);
+        setAuth(true);
+        setOffline(false);
+        setLoading(false);
+        setToast(lang === 'ar' ? 'تم التبديل إلى الحساب التجريبي' : `Switched to ${role} preview`);
+      } catch (e) {
+        setError(tr((e as Error).message));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [lang, setData],
+  );
+
   const logout = useCallback(async () => {
     try {
       await api('/logout', {});
@@ -290,6 +288,6 @@ export function useSchoolSync() {
   return {
     data, setData, auth, loading, error, setError, toast, setToast, busy, setBusy,
     child, setChild, lang, setLang, offline, demo, setupRequired, setSetupRequired,
-    schoolName, switching, refresh, reloadConfig, mutate, loadStudentState, signIn, logout,
+    schoolName, switching, refresh, reloadConfig, mutate, loadStudentState, signIn, switchDemoRole, logout,
   };
 }

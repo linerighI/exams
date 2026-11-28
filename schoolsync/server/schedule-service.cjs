@@ -5,19 +5,26 @@
 const { id, fail } = require('./db.cjs');
 const { periodWindow } = require('./state.cjs');
 
-/** Resolve each class's primary Class Lead Teacher (homeroom / first assigned teacher). */
+/** Resolve each class's locked Class Lead Teacher (explicit lead_teacher_id -> homeroom section -> fallback). */
 function getLeadTeachersBySection(ctx, schoolId) {
-  const rows = ctx.all(
-    `SELECT u.id, u.name, COALESCE(u.section, tc.class_name) AS class_name
-     FROM users u
-     LEFT JOIN teacher_classes tc ON tc.teacher_id = u.id AND tc.school_id = u.school_id
-     WHERE u.school_id = ? AND u.role = 'teacher' AND COALESCE(u.section, tc.class_name) IS NOT NULL`,
+  const map = {};
+  const explicit = ctx.all(
+    `SELECT c.name AS class_name, u.id, u.name FROM classes c
+     JOIN users u ON u.id = c.lead_teacher_id AND u.school_id = c.school_id AND u.role = 'teacher'
+     WHERE c.school_id = ?`,
     schoolId,
   );
-  const map = {};
-  for (const r of rows) {
-    if (r.class_name && !map[r.class_name]) map[r.class_name] = { id: r.id, name: r.name };
-  }
+  for (const r of explicit) map[r.class_name] = { id: r.id, name: r.name };
+  const homerooms = ctx.all(
+    "SELECT id, name, section AS class_name FROM users WHERE school_id=? AND role='teacher' AND section IS NOT NULL AND section<>'' ORDER BY name ASC",
+    schoolId,
+  );
+  for (const r of homerooms) if (!map[r.class_name]) map[r.class_name] = { id: r.id, name: r.name };
+  const fallbacks = ctx.all(
+    "SELECT tc.class_name, u.id, u.name FROM teacher_classes tc JOIN users u ON u.id=tc.teacher_id AND u.role='teacher' WHERE tc.school_id=? ORDER BY u.name ASC",
+    schoolId,
+  );
+  for (const r of fallbacks) if (!map[r.class_name]) map[r.class_name] = { id: r.id, name: r.name };
   return map;
 }
 

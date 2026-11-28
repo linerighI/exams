@@ -11,15 +11,18 @@ import { gsapPop, useGsapEntrance } from '../spatial/editor/editorMotion';
 import type { State } from '../types';
 import { ConnectionOrbWindow } from './ConnectionOrbWindow';
 import { DayCompanionWindow } from './DayCompanionWindow';
+import type { OrbCompanionActions } from './OrbCommandGrid';
 
 interface OrbOverlayHostProps {
   auth: boolean;
+  demo: boolean;
   data: State | null;
   schoolName: string;
   lang: Language;
   offline: boolean;
   orbTone: OrbTone;
   connectionOpen: boolean;
+  orbActions: OrbCompanionActions;
   onOrbToneChange: (tone: OrbTone) => void;
   onCloseConnection: () => void;
   onOpenConnection: () => void;
@@ -29,12 +32,14 @@ interface OrbOverlayHostProps {
 /** Manages floating bottom-left DayPulse Blue Orb and Connection/Companion windows. */
 export function OrbOverlayHost({
   auth,
+  demo,
   data,
   schoolName,
   lang,
   offline,
   orbTone,
   connectionOpen,
+  orbActions,
   onOrbToneChange,
   onCloseConnection,
   onOpenConnection,
@@ -88,6 +93,23 @@ export function OrbOverlayHost({
             compact
             onClick={() => setDayCompanionOpen((v) => !v)}
           />
+          <button
+            type="button"
+            className={`sp-orb-dock-chip ${demo ? 'is-sandbox' : ''}`}
+            onClick={() => setDayCompanionOpen((v) => !v)}
+          >
+            {dayPulse?.activeSlot
+              ? lang === 'ar'
+                ? dayPulse.activeSlot.labelAr
+                : dayPulse.activeSlot.labelEn
+              : demo
+                ? lang === 'ar'
+                  ? 'أوامر · تجريبي'
+                  : 'Hub · Sandbox'
+                : lang === 'ar'
+                  ? 'لوحة الأوامر'
+                  : 'Command Hub'}
+          </button>
         </div>
       )}
 
@@ -96,7 +118,9 @@ export function OrbOverlayHost({
           data={data}
           lang={lang}
           offline={offline}
+          demo={demo}
           zIndex={50}
+          actions={orbActions}
           onFocus={() => {}}
           onClose={() => setDayCompanionOpen(false)}
           onOpenConnection={onOpenConnection}

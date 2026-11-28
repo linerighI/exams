@@ -1,14 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+const apiPort = Number(process.env.SCHOOLSYNC_API_PORT || 4320);
+const webPort = Number(process.env.SCHOOLSYNC_WEB_PORT || 5180);
+
 export default defineConfig({
   root: 'schoolsync',
   base: './',
   plugins: [react()],
   server: {
     host: '127.0.0.1',
-    port: 5180,
+    port: webPort,
     strictPort: true,
-    proxy: { '/api': { target: 'http://127.0.0.1:4320', ws: true } },
+    proxy: { '/api': { target: `http://127.0.0.1:${apiPort}`, ws: true } },
   },
   build: {
     outDir: 'dist',

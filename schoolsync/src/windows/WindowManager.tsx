@@ -41,6 +41,7 @@ export interface WindowManagerProps {
   onOpenStudentProfile: (studentId: string) => void;
   onEditRoom: (room: ResolvedSpatialRoom) => void;
   onShowTeacherTrail: (points: TrailPoint[]) => void;
+  onOpenSchedule?: () => void;
   mutate: (url: string, body: unknown, success?: string) => Promise<boolean>;
   onRefresh: () => Promise<void>;
 }
@@ -68,6 +69,7 @@ export function WindowManager({
   onOpenStudentProfile,
   onEditRoom,
   onShowTeacherTrail,
+  onOpenSchedule,
   mutate,
   onRefresh,
 }: WindowManagerProps) {
@@ -119,6 +121,7 @@ export function WindowManager({
           <PrincipalOfficeWindow
             room={room}
             rooms={rooms}
+            layout={layout}
             data={data}
             lang={lang}
             busy={busy}
@@ -127,6 +130,8 @@ export function WindowManager({
             onClose={onCloseRoom}
             onFlyToRoom={onSelectRoom}
             onEditRoom={onEditRoom}
+            onOpenStudentProfile={onOpenStudentProfile}
+            onOpenSchedule={onOpenSchedule}
             mutate={mutate}
           />
         );

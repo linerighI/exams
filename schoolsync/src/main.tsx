@@ -19,6 +19,8 @@ import './styles/campus-editor.css';
 import './styles/editor-props.css';
 import './styles/teachers-presence.css';
 import './styles/schedule-master.css';
+import './styles/principal-office.css';
+import './styles/orb-companion.css';
 import './styles/liquid-glass.css';
 
 createRoot(document.getElementById('root')!).render(

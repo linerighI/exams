@@ -7,6 +7,7 @@ import { Pencil, Sparkles } from 'lucide-react';
 import type { Language } from '../i18n';
 import { minutesOf, nowMinutesInZone, weekdayOfDate } from '../jordanTime';
 import type { Lesson, State } from '../types';
+import { resolveClassLeadTeacher } from './leadTeacher';
 import type { FloorFilter, ResolvedSpatialRoom, TeacherAccess } from './roomCatalog';
 
 export interface RoomLiveSnapshot {
@@ -111,7 +112,7 @@ export function RoomCalloutLayer({
   const live = hoveredRoom ? getRoomLiveSnapshot(hoveredRoom, data) : null;
   const fallbackTeacher =
     hoveredRoom?.className && data
-      ? data.teachers.find((t) => t.classes.includes(hoveredRoom.className))
+      ? resolveClassLeadTeacher(data, hoveredRoom.className)
       : null;
 
   return (

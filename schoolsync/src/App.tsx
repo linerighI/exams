@@ -78,14 +78,8 @@ export default function App() {
     setMeasureDims,
     flyToFloor: (fl) => sceneHandleRef.current?.flyToFloor(fl),
     onResetWindows: () => {
-      setOpenRoomSlotId(null);
-      setOpenStudentId(null);
-      setEditingSlotId(null);
-      setOpenTeacherId(null);
-      setTeacherTrail([]);
-      setEditLabelsMode(false);
-      setEditorMode(false);
-      setFamilySection(null);
+      setOpenRoomSlotId(null); setOpenStudentId(null); setEditingSlotId(null);
+      setOpenTeacherId(null); setTeacherTrail([]); setEditLabelsMode(false); setEditorMode(false); setFamilySection(null);
     },
   });
 
@@ -94,30 +88,26 @@ export default function App() {
     sceneHandleRef.current?.flyToFloor(floor);
   }, [s.auth, s.data?.user.id, s.data?.campusLayout?.meta.version]);
 
-  const focusWindow = (key: string) => {
-    setFocusOrder((prev) => [...prev.filter((k) => k !== key), key]);
-  };
-
+  const focusWindow = (key: string) => setFocusOrder((prev) => [...prev.filter((k) => k !== key), key]);
+  const clearOpenModals = () => { setOpenRoomSlotId(null); setOpenStudentId(null); setEditingSlotId(null); setOpenTeacherId(null); setEditLabelsMode(false); };
   const handleSelectRoom = (room: ResolvedSpatialRoom) => {
     if (access.restricted && !access.allowedSlots.has(room.slotId)) return;
     if (floor !== 'all' && floor !== room.floorId) setFloor(room.floorId);
     sceneHandleRef.current?.flyToRoom(room, true);
-    if (editLabelsMode) {
-      setEditingSlotId(room.slotId);
-      focusWindow('editor');
-      return;
-    }
-    setOpenRoomSlotId(room.slotId);
-    focusWindow('room');
+    if (editLabelsMode) { setEditingSlotId(room.slotId); focusWindow('editor'); return; }
+    setOpenRoomSlotId(room.slotId); focusWindow('room');
   };
-
-  const handleToggleEditor = () => {
-    setOpenRoomSlotId(null);
-    setOpenStudentId(null);
-    setEditingSlotId(null);
-    setOpenTeacherId(null);
-    setEditLabelsMode(false);
-    setEditorMode((v) => !v);
+  const handleToggleEditor = () => { clearOpenModals(); setEditorMode((v) => !v); };
+  const onSwitchDemoRole = async (role: Parameters<typeof s.switchDemoRole>[0]) => {
+    clearOpenModals(); setScheduleOpen(false); await s.switchDemoRole(role);
+  };
+  const orbActions = {
+    onOpenSchedule: () => setScheduleOpen(true),
+    onToggleEditor: handleToggleEditor,
+    onOpenRoomByKind: (k: string) => { const r = rooms.find((x) => x.kind === k); if (r) handleSelectRoom(r); },
+    onToggleRoofs: () => setShowRoofs((v) => !v),
+    onToggleLang: () => s.setLang(s.lang === 'ar' ? 'en' : 'ar'),
+    onSwitchDemoRole,
   };
 
   if (s.loading) {
@@ -253,6 +243,7 @@ export default function App() {
             onOpenStudentProfile={(id) => { setOpenStudentId(id); focusWindow('student'); void s.loadStudentState(id); }}
             onEditRoom={(r) => { setEditingSlotId(r.slotId); focusWindow('editor'); }}
             onShowTeacherTrail={setTeacherTrail}
+            onOpenSchedule={() => setScheduleOpen(true)}
             mutate={s.mutate}
             onRefresh={s.refresh}
           />
@@ -276,6 +267,7 @@ export default function App() {
         data={s.data}
         orbTone={orbTone}
         connectionOpen={connectionOrbOpen}
+        orbActions={orbActions}
         familySection={familySection}
         setOrbTone={setOrbTone}
         setConnectionOpen={setConnectionOrbOpen}
@@ -287,6 +279,7 @@ export default function App() {
         reloadConfig={s.reloadConfig}
         refresh={s.refresh}
         signIn={s.signIn}
+        switchDemoRole={s.switchDemoRole}
         loadStudentState={s.loadStudentState}
         mutate={s.mutate}
       />

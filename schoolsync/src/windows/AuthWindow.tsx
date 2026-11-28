@@ -8,7 +8,7 @@ import { getCustomServerBase, getServerBase, isStandaloneClient, probeServer } f
 import type { Language } from '../i18n';
 import { Orb, type OrbTone } from '../Orb';
 import { discoverAndSwitchServer, getAutoDiscoverEnabled } from '../registry';
-import type { LoginRequest } from '../types';
+import type { DemoRole, LoginRequest } from '../types';
 import { FloatingWindow } from './FloatingWindow';
 import { SetupWindow } from './SetupWindow';
 
@@ -24,6 +24,7 @@ interface AuthWindowProps {
   onOpenConnectionOrb: () => void;
   onReloadConfig: () => Promise<void>;
   onSignIn: (req: LoginRequest) => Promise<void>;
+  onSwitchDemoRole?: (role: DemoRole) => Promise<void>;
   onSetupComplete: () => Promise<void>;
   onBusyChange: (busy: boolean) => void;
   onErrorChange: (err: string) => void;
@@ -42,6 +43,7 @@ export function AuthWindow({
   onOpenConnectionOrb,
   onReloadConfig,
   onSignIn,
+  onSwitchDemoRole,
   onSetupComplete,
   onBusyChange,
   onErrorChange,
@@ -194,18 +196,32 @@ export function AuthWindow({
           <div className="sp-demo-strip">
             <small>
               <Sparkles size={12} />
-              {lang === 'ar' ? 'دخول سريع للنسخة التجريبية' : 'Demo Quick Access'}
+              {lang === 'ar'
+                ? 'بيئة اختبار معزولة (دخول فوري بدون إنشاء حساب)'
+                : 'Isolated Sandbox · 1-Click Role Preview'}
             </small>
             <div className="sp-demo-chips">
-              <button type="button" onClick={() => void onSignIn({ portal: 'staff', email: 'rami@schoolsync.demo', password: 'SchoolSync!2026' })}>
-                {lang === 'ar' ? 'المدير' : 'Principal'}
-              </button>
-              <button type="button" onClick={() => void onSignIn({ portal: 'staff', email: 'emma@schoolsync.demo', password: 'SchoolSync!2026' })}>
-                {lang === 'ar' ? 'معلم' : 'Teacher'}
-              </button>
-              <button type="button" onClick={() => void onSignIn({ portal: 'family', nationalId: '0000000001', password: 'YousefDemo2026' })}>
-                {lang === 'ar' ? 'ولي أمر' : 'Parent'}
-              </button>
+              {[
+                { role: 'admin' as DemoRole, ar: 'المدير', en: 'Principal' },
+                { role: 'assistant' as DemoRole, ar: 'مساعد المدير', en: 'Assistant' },
+                { role: 'teacher' as DemoRole, ar: 'معلم (جناح غرب)', en: 'Teacher (West)' },
+                { role: 'teacher2' as DemoRole, ar: 'معلم (جناح شرق)', en: 'Teacher (East)' },
+                { role: 'parent' as DemoRole, ar: 'ولي أمر', en: 'Parent' },
+                { role: 'student' as DemoRole, ar: 'طالب', en: 'Student' },
+              ].map((item) => (
+                <button
+                  key={item.role}
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    onSwitchDemoRole
+                      ? void onSwitchDemoRole(item.role)
+                      : void onSignIn({ portal: 'staff', email: 'rami@schoolsync.demo', password: 'SchoolSync!2026' })
+                  }
+                >
+                  {lang === 'ar' ? item.ar : item.en}
+                </button>
+              ))}
             </div>
           </div>
         )}

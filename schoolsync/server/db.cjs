@@ -45,6 +45,7 @@ function migrate(db) {
     ['students', 'national_id', "TEXT NOT NULL DEFAULT ''"],
     ['students', 'national_id_hash', 'TEXT'],
     ['classes', 'sort_order', 'INTEGER NOT NULL DEFAULT 0'],
+    ['classes', 'lead_teacher_id', 'TEXT'],
     ['lessons', 'period_number', 'INTEGER NOT NULL DEFAULT 1'],
     ['notes', 'category', "TEXT NOT NULL DEFAULT 'general'"],
   ];
@@ -177,6 +178,18 @@ function syncAssignmentsFromExistingRows(db) {
         sec.school_id,
         sec.section,
       );
+    }
+    for (const t of db
+      .prepare("SELECT id,school_id,section FROM users WHERE role='teacher' AND section IS NOT NULL AND section<>''")
+      .all()) {
+      db.prepare('INSERT OR IGNORE INTO classes(id,school_id,name) VALUES(?,?,?)').run(
+        `${t.school_id}:${t.section}`,
+        t.school_id,
+        t.section,
+      );
+      db.prepare(
+        "UPDATE classes SET lead_teacher_id=? WHERE school_id=? AND name=? AND (lead_teacher_id IS NULL OR lead_teacher_id='')",
+      ).run(t.id, t.school_id, t.section);
     }
     for (const sub of db.prepare('SELECT DISTINCT school_id,subject,color FROM lessons').all()) {
       db.prepare('INSERT OR IGNORE INTO subjects(id,school_id,name,color) VALUES(?,?,?,?)').run(
